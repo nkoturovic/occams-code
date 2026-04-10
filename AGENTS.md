@@ -106,11 +106,13 @@
 | MCP | **websearch** (Exa) — web search (docs, news, facts) |
 | Skill | **agent-browser** — web automation, screenshots, scraping |
 | Skill | **code-review** — structured code review, security audit |
+| Skill | **simplify** — code cleanup after writing |
+| Skill | **pr-integration** — GitHub PR create/review |
 | Skill | **defuddle** — clean markdown from web pages |
 | Skill | **obsidian-cli/markdown/bases** — Obsidian vault operations |
 | Skill | **json-canvas** — visual canvases, mind maps |
-| Skill | **simplify** — code cleanup after writing |
-| Skill | **pr-integration** — GitHub PR create/review |
+
+Skills 1–4 are bundled with OpenCode. Skills 5–7 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
 
 ## Current Config
 

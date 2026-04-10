@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -572,6 +573,19 @@ def main():
 
     # Replace {home} placeholder with the current user's home directory
     config_text = TEMPLATE.replace("{home}", str(Path.home()))
+
+    # If uv is not installed, disable semantic_search (graceful degradation)
+    if not shutil.which("uv"):
+        try:
+            config = json.loads(config_text)
+            config["mcp"].pop("semantic_search", None)
+            config_text = json.dumps(config, indent=2) + "\n"
+            print(
+                "Note: uv not found — semantic_search MCP disabled. Install uv to enable it.",
+                file=sys.stderr,
+            )
+        except json.JSONDecodeError:
+            pass  # Will be caught below
 
     # Validate generated JSON before writing
     try:

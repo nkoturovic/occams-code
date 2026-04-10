@@ -89,16 +89,40 @@ macOS ships bash 3.2 which is incompatible with Occam's Code. Install bash 5:
 
 ```bash
 brew install bash
+```
 
-# Add to /etc/shells
+**Important:** The scripts use `#!/usr/bin/env bash` which resolves via PATH. After installing bash 5, you have two options:
+
+**Option 1: Run installer explicitly with bash 5 (recommended)**
+```bash
+# Apple Silicon
+/opt/homebrew/bin/bash scripts/install.sh
+
+# Intel Macs
+/usr/local/bin/bash scripts/install.sh
+```
+
+**Option 2: Change login shell (makes all scripts work automatically)**
+```bash
+# Add brew bash to /etc/shells
 echo '/opt/homebrew/bin/bash' | sudo tee -a /etc/shells   # Apple Silicon
 # echo '/usr/local/bin/bash' | sudo tee -a /etc/shells    # Intel Macs
 
-# Set as default (optional)
+# Set as default shell
 chsh -s /opt/homebrew/bin/bash
+
+# Restart terminal, then verify:
+env bash --version   # Should show 5.x
 ```
 
-The `oc` launcher will detect bash < 4 and print an error with instructions.
+### macOS: fzf Setup
+
+`brew install fzf` installs the binary but does not set up shell keybindings. To enable them:
+
+```bash
+$(brew --prefix)/opt/fzf/install
+# Then restart your shell
+```
 
 ### Semantic Search (Optional)
 
@@ -113,7 +137,41 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 oc --memory-sync
 ```
 
-## Post-Install Verification
+## Post-Install Setup
+
+### Add `oc` to PATH
+
+```bash
+echo 'export PATH="$HOME/.config/opencode/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify:
+oc --help
+```
+
+### API Keys
+
+You need at least one provider API key. Create `~/.local/share/opencode/auth.json`:
+
+```json
+{
+  "openrouter": {
+    "api_key": "sk-or-v1-..."
+  },
+  "anthropic": {
+    "api_key": "sk-ant-..."
+  }
+}
+```
+
+Only include providers you have keys for. OpenRouter is recommended as the primary provider (400+ models, pay-per-token).
+
+Get keys from:
+- [OpenRouter](https://openrouter.ai/keys) — recommended, works out of the box
+- [Anthropic](https://console.anthropic.com) — for Claude models
+- [Z.AI](https://z.ai) — subscription plan (GLM-5.1)
+
+### Verify Installation
 
 ```bash
 oc --doctor

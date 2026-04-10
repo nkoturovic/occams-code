@@ -30,11 +30,12 @@ for cmd in python3 jq fzf curl; do
   fi
 done
 
-# Bash version check
+# Bash version check (installer works on 3.2+, but bin/oc requires 4+)
 if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
-  echo -e "${RED}Error: bash 4.0+ required (current: ${BASH_VERSION}).${RESET}" >&2
-  echo -e "  macOS: brew install bash" >&2
-  exit 1
+  echo -e "${YELLOW}Warning: bash ${BASH_VERSION} detected. bin/oc requires bash 4.0+.${RESET}" >&2
+  echo -e "  The installer will succeed, but you must run oc with bash 5:" >&2
+  echo -e "  macOS: /opt/homebrew/bin/bash ~/.config/opencode/bin/oc" >&2
+  echo "" >&2
 fi
 
 echo -e "Source: ${GREEN}$REPO_ROOT${RESET}"
@@ -130,25 +131,52 @@ fi
 # .gitkeep files
 find "$WIKI_DIR" -type d -empty -exec touch {}/.gitkeep \; 2>/dev/null || true
 
+# --- Install obsidian-skills ---
+echo ""
+echo -e "${BOLD}Installing obsidian-skills...${RESET}"
+SKILLS_DIR="$HOME/.opencode/skills"
+mkdir -p "$SKILLS_DIR"
+if [[ ! -d "$SKILLS_DIR/obsidian-skills" ]]; then
+  if command -v git &>/dev/null; then
+    git clone https://github.com/kepano/obsidian-skills "$SKILLS_DIR/obsidian-skills"
+    echo -e "  ${GREEN}✓${RESET} obsidian-skills cloned"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} git not found. Clone https://github.com/kepano/obsidian-skills manually to $SKILLS_DIR/obsidian-skills"
+  fi
+else
+  echo -e "  ${DIM}obsidian-skills already installed (skipped)${RESET}"
+fi
+
 # --- Install oh-my-opencode-slim ---
 echo ""
 echo -e "${BOLD}Installing oh-my-opencode-slim plugin...${RESET}"
-cd "$OPENCODE_DIR"
-if command -v bun &>/dev/null; then
-  bun install oh-my-opencode-slim 2>/dev/null && echo -e "  ${GREEN}✓${RESET} Installed via bun" || echo -e "  ${YELLOW}⚠${RESET} bun install failed (install manually)"
-elif command -v npm &>/dev/null; then
-  npm install oh-my-opencode-slim 2>/dev/null && echo -e "  ${GREEN}✓${RESET} Installed via npm" || echo -e "  ${YELLOW}⚠${RESET} npm install failed (install manually)"
-else
-  echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found. Install oh-my-opencode-slim manually."
-fi
+(
+  cd "$OPENCODE_DIR"
+  if command -v bun &>/dev/null; then
+    if bun install oh-my-opencode-slim; then
+      echo -e "  ${GREEN}✓${RESET} Installed via bun"
+    else
+      echo -e "  ${YELLOW}⚠${RESET} bun install failed — install oh-my-opencode-slim manually"
+    fi
+  elif command -v npm &>/dev/null; then
+    if npm install oh-my-opencode-slim; then
+      echo -e "  ${GREEN}✓${RESET} Installed via npm"
+    else
+      echo -e "  ${YELLOW}⚠${RESET} npm install failed — install oh-my-opencode-slim manually"
+    fi
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found. Install oh-my-opencode-slim manually."
+  fi
+)
 
 # --- Done ---
 echo ""
 echo -e "${GREEN}Installation complete!${RESET}"
 echo ""
 echo "Next steps:"
-echo "  1. Set up API keys (run 'opencode' once to configure)"
-echo "  2. Run: oc --doctor"
-echo "  3. Open ~/wiki/ in Obsidian (optional)"
-echo "  4. Launch: oc"
+echo "  1. Add to PATH: echo 'export PATH=\"\$HOME/.config/opencode/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
+echo "  2. Set up API keys (see INSTALL.md or run 'opencode' to configure)"
+echo "  3. Run: oc --doctor"
+echo "  4. Open ~/wiki/ in Obsidian (optional)"
+echo "  5. Launch: oc"
 echo ""
