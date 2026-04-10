@@ -1,0 +1,373 @@
+{
+  "preset": "balanced",
+  "presets": {
+    "cheap": {
+      "orchestrator": {
+        "model": "openrouter/qwen/qwen3-coder",
+        "variant": "high",
+        "temperature": 0.3,
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "oracle": {
+        "model": "openrouter/deepseek/deepseek-v3.2",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "designer": {
+        "model": "openrouter/google/gemini-3-flash-preview",
+        "variant": "high",
+        "temperature": 0.5,
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "websearch",
+          "context7",
+          "semantic_search"
+        ]
+      },
+      "explorer": {
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "grep_app",
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "librarian": {
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "grep_app",
+          "semantic_search"
+        ]
+      },
+      "fixer": {
+        "model": "openrouter/deepseek/deepseek-v3.2",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      }
+    },
+    "balanced": {
+      "orchestrator": {
+        "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
+        "temperature": 0.3,
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "oracle": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "designer": {
+        "model": "openrouter/google/gemini-3.1-flash-lite-preview",
+        "variant": "high",
+        "temperature": 0.5,
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "websearch",
+          "context7",
+          "semantic_search"
+        ]
+      },
+      "explorer": {
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "grep_app",
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "librarian": {
+        "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "grep_app",
+          "semantic_search"
+        ]
+      },
+      "fixer": {
+        "model": "openrouter/z-ai/glm-5.1",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      }
+    },
+    "zai-coding-plan": {
+      "orchestrator": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.3,
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "oracle": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "designer": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.5,
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "websearch",
+          "context7",
+          "semantic_search"
+        ]
+      },
+      "explorer": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "grep_app",
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "librarian": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "grep_app",
+          "semantic_search"
+        ]
+      },
+      "fixer": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      }
+    },
+    "premium": {
+      "orchestrator": {
+        "model": "anthropic/claude-opus-4-6",
+        "variant": "max",
+        "temperature": 0.3,
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "oracle": {
+        "model": "anthropic/claude-opus-4-6",
+        "variant": "max",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "designer": {
+        "model": "openrouter/google/gemini-3.1-pro-preview",
+        "variant": "max",
+        "temperature": 0.5,
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "websearch",
+          "context7",
+          "semantic_search"
+        ]
+      },
+      "explorer": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "grep_app",
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      },
+      "librarian": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "variant": "high",
+        "temperature": 0.2,
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "grep_app",
+          "semantic_search"
+        ]
+      },
+      "fixer": {
+        "model": "anthropic/claude-opus-4-6",
+        "variant": "max",
+        "temperature": 0.1,
+        "skills": [],
+        "mcps": [
+          "context7",
+          "websearch",
+          "semantic_search"
+        ]
+      }
+    }
+  },
+  "fallback": {
+    "enabled": true,
+    "timeoutMs": 60000,
+    "chains": {
+      "orchestrator": [
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/qwen/qwen3.6-plus",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5.1",
+        "openrouter/qwen/qwen3-coder:free"
+      ],
+      "oracle": [
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/qwen/qwen3.6-plus",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5.1",
+        "openrouter/qwen/qwen3-coder:free"
+      ],
+      "designer": [
+        "openrouter/google/gemini-3.1-pro-preview",
+        "openrouter/google/gemini-3-flash-preview",
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/qwen/qwen3-coder:free"
+      ],
+      "explorer": [
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/qwen/qwen3.6-plus",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/google/gemini-3.1-flash-lite-preview",
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+      ],
+      "librarian": [
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/qwen/qwen3.6-plus",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/google/gemini-3.1-flash-lite-preview",
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+      ],
+      "fixer": [
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5.1",
+        "openrouter/qwen/qwen3-coder:free",
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+      ]
+    }
+  },
+  "council": {
+    "master": {
+      "model": "zai-coding-plan/glm-5.1"
+    },
+    "default_preset": "default",
+    "councillor_execution_mode": "parallel",
+    "presets": {
+      "default": {
+        "reviewer-1": { "model": "zai-coding-plan/glm-5.1" },
+        "reviewer-2": { "model": "zai-coding-plan/glm-5.1" },
+        "reviewer-3": { "model": "zai-coding-plan/glm-5.1" }
+      },
+      "balanced": {
+        "master": { "model": "anthropic/claude-sonnet-4-6" },
+        "reviewer-1": { "model": "anthropic/claude-sonnet-4-6" },
+        "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" },
+        "reviewer-3": { "model": "openrouter/qwen/qwen3.6-plus" }
+      },
+      "cheap": {
+        "master": { "model": "openrouter/deepseek/deepseek-v3.2" },
+        "reviewer-1": { "model": "openrouter/deepseek/deepseek-v3.2" },
+        "reviewer-2": { "model": "openrouter/qwen/qwen3-coder" },
+        "reviewer-3": { "model": "openrouter/qwen/qwen3-coder" }
+      },
+      "premium": {
+        "master": { "model": "anthropic/claude-opus-4-6" },
+        "reviewer-1": { "model": "anthropic/claude-opus-4-6" },
+        "reviewer-2": { "model": "anthropic/claude-sonnet-4-6" },
+        "reviewer-3": { "model": "anthropic/claude-sonnet-4-6" }
+      }
+    }
+  }
+}

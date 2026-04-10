@@ -1,0 +1,5 @@
+# Obsidian — ignore volatile state, keep intentional config
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.obsidian/graph.json

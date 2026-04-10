@@ -1,0 +1,674 @@
+#!/usr/bin/env bash
+#
+# oc - OpenCode launcher with smart role-aware model picker
+#
+# Usage:
+#   oc                  # Interactive: pick preset, tweak agents, launch
+#   oc --quick          # Pick preset + session choice, skip tweaking
+#   oc --preset cheap   # Use preset directly, new session (no session prompt)
+#   oc --memory-sync    # Standard sync (project + wiki, incremental)
+#   oc --sync-fast      # Fast sync (project only, incremental)
+#   oc --sync-full      # Full sync (project + wiki, non-incremental)
+#   oc --lint-wiki      # Run wiki content health check (same as /lint)
+#   oc -c               # Continue last session (skip all prompts)
+#   oc [opencode args]  # Pass-through args to opencode
+#
+
+# --- Bash version gate (requires 4.0+) ---
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo "Error: occams-code requires bash 4.0+." >&2
+  echo "  macOS: brew install bash && use /opt/homebrew/bin/bash or /usr/local/bin/bash" >&2
+  echo "  Linux: your default bash is likely fine" >&2
+  exit 1
+fi
+
+set -euo pipefail
+
+CONFIG="$HOME/.config/opencode/oh-my-opencode-slim.json"
+CORE_CONFIG="$HOME/.config/opencode/opencode.json"
+BOLD='\033[1m'
+DIM='\033[2m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+RESET='\033[0m'
+
+# --- Dependency checks ---
+for cmd in jq fzf python3; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo -e "${RED}Error: $cmd is required but not installed.${RESET}" >&2
+    exit 1
+  fi
+done
+if [[ ! -f "$CONFIG" ]]; then
+  echo -e "${RED}Error: Config not found: $CONFIG${RESET}" >&2
+  exit 1
+fi
+
+# --- Parse arguments ---
+QUICK=false
+PRESET_ARG=""
+MEMORY_SYNC=false
+MEMORY_SYNC_PROFILE="standard"
+INIT_PROJECT=false
+DOCTOR=false
+INGEST_REPO=""
+SYNC_CONFIG=false
+LINT_WIKI=false
+YOLO=false
+OPENCODE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --quick|-q) QUICK=true; shift ;;
+    --preset|-p) PRESET_ARG="$2"; shift 2 ;;
+    --memory-sync|-m) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="standard"; shift ;;
+    --sync-fast) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="fast"; shift ;;
+    --sync-full) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="full"; shift ;;
+    --sync-config) SYNC_CONFIG=true; shift ;;
+    --lint-wiki) LINT_WIKI=true; shift ;;
+    --yolo) YOLO=true; shift ;;
+    --init-project) INIT_PROJECT=true; shift ;;
+    --doctor) DOCTOR=true; shift ;;
+    --ingest-repo) INGEST_REPO="$2"; shift 2 ;;
+    --help|-h)
+      echo "oc - OpenCode launcher with smart model picker"
+      echo ""
+      echo "Usage:"
+      echo "  oc                    Full interactive mode"
+      echo "  oc --quick            Pick preset only"
+      echo "  oc --preset <name>    Use preset directly"
+      echo "  oc --memory-sync      Standard sync (project + wiki, incremental)"
+      echo "  oc --sync-fast        Fast sync (project only, incremental)"
+      echo "  oc --sync-full        Full sync (project + wiki, non-incremental)"
+      echo "  oc --lint-wiki       Run wiki content health check (same as /lint)"
+      echo "  oc --yolo            Temporary auto-approve permissions for this session"
+      echo "  oc --sync-config      Sync AGENTS.md model table from config"
+      echo "  oc --init-project     Create project wiki page + memory bootstrap"
+      echo "  oc --doctor           Run integration health checks"
+      echo "  oc --ingest-repo URL  Ingest GitHub repo digest into wiki raw/sources"
+      echo "  oc -c                 Continue last session"
+      exit 0
+      ;;
+    *) OPENCODE_ARGS+=("$1"); shift ;;
+  esac
+done
+
+# --- Helpers ---
+MODEL_CACHE="/tmp/oc-models-cache-$(date +%Y%m%d)"
+get_models() {
+  if [[ ! -f "$MODEL_CACHE" ]]; then
+    opencode models 2>/dev/null > "$MODEL_CACHE" || true
+  fi
+  cat "$MODEL_CACHE"
+}
+
+# Build role-aware picker: shows best models for the agent role first
+build_role_picker() {
+  local agent="$1"
+  local current="$2"
+  local picker_file="/tmp/oc-picker-${agent}-$(date +%Y%m%d).txt"
+
+  if [[ -f "$picker_file" ]]; then
+    cat "$picker_file"
+    return
+  fi
+
+  # Fetch OpenRouter pricing once
+  local or_json="/tmp/oc-or-pricing-$(date +%Y%m%d).json"
+  if [[ ! -f "$or_json" ]]; then
+    curl -sf --max-time 15 https://openrouter.ai/api/v1/models > "$or_json.tmp" 2>/dev/null && \
+      mv "$or_json.tmp" "$or_json" || rm -f "$or_json.tmp"
+  fi
+
+  # Delegate to standalone Python picker script
+  get_models | python3 "$HOME/.config/opencode/scripts/role-picker.py" "$agent" "$current" "$or_json" \
+    2>/dev/null > "$picker_file"
+
+  cat "$picker_file"
+}
+
+show_config() {
+  local preset
+  preset=$(jq -r '.preset' "$CONFIG")
+  echo -e "${BOLD}Active preset: ${CYAN}$preset${RESET}"
+  echo ""
+  jq -r '.presets[.preset] | to_entries[] | "  \(.key)\t\(.value.model)"' "$CONFIG" \
+    | column -t -s $'\t'
+}
+
+ask_yes_no() {
+  local question="$1"
+  local default="${2:-y}"
+  local prompt
+  local answer
+
+  [[ ! -t 0 || ! -t 1 ]] && [[ "$default" == "y" ]] && return 0
+  [[ ! -t 0 || ! -t 1 ]] && return 1
+
+  if [[ "$default" == "y" ]]; then
+    prompt="[Y/n]"
+  else
+    prompt="[y/N]"
+  fi
+
+  read -r -p "$(echo -e "${CYAN}?${RESET} ${question} ${prompt} ")" answer
+  answer="${answer,,}"
+  [[ -z "$answer" ]] && answer="$default"
+  [[ "$answer" == "y" || "$answer" == "yes" ]]
+}
+
+detect_project_state() {
+  python3 "$HOME/.config/opencode/scripts/detect-project-state.py"
+}
+
+smart_memory_prompts() {
+  [[ ! -t 0 || ! -t 1 ]] && return
+
+  local HAS_INDEX HAS_WIKI_PAGE IS_EMPTY_DIR INDEX_AGE_DAYS PROJECT_WIKI_PAGE
+  local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
+  eval "$(detect_project_state)"
+
+  local stale_days="${OC_MEMORY_STALE_DAYS:-1}"
+  local wiki_state="missing"
+  local index_state="missing"
+
+  if [[ "$HAS_WIKI_PAGE" == "1" ]]; then
+    wiki_state="ok ($(basename "${PROJECT_WIKI_PAGE:-}"))"
+  fi
+  if [[ "$HAS_INDEX" == "1" ]]; then
+    index_state="ok (${INDEX_AGE_DAYS}d old)"
+  fi
+
+  echo -e "${DIM}Memory: wiki=${wiki_state}, index=${index_state}${RESET}"
+
+  # Warn about stale wiki page
+  if [[ "$WIKI_STALE" == "1" ]]; then
+    echo -e "${YELLOW}⚠ Wiki page may be stale (updated: ${WIKI_UPDATED_DATE}, last commit: ${PROJECT_LAST_COMMIT})${RESET}"
+  fi
+
+  # Warn about dead wiki pages (pointing to non-existent paths)
+  if [[ -n "${DEAD_WIKI_PAGES:-}" ]]; then
+    echo -e "${YELLOW}⚠ Dead wiki pages found (paths no longer exist):${RESET}"
+    IFS='|' read -ra dead_arr <<< "$DEAD_WIKI_PAGES"
+    for dp in "${dead_arr[@]}"; do
+      [[ -n "$dp" ]] && echo -e "  ${DIM}$(basename "$dp")${RESET}"
+    done
+  fi
+
+  local has_project_agents_md=false
+  [[ -f "$PWD/AGENTS.md" ]] && has_project_agents_md=true
+
+  if [[ "$INIT_PROJECT" == false && ( "$HAS_WIKI_PAGE" == "0" || "$has_project_agents_md" == false ) ]]; then
+    if [[ "$HAS_WIKI_PAGE" == "0" && "$IS_EMPTY_DIR" == "1" ]]; then
+      ask_yes_no "This directory looks new/empty. Initialize project wiki memory now?" "y" && INIT_PROJECT=true
+    elif [[ "$HAS_WIKI_PAGE" == "0" ]]; then
+      ask_yes_no "No matching project/workspace wiki page found for this path. Initialize now?" "y" && INIT_PROJECT=true
+    elif [[ "$has_project_agents_md" == false ]]; then
+      ask_yes_no "No project AGENTS.md found (wiki page exists). Create it?" "y" && INIT_PROJECT=true
+    fi
+  fi
+
+  # project-init already runs memory sync, so skip duplicate prompt if chosen
+  if [[ "$MEMORY_SYNC" == false && "$INIT_PROJECT" == false ]]; then
+    if [[ "$HAS_INDEX" == "0" ]]; then
+      ask_yes_no "No semantic memory index found for this project. Sync now?" "y" && MEMORY_SYNC=true
+    elif [[ "$INDEX_AGE_DAYS" -ge "$stale_days" ]]; then
+      ask_yes_no "Project memory index is ${INDEX_AGE_DAYS} days old. Refresh now?" "y" && MEMORY_SYNC=true
+    fi
+  fi
+  return 0
+}
+
+run_project_init() {
+  [[ "$INIT_PROJECT" != true ]] && return 0
+  echo -e "${DIM}Initializing project wiki + memory...${RESET}"
+  if ! python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"; then
+    echo -e "${YELLOW}⚠ Project init reported issues — continuing${RESET}"
+  fi
+  # project-init already attempts memory sync
+  MEMORY_SYNC=false
+  echo ""
+}
+
+run_memory_sync() {
+  [[ "$MEMORY_SYNC" != true ]] && return 0
+  local sync_desc="project + wiki (incremental)"
+  local sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --timeout 120)
+
+  case "$MEMORY_SYNC_PROFILE" in
+    fast)
+      sync_desc="project only (incremental, fast)"
+      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --timeout 45)
+      ;;
+    full)
+      sync_desc="project + wiki (full reindex)"
+      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --full --timeout 300)
+      ;;
+    *)
+      sync_desc="project + wiki (incremental)"
+      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --timeout 120)
+      ;;
+  esac
+
+  echo -e "${DIM}Syncing memory (${sync_desc})...${RESET}"
+
+  if ! "${sync_cmd[@]}" 2>/dev/null; then
+    echo -e "${YELLOW}⚠ Memory sync failed — continuing without fresh index${RESET}"
+  fi
+  echo ""
+}
+
+run_doctor() {
+  local status=0
+  local HAS_INDEX HAS_WIKI_PAGE IS_EMPTY_DIR INDEX_AGE_DAYS
+  local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
+
+  echo -e "${BOLD}Integration Doctor${RESET}"
+  echo ""
+
+  # Model validation
+  if python3 "$HOME/.config/opencode/scripts/model-optimizer.py" --validate >/dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${RESET} Model config validation"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Model config invalid (run: python3 ~/.config/opencode/scripts/model-optimizer.py --repair)"
+    status=1
+  fi
+
+  # AGENTS.md drift check
+  if python3 "$HOME/.config/opencode/scripts/sync-agents-md.py" 2>/dev/null | grep -q "already in sync"; then
+    echo -e "  ${GREEN}✓${RESET} AGENTS.md in sync with config"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} AGENTS.md model table drifted (run: oc --sync-config)"
+    status=1
+  fi
+
+  # Wiki structure
+  if [[ -f "$HOME/wiki/AGENTS.md" && -f "$HOME/wiki/index.md" && -d "$HOME/wiki/raw" && -d "$HOME/wiki/wiki" ]]; then
+    echo -e "  ${GREEN}✓${RESET} Karpathy wiki structure"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Wiki structure incomplete at ~/wiki"
+    status=1
+  fi
+
+  # Obsidian vault
+  if [[ -d "$HOME/wiki/.obsidian" ]]; then
+    echo -e "  ${GREEN}✓${RESET} Obsidian vault configured"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Obsidian vault not configured at ~/wiki/.obsidian"
+  fi
+
+  # Project state detection
+  local PROJECT_WIKI_PAGE=""
+  eval "$(detect_project_state)"
+  if [[ "$HAS_WIKI_PAGE" == "1" ]]; then
+    local page_label
+    page_label=$(basename "${PROJECT_WIKI_PAGE:-}")
+    echo -e "  ${GREEN}✓${RESET} Project wiki page${page_label:+ ($page_label)}"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Missing project wiki page (run: oc --init-project)"
+    status=1
+  fi
+
+  # Wiki freshness
+  if [[ "$WIKI_STALE" == "1" ]]; then
+    echo -e "  ${YELLOW}⚠${RESET} Wiki page stale (updated: ${WIKI_UPDATED_DATE}, last commit: ${PROJECT_LAST_COMMIT})"
+  elif [[ "$HAS_WIKI_PAGE" == "1" ]]; then
+    echo -e "  ${GREEN}✓${RESET} Wiki page fresh"
+  fi
+
+  # Dead wiki pages
+  if [[ -n "${DEAD_WIKI_PAGES:-}" ]]; then
+    echo -e "  ${YELLOW}⚠${RESET} Dead wiki pages found (paths no longer exist)"
+  fi
+
+  # Semantic index
+  if [[ "$HAS_INDEX" == "1" ]]; then
+    echo -e "  ${GREEN}✓${RESET} Semantic project index (${INDEX_AGE_DAYS}d old)"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Missing semantic index (run: oc --memory-sync)"
+    status=1
+  fi
+
+  # Memory store
+  if [[ -d "$HOME/.opencode_memory" || -L "$HOME/.opencode_memory" ]]; then
+    echo -e "  ${GREEN}✓${RESET} OpenCode memory store"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Memory store missing (~/.opencode_memory)"
+    status=1
+  fi
+
+  # Memory backend
+  if python3 "$HOME/.config/opencode/scripts/memory-sync.py" --list >/dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${RESET} Memory backend reachable"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Memory backend not reachable"
+    status=1
+  fi
+
+  # Provider health + credits
+  local health_out
+  health_out=$(python3 "$HOME/.config/opencode/scripts/provider-health.py" --all 2>/dev/null) || true
+  if echo "$health_out" | grep -q '✗\|⚠'; then
+    echo "$health_out"
+  else
+    echo -e "  ${GREEN}✓${RESET} All providers healthy"
+  fi
+
+  echo ""
+  if [[ "$status" -eq 0 ]]; then
+    echo -e "${GREEN}All systems healthy.${RESET}"
+  else
+    echo -e "${YELLOW}Some checks need attention. Use suggested commands above.${RESET}"
+  fi
+
+  return "$status"
+}
+
+sync_agents_md() {
+  python3 "$HOME/.config/opencode/scripts/sync-agents-md.py" 2>/dev/null || true
+}
+
+check_providers() {
+  # Quick parallel runtime check of all providers in active config.
+  # Silent when all OK; shows warnings for dead providers.
+  local output
+  output=$(python3 "$HOME/.config/opencode/scripts/provider-health.py" 2>/dev/null) || true
+  if echo "$output" | grep -q '✗'; then
+    echo -e "${BOLD}Provider Health${RESET}"
+    echo "$output"
+    echo ""
+  fi
+}
+
+run_model_automation() {
+  # Validate models & auto-repair if broken (non-blocking)
+  echo -e "${DIM}Validating models...${RESET}"
+  python3 "$HOME/.config/opencode/scripts/model-optimizer.py" --startup 2>/dev/null || true
+  echo ""
+}
+
+ask_session_mode() {
+  # If user already specified -c/--continue/--session/--fork via CLI, skip the prompt.
+  local arg
+  for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
+    case "$arg" in
+      -c|--continue|--session|--fork) return ;;
+    esac
+  done
+
+  # Non-interactive → default to new session.
+  [[ ! -t 0 || ! -t 1 ]] && return
+
+  echo -e "${BOLD}Session${RESET}"
+  echo -e "  ${CYAN}1${RESET}) New session"
+  echo -e "  ${CYAN}2${RESET}) Continue last session"
+  echo ""
+  local choice
+  read -r -p "$(echo -e "${CYAN}?${RESET} Choice [1]: ")" choice
+  choice="${choice:-1}"
+
+  if [[ "$choice" == "2" || "$choice" == "c" ]]; then
+    OPENCODE_ARGS+=("-c")
+  fi
+}
+
+launch_opencode() {
+  # AGENTS.md in the working directory is automatically loaded by OpenCode.
+  # No --prompt injection needed — avoids wasting tokens on a bootstrap message.
+  if [[ "$YOLO" == true && -f "$CORE_CONFIG" ]]; then
+    local yolo_backup
+    yolo_backup=$(mktemp)
+
+    # Save current permission config and enable temporary allow-all.
+    python3 - "$CORE_CONFIG" "$yolo_backup" <<'PY'
+import json, sys
+from pathlib import Path
+
+cfg_path = Path(sys.argv[1])
+backup_path = Path(sys.argv[2])
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+backup = {
+    "had_permission": "permission" in cfg,
+    "permission": cfg.get("permission")
+}
+backup_path.write_text(json.dumps(backup), encoding="utf-8")
+cfg["permission"] = "allow"
+cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+PY
+
+    _restore_permissions() {
+      python3 - "$CORE_CONFIG" "$yolo_backup" <<'PY'
+import json, sys
+from pathlib import Path
+
+cfg_path = Path(sys.argv[1])
+backup_path = Path(sys.argv[2])
+if not backup_path.exists():
+    raise SystemExit(0)
+
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+backup = json.loads(backup_path.read_text(encoding="utf-8"))
+if backup.get("had_permission"):
+    cfg["permission"] = backup.get("permission")
+else:
+    cfg.pop("permission", None)
+cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+PY
+      rm -f "$yolo_backup"
+    }
+
+    trap _restore_permissions EXIT INT TERM
+    echo -e "${YELLOW}⚠ YOLO mode enabled for this session (temporary).${RESET}"
+    opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
+    local rc=$?
+    _restore_permissions
+    trap - EXIT INT TERM
+    return $rc
+  fi
+
+  exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
+}
+
+# --- Step 1: Select preset ---
+select_preset() {
+  local current_preset
+  current_preset=$(jq -r '.preset' "$CONFIG")
+  local preview_cmd="jq -r '.presets[\"{}\"] | to_entries[] | \"  \" + .key + \": \" + .value.model' $CONFIG 2>/dev/null"
+
+  echo -e "${BOLD}Select a preset${RESET} ${DIM}(current: $current_preset)${RESET}"
+  echo ""
+
+  local selected
+  selected=$(jq -r '.presets | keys[]' "$CONFIG" \
+    | fzf --height=~15 --layout=reverse --border --border-label=" Presets " \
+           --header="Current: $current_preset  |  Enter=select  Esc=keep" \
+           --preview="$preview_cmd" \
+           --preview-window=right:40%:wrap \
+           --pointer="▶" --prompt="Preset: " \
+    || echo "$current_preset")
+
+  [[ -z "$selected" ]] && selected="$current_preset"
+
+  if [[ "$selected" != "$current_preset" ]]; then
+    local tmpf; tmpf=$(mktemp)
+    jq --arg p "$selected" '.preset = $p' "$CONFIG" > "$tmpf" \
+      && cp "$tmpf" "$CONFIG" && rm "$tmpf"
+    echo -e "${GREEN}Preset → $selected${RESET}"
+  else
+    echo -e "${DIM}Keeping: $selected${RESET}"
+  fi
+  echo ""
+}
+
+# --- Step 2: Tweak agents with role-aware picker ---
+tweak_agents() {
+  [[ ! -t 0 || ! -t 1 ]] && return
+
+  echo -e "${BOLD}Agent Models${RESET}"
+  jq -r '.presets[.preset] | to_entries[] | "  \(.key): \(.value.model)"' "$CONFIG"
+  echo ""
+
+  if ! ask_yes_no "Modify agent models?" "n"; then
+    return
+  fi
+
+  local agent_list
+  agent_list=$(jq -r '.presets[.preset] | to_entries[] | "\(.key)  →  \(.value.model)"' "$CONFIG")
+
+  echo -e "${DIM}Tab=select agents to change, Enter=confirm selection${RESET}"
+  echo ""
+
+  local selected_agents
+  selected_agents=$(echo "$agent_list" \
+    | fzf --multi --height=~12 --layout=reverse --border --border-label=" Select agents to change " \
+           --header="Tab=select  Enter=confirm" \
+           --pointer="▶" --marker="✓" --prompt="Agents: " \
+    || echo "")
+
+  [[ -z "$selected_agents" ]] && { echo -e "${DIM}No changes.${RESET}"; return; }
+
+  echo "$selected_agents" | while IFS= read -r line; do
+    local agent current_model selected_model tmpf
+    agent=$(echo "$line" | awk '{print $1}')
+    current_model=$(jq -r --arg a "$agent" '.presets[.preset][$a].model' "$CONFIG")
+
+    echo ""
+    echo -e "${BOLD}$agent${RESET} ${DIM}(current: $current_model)${RESET}"
+    echo -e "${DIM}Type to filter · ↑↓ navigate · Enter select · Esc keep current${RESET}"
+    echo ""
+
+    selected_model=$(build_role_picker "$agent" "$current_model" \
+      | fzf --height=~25 --layout=reverse --border --border-label=" $agent " \
+             --header="★ recommended  💰 budget  🆓 free" \
+             --query="${current_model%%/*}/" \
+             --pointer="▶" --prompt="$agent: " \
+      || echo "$current_model")
+
+    selected_model=$(echo "$selected_model" | awk '{print $1}')
+    [[ -z "$selected_model" ]] && selected_model="$current_model"
+
+    if [[ "$selected_model" != "$current_model" ]]; then
+      tmpf=$(mktemp)
+      jq --arg a "$agent" --arg m "$selected_model" '.presets[.preset][$a].model = $m' "$CONFIG" \
+        > "$tmpf" && cp "$tmpf" "$CONFIG" && rm "$tmpf"
+      echo -e "  ${GREEN}✓ $agent → $selected_model${RESET}"
+    else
+      echo -e "  ${DIM}  $agent unchanged${RESET}"
+    fi
+  done
+}
+
+# --- Main ---
+main() {
+  echo ""
+  echo -e "${BOLD}${CYAN}  OpenCode${RESET}"
+  echo -e "${DIM}  ───────${RESET}"
+  echo ""
+
+  if [[ -n "$INGEST_REPO" ]]; then
+    echo -e "${DIM}Ingesting repository digest...${RESET}"
+    if ! python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO"; then
+      echo -e "${RED}Repo ingestion failed.${RESET}"
+      exit 1
+    fi
+    echo -e "${DIM}Refreshing wiki memory only...${RESET}"
+    if ! python3 "$HOME/.config/opencode/scripts/memory-sync.py" --wiki-only 2>/dev/null; then
+      echo -e "${YELLOW}⚠ Wiki memory refresh failed — continuing${RESET}"
+    fi
+    exit 0
+  fi
+
+  if [[ "$DOCTOR" == true ]]; then
+    run_doctor
+    exit $?
+  fi
+
+  if [[ "$SYNC_CONFIG" == true ]]; then
+    sync_agents_md
+    exit 0
+  fi
+
+  if [[ "$LINT_WIKI" == true ]]; then
+    echo -e "${BOLD}Wiki Lint${RESET}"
+    echo ""
+    if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/wiki-lint.py" ]]; then
+      python3 "$HOME/.config/opencode/scripts/wiki-lint.py" || true
+    else
+      echo -e "${YELLOW}⚠ wiki-lint.py not found — did not run lint.${RESET}"
+    fi
+    exit 0
+  fi
+
+  show_config
+  echo ""
+
+  # --preset implies new session; skip session choice
+  if [[ -n "$PRESET_ARG" ]]; then
+    if jq -e ".presets.\"$PRESET_ARG\"" "$CONFIG" >/dev/null 2>&1; then
+      local tmpf; tmpf=$(mktemp)
+      jq --arg p "$PRESET_ARG" '.preset = $p' "$CONFIG" > "$tmpf" \
+        && cp "$tmpf" "$CONFIG" && rm "$tmpf"
+      echo -e "${GREEN}Preset: $PRESET_ARG${RESET}"
+    else
+      echo -e "${RED}Preset '$PRESET_ARG' not found.${RESET}"
+      echo "Available: $(jq -r '.presets | keys | join(", ")' "$CONFIG")"
+      exit 1
+    fi
+    sync_agents_md
+    smart_memory_prompts
+    run_project_init
+    run_memory_sync
+    check_providers
+    echo ""
+    show_config; echo ""
+    echo -e "${DIM}Launching...${RESET}"
+    echo ""
+    launch_opencode
+    return $?
+  fi
+
+  # Session choice FIRST — continue skips preset/tweak entirely
+  ask_session_mode
+  local continuing=false
+  for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
+    case "$arg" in -c|--continue|--session|--fork) continuing=true ;; esac
+  done
+
+  if [[ "$continuing" == true ]]; then
+    # Memory awareness is useful even when resuming; preset/model config is not.
+    smart_memory_prompts
+    run_project_init
+    run_memory_sync
+    echo -e "${DIM}Resuming last session...${RESET}"
+    echo ""
+    launch_opencode
+    return $?
+  fi
+
+  # New session: full interactive flow
+  smart_memory_prompts
+  run_project_init
+  run_memory_sync
+
+  if [[ "$QUICK" == false ]]; then
+    run_model_automation
+  fi
+
+  select_preset
+  [[ "$QUICK" == false ]] && tweak_agents
+
+  sync_agents_md
+  check_providers
+
+  echo ""
+  echo -e "${BOLD}${GREEN}Final:${RESET}"
+  show_config
+  echo ""
+  echo -e "${DIM}Launching...${RESET}"
+  echo ""
+  launch_opencode
+}
+
+main

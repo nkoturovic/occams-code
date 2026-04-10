@@ -1,0 +1,162 @@
+# Installation Guide
+
+## Supported Platforms
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| Linux (x86_64) | ✅ Full | Default bash is fine |
+| macOS (Apple Silicon) | ✅ Full | Requires bash 5 via Homebrew |
+| macOS (Intel) | ✅ Full | Requires bash 5 via Homebrew |
+| Windows (WSL) | ✅ Full | WSL2 recommended |
+| Windows (native) | ❌ Not supported | Use WSL |
+
+## Prerequisites
+
+### Required
+
+| Dependency | Install | Check |
+|-----------|---------|-------|
+| OpenCode | `npm install -g opencode` or `bun install -g opencode` | `opencode --version` |
+| Python 3.10+ | System package manager | `python3 --version` |
+| Bash 4.0+ | System default (Linux) or `brew install bash` (macOS) | `bash --version` |
+| jq | `sudo apt install jq` / `brew install jq` | `jq --version` |
+| fzf | `sudo apt install fzf` / `brew install fzf` | `fzf --version` |
+
+### Optional
+
+| Dependency | Purpose | Install |
+|-----------|---------|---------|
+| [Obsidian](https://obsidian.md) | Wiki viewer/editor | Download from obsidian.md |
+| [uv](https://github.com/astral-sh/uv) | Semantic search backend | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| git | Repo ingestion, wiki versioning | System package manager |
+
+### API Keys
+
+You need at least one provider API key:
+
+| Provider | Get Key | Cost |
+|----------|---------|------|
+| [OpenRouter](https://openrouter.ai) | openrouter.ai/keys | Pay-per-token, 400+ models |
+| [Anthropic](https://console.anthropic.com) | console.anthropic.com | Direct Claude API |
+| [Z.AI](https://z.ai) | z.ai | Subscription (GLM-5.1) |
+
+Store keys in `~/.local/share/opencode/auth.json` (OpenCode handles this on first run).
+
+## Installation
+
+### Option A: Automated (Recommended)
+
+```bash
+git clone https://github.com/YOUR_USERNAME/occams-code.git
+cd occams-code
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
+
+### Option B: Manual
+
+```bash
+# 1. Clone
+git clone https://github.com/YOUR_USERNAME/occams-code.git
+cd occams-code
+
+# 2. Copy scripts and commands
+cp -r bin/ ~/.config/opencode/bin/
+cp -r scripts/ ~/.config/opencode/scripts/
+cp -r commands/ ~/.config/opencode/commands/
+chmod +x ~/.config/opencode/bin/oc
+
+# 3. Copy preset config
+cp config/oh-my-opencode-slim.json ~/.config/opencode/oh-my-opencode-slim.json
+
+# 4. Copy AGENTS.md
+cp AGENTS.md ~/.config/opencode/AGENTS.md
+
+# 5. Generate opencode.json with your home directory
+python3 scripts/generate-config.py
+
+# 6. Copy wiki template
+cp -r wiki/ ~/wiki/
+
+# 7. Install oh-my-opencode-slim plugin
+cd ~/.config/opencode/
+npm install oh-my-opencode-slim   # or: bun install oh-my-opencode-slim
+```
+
+### macOS: Bash 5 Setup
+
+macOS ships bash 3.2 which is incompatible with occams-code. Install bash 5:
+
+```bash
+brew install bash
+
+# Add to /etc/shells
+echo '/opt/homebrew/bin/bash' | sudo tee -a /etc/shells   # Apple Silicon
+# echo '/usr/local/bin/bash' | sudo tee -a /etc/shells    # Intel Macs
+
+# Set as default (optional)
+chsh -s /opt/homebrew/bin/bash
+```
+
+The `oc` launcher will detect bash < 4 and print an error with instructions.
+
+### Semantic Search (Optional)
+
+For the semantic_search MCP backend:
+
+```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# The MCP server will be auto-configured by generate-config.py
+# Run memory sync to build initial index:
+oc --memory-sync
+```
+
+## Post-Install Verification
+
+```bash
+oc --doctor
+```
+
+This checks:
+- Model config validation
+- AGENTS.md sync with config
+- Wiki structure
+- Obsidian vault
+- Project wiki page
+- Wiki freshness
+- Semantic index
+- Memory store
+- Provider health
+
+## Uninstall
+
+```bash
+# Remove occams-code files (preserves auth.json and any personal data)
+rm -rf ~/.config/opencode/bin/oc
+rm -rf ~/.config/opencode/scripts/
+rm -rf ~/.config/opencode/commands/
+rm ~/.config/opencode/AGENTS.md
+rm ~/.config/opencode/oh-my-opencode-slim.json
+
+# Optionally remove wiki (YOUR KNOWLEDGE BASE — back up first!)
+# rm -rf ~/wiki/
+
+# Optionally remove generated config
+# rm ~/.config/opencode/opencode.json
+```
+
+## Troubleshooting
+
+### "bash version too old" error (macOS)
+Install bash 5 via Homebrew (see macOS section above).
+
+### "Config not found" error
+Ensure `~/.config/opencode/oh-my-opencode-slim.json` exists.
+
+### Models not loading
+Run `opencode models --refresh` and verify API keys in auth.json.
+
+### Semantic search not working
+Install `uv` and run `oc --memory-sync`.
