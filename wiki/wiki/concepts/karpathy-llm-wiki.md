@@ -2,7 +2,7 @@
 summary: "Karpathy's LLM Wiki pattern — wiki beats RAG for personal knowledge management"
 type: concept
 tags: [karpathy, llm-wiki, knowledge-management, rag, obsidian]
-sources: [raw/forums/karpathy-llm-wiki.md]
+sources: []
 related:
 created: 2026-04-08
 updated: 2026-04-08

@@ -295,46 +295,46 @@
     "timeoutMs": 60000,
     "chains": {
       "orchestrator": [
-        "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/z-ai/glm-5.1",
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/google/gemini-3.1-flash-lite-preview",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "oracle": [
-        "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/z-ai/glm-5.1",
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/google/gemini-3.1-flash-lite-preview",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "designer": [
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
+        "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "explorer": [
-        "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/google/gemini-3.1-flash-lite-preview",
+        "anthropic/claude-sonnet-4-6",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "librarian": [
-        "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/google/gemini-3.1-flash-lite-preview",
+        "anthropic/claude-sonnet-4-6",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
-        "anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/z-ai/glm-5.1",
-        "openrouter/qwen/qwen3-coder:free",
-        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        "openrouter/qwen/qwen3.6-plus",
+        "anthropic/claude-sonnet-4-6",
+        "openrouter/google/gemini-3.1-flash-lite-preview",
+        "openrouter/qwen/qwen3-coder:free"
       ]
     }
   },

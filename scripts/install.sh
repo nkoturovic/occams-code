@@ -6,6 +6,7 @@
 set -euo pipefail
 
 BOLD='\033[1m'
+DIM='\033[2m'
 GREEN='\033[32m'
 YELLOW='\033[33m'
 RED='\033[31m'
@@ -22,7 +23,7 @@ echo -e "  ${DIM}───────────────────${RESE
 echo ""
 
 # --- Dependency checks ---
-for cmd in python3 jq fzf; do
+for cmd in python3 jq fzf curl; do
   if ! command -v "$cmd" &>/dev/null; then
     echo -e "${RED}Error: $cmd is required but not installed.${RESET}" >&2
     exit 1
@@ -43,7 +44,7 @@ echo ""
 
 # --- Create directories ---
 mkdir -p "$OPENCODE_DIR"/{bin,scripts,commands}
-mkdir -p "$WIKI_DIR"/{raw/{articles,papers,repos,docs,forums,assets,_inbox},wiki/{projects,domain,languages/patterns,concepts,entities,sources,comparisons}}
+mkdir -p "$WIKI_DIR"/{raw/{articles,papers,repos,docs,forums,assets,_inbox},wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}}
 
 # --- Copy files ---
 echo -e "${BOLD}Copying files...${RESET}"
