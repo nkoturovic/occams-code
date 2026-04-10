@@ -574,8 +574,33 @@ def main():
     # Replace {home} placeholder with the current user's home directory
     config_text = TEMPLATE.replace("{home}", str(Path.home()))
 
-    # If uv is not installed, disable semantic_search (graceful degradation)
-    if not shutil.which("uv"):
+    # Resolve uv to absolute path for reliable MCP server startup
+    # macOS: uv often at ~/.local/bin/uv or ~/.cargo/bin/uv but not in PATH
+    uv_path = shutil.which("uv")
+    if not uv_path:
+        home = str(Path.home())
+        for candidate in [
+            f"{home}/.local/bin/uv",
+            f"{home}/.cargo/bin/uv",
+            "/opt/homebrew/bin/uv",
+        ]:
+            if Path(candidate).is_file():
+                uv_path = candidate
+                break
+
+    if uv_path:
+        # Replace bare "uv" command with absolute path for reliable startup
+        try:
+            config = json.loads(config_text)
+            if "semantic_search" in config.get("mcp", {}):
+                cmd = config["mcp"]["semantic_search"]["command"]
+                if cmd and cmd[0] == "uv":
+                    cmd[0] = uv_path
+                config_text = json.dumps(config, indent=2) + "\n"
+        except json.JSONDecodeError:
+            pass
+    else:
+        # uv not installed — disable semantic_search (graceful degradation)
         try:
             config = json.loads(config_text)
             config["mcp"].pop("semantic_search", None)
