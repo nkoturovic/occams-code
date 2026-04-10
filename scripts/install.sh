@@ -17,7 +17,7 @@ OPENCODE_DIR="$HOME/.config/opencode"
 WIKI_DIR="$HOME/wiki"
 
 echo ""
-echo -e "${BOLD}  occams-code installer${RESET}"
+echo -e "${BOLD}  Occam's Code installer${RESET}"
 echo -e "  ${DIM}───────────────────${RESET}"
 echo ""
 

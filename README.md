@@ -1,4 +1,6 @@
-# occams-code
+# Occam's Code
+
+> OpenCode setup sharpened by Occam's Razor.
 
 > The simplest solution that fully solves the problem is the correct solution.
 
@@ -27,7 +29,7 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 ### Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/occams-code.git
+git clone https://github.com/nkoturovic/occams-code.git
 cd occams-code
 ./scripts/install.sh
 ```

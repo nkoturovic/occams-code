@@ -47,7 +47,7 @@ Store keys in `~/.local/share/opencode/auth.json` (OpenCode handles this on firs
 ### Option A: Automated (Recommended)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/occams-code.git
+git clone https://github.com/nkoturovic/occams-code.git
 cd occams-code
 chmod +x scripts/install.sh
 ./scripts/install.sh
@@ -57,7 +57,7 @@ chmod +x scripts/install.sh
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/occams-code.git
+git clone https://github.com/nkoturovic/occams-code.git
 cd occams-code
 
 # 2. Copy scripts and commands
@@ -85,7 +85,7 @@ npm install oh-my-opencode-slim   # or: bun install oh-my-opencode-slim
 
 ### macOS: Bash 5 Setup
 
-macOS ships bash 3.2 which is incompatible with occams-code. Install bash 5:
+macOS ships bash 3.2 which is incompatible with Occam's Code. Install bash 5:
 
 ```bash
 brew install bash
@@ -133,7 +133,7 @@ This checks:
 ## Uninstall
 
 ```bash
-# Remove occams-code files (preserves auth.json and any personal data)
+# Remove Occam's Code files (preserves auth.json and any personal data)
 rm -rf ~/.config/opencode/bin/oc
 rm -rf ~/.config/opencode/scripts/
 rm -rf ~/.config/opencode/commands/
