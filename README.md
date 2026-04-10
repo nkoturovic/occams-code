@@ -16,17 +16,25 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **4 MCP servers** — context7 (library docs), grep_app (code search), semantic_search (local index), websearch (Exa)
 - **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
-- **AGENTS.md** — 8 workflow principles for AI agents: divide & conquer, plan first, wiki-first, keep wiki alive, ask questions, parallel execution, minimize waste, Occam's Code
+- **AGENTS.md** — 7 workflow principles for AI agents, ordered by criticality
 
 ## Quick Start
 
 ### Prerequisites
 
 - [OpenCode](https://github.com/sst/opencode) installed (`npm install -g opencode` or `bun install -g opencode`)
-- Python 3.10+
-- Bash 4.0+ (Linux: default. macOS: `brew install bash`)
-- [jq](https://stedolan.github.io/jq/), [fzf](https://github.com/junegunn/fzf)
+- Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), [fzf](https://github.com/junegunn/fzf), git, curl
+- `npm` or `bun` (for oh-my-opencode-slim plugin)
 - API keys for at least one provider (OpenRouter, Anthropic, or Z.AI)
+
+<details>
+<summary>Platform-specific notes</summary>
+
+- **Linux:** bash 4+ is default. `sudo apt install python3 jq fzf git curl` (Debian/Ubuntu)
+- **macOS:** `brew install bash jq fzf` (bash 5 required, system bash 3.2 won't work with `oc`)
+- **Windows:** Use WSL2, then same as Linux
+
+</details>
 
 ### Install
 
@@ -115,16 +123,15 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | **semantic_search** | Local project code index (sentence-transformers) |
 | **websearch** (Exa) | Web search for current information |
 
-## 8 Workflow Principles
+## 7 Workflow Principles
 
-1. **Divide and Conquer** — Parallel subtasks via agents
-2. **Plan Before Execute** — Present plan, get feedback, then execute
-3. **Wiki-First Knowledge** — Check wiki before starting any task
-4. **Keep Wiki Alive** — Stale wiki is worse than no wiki
-5. **Ask Questions** — Uncertainty → ask before proceeding
-6. **Parallel Agent Execution** — Fire multiple searches/agents concurrently
-7. **Minimize Waste** — Be terse, no filler, caveman-style communication
-8. **Occam's Code** — Simplest solution that fully solves the problem wins
+1. **Occam's Code** — Simplest solution that fully solves the problem wins
+2. **Ask Questions** — Uncertainty → ask before proceeding
+3. **Plan Before Execute** — Present plan, get feedback, then execute
+4. **Divide and Conquer** — Break into independent parallel subtasks
+5. **Parallelize** — Delegate to specialist agents, run concurrently
+6. **Wiki** — Check wiki before starting, update it continuously
+7. **Be Terse** — No filler, caveman-style communication
 
 ## Autonomous Mode
 
