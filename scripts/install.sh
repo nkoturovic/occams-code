@@ -51,18 +51,30 @@ mkdir -p "$WIKI_DIR"/{raw/{articles,papers,repos,docs,forums,assets,_inbox},wiki
 echo -e "${BOLD}Copying files...${RESET}"
 
 # bin/oc
-cp "$REPO_ROOT/bin/oc" "$OPENCODE_DIR/bin/oc"
-chmod +x "$OPENCODE_DIR/bin/oc"
-echo -e "  ${GREEN}✓${RESET} bin/oc"
+if [[ -f "$REPO_ROOT/bin/oc" ]]; then
+  cp "$REPO_ROOT/bin/oc" "$OPENCODE_DIR/bin/oc"
+  chmod +x "$OPENCODE_DIR/bin/oc"
+  echo -e "  ${GREEN}✓${RESET} bin/oc"
+else
+  echo -e "  ${YELLOW}⚠${RESET} bin/oc not found in source"
+fi
 
 # Scripts
-cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
-chmod +x "$OPENCODE_DIR/scripts/generate-config.py"
-echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
+if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
+  cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
+  chmod +x "$OPENCODE_DIR/scripts/generate-config.py"
+  echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
+else
+  echo -e "  ${YELLOW}⚠${RESET} No Python scripts found in source"
+fi
 
 # Commands
-cp "$REPO_ROOT"/commands/*.md "$OPENCODE_DIR/commands/"
-echo -e "  ${GREEN}✓${RESET} commands/ ($(ls "$REPO_ROOT"/commands/*.md 2>/dev/null | wc -l) files)"
+if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then
+  cp "$REPO_ROOT"/commands/*.md "$OPENCODE_DIR/commands/"
+  echo -e "  ${GREEN}✓${RESET} commands/ ($(ls "$REPO_ROOT"/commands/*.md 2>/dev/null | wc -l) files)"
+else
+  echo -e "  ${YELLOW}⚠${RESET} No command files found in source"
+fi
 
 # Config
 if [[ -f "$REPO_ROOT/config/oh-my-opencode-slim.json" ]]; then
@@ -73,8 +85,12 @@ else
 fi
 
 # AGENTS.md
-cp "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
-echo -e "  ${GREEN}✓${RESET} AGENTS.md"
+if [[ -f "$REPO_ROOT/AGENTS.md" ]]; then
+  cp "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
+  echo -e "  ${GREEN}✓${RESET} AGENTS.md"
+else
+  echo -e "  ${YELLOW}⚠${RESET} AGENTS.md not found in source"
+fi
 
 # --- Generate opencode.json ---
 echo ""
@@ -129,8 +145,8 @@ if [[ -d "$REPO_ROOT/wiki/wiki/patterns" ]]; then
   done
 fi
 
-# .gitkeep files
-find "$WIKI_DIR" -type d -empty -exec touch {}/.gitkeep \; 2>/dev/null || true
+# .gitkeep files (portable: avoids {}/.gitkeep which needs GNU find)
+find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null || true
 
 # --- Install obsidian-skills ---
 echo ""
@@ -179,8 +195,6 @@ _obsidian_installed() {
   command -v obsidian &>/dev/null && return 0
   [[ -f /Applications/Obsidian.app/Contents/MacOS/Obsidian ]] && return 0
   [[ -f "${XDG_BIN_HOME:-$HOME/.local/bin}/Obsidian.AppImage" ]] && return 0
-  # Flatpak
-  command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "md.obsidian.Obsidian" && return 0
   return 1
 }
 
@@ -257,30 +271,35 @@ else
           _OBSIDIAN_VERSION="${_OBSIDIAN_TAG#v}"
           if [[ "$_ARCH" == "aarch64" || "$_ARCH" == "arm64" ]]; then
             _APPIMAGE_NAME="Obsidian-${_OBSIDIAN_VERSION}-arm64.AppImage"
-          else
+          elif [[ "$_ARCH" == "x86_64" || "$_ARCH" == "amd64" ]]; then
             _APPIMAGE_NAME="Obsidian-${_OBSIDIAN_VERSION}.AppImage"
+          else
+            echo -e "  ${YELLOW}⚠${RESET} Unsupported architecture: $_ARCH. Download from https://obsidian.md"
+            _INSTALLED=false
           fi
-          _APPIMAGE_URL="https://github.com/obsidianmd/obsidian-releases/releases/download/${_OBSIDIAN_TAG}/${_APPIMAGE_NAME}"
-          _INSTALL_BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
-          mkdir -p "$_INSTALL_BIN"
-          echo -e "  ${DIM}Downloading AppImage to $_INSTALL_BIN/...${RESET}"
-          if curl -fSL --progress-bar -o "$_INSTALL_BIN/Obsidian.AppImage" "$_APPIMAGE_URL" 2>/dev/null; then
-            chmod +x "$_INSTALL_BIN/Obsidian.AppImage"
-            echo -e "  ${GREEN}✓${RESET} Installed to $_INSTALL_BIN/Obsidian.AppImage"
-            # Check for libfuse2
-            if ! ldconfig -p 2>/dev/null | grep -q libfuse; then
-              echo -e "  ${DIM}Note: AppImage requires libfuse2. Install with:${RESET}"
-              echo -e "  ${DIM}  Ubuntu/Debian: sudo apt install libfuse2t64 (or libfuse2)${RESET}"
-              echo -e "  ${DIM}  Fedora: sudo dnf install fuse-libs${RESET}"
-              echo -e "  ${DIM}  Arch: sudo pacman -S fuse2${RESET}"
+          if [[ -n "$_APPIMAGE_NAME" ]]; then
+            _APPIMAGE_URL="https://github.com/obsidianmd/obsidian-releases/releases/download/${_OBSIDIAN_TAG}/${_APPIMAGE_NAME}"
+            _INSTALL_BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
+            mkdir -p "$_INSTALL_BIN"
+            echo -e "  ${DIM}Downloading AppImage to $_INSTALL_BIN/...${RESET}"
+            if curl -fSL --progress-bar -o "$_INSTALL_BIN/Obsidian.AppImage" "$_APPIMAGE_URL" 2>/dev/null; then
+              chmod +x "$_INSTALL_BIN/Obsidian.AppImage"
+              echo -e "  ${GREEN}✓${RESET} Installed to $_INSTALL_BIN/Obsidian.AppImage"
+              # Check for libfuse2 (multiple methods for different distros)
+              if ! { ldconfig -p 2>/dev/null | grep -q libfuse || find /usr/lib /usr/lib64 /usr/local/lib -name 'libfuse*' 2>/dev/null | grep -q .; }; then
+                echo -e "  ${DIM}Note: AppImage requires libfuse2. Install with:${RESET}"
+                echo -e "  ${DIM}  Ubuntu/Debian: sudo apt install libfuse2t64 (or libfuse2)${RESET}"
+                echo -e "  ${DIM}  Fedora: sudo dnf install fuse-libs${RESET}"
+                echo -e "  ${DIM}  Arch: sudo pacman -S fuse2${RESET}"
+              fi
+              _INSTALLED=true
             fi
-            _INSTALLED=true
           fi
         fi
-      fi
 
-      if [[ "$_INSTALLED" == "false" ]]; then
-        echo -e "  ${YELLOW}⚠${RESET} Auto-install failed. Download from https://obsidian.md"
+        if [[ "$_INSTALLED" == "false" ]]; then
+          echo -e "  ${YELLOW}⚠${RESET} Auto-install failed. Download from https://obsidian.md"
+        fi
       fi
     fi
     ;;
@@ -289,7 +308,8 @@ else
     ;;
   esac
 fi
-unset _obsidian_answer _PLATFORM _ARCH _INSTALLED _OBSIDIAN_TAG _OBSIDIAN_VERSION 2>/dev/null || true
+unset _obsidian_answer _PLATFORM _ARCH _INSTALLED _OBSIDIAN_TAG _OBSIDIAN_VERSION \
+  _APPIMAGE_NAME _APPIMAGE_URL _INSTALL_BIN _WIN_DL _EXE_URL 2>/dev/null || true
 
 # --- Done ---
 echo ""

@@ -325,14 +325,14 @@
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/google/gemini-3-flash-preview",
-        "openrouter/qwen/qwen3-coder",
+        "openrouter/qwen/qwen3-coder:free",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "librarian": [
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/google/gemini-3-flash-preview",
-        "openrouter/qwen/qwen3-coder",
+        "openrouter/qwen/qwen3-coder:free",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
@@ -351,11 +351,6 @@
     "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
-      "default": {
-        "reviewer-1": { "model": "openrouter/z-ai/glm-5.1" },
-        "reviewer-2": { "model": "openrouter/z-ai/glm-5.1" },
-        "reviewer-3": { "model": "openrouter/z-ai/glm-5.1" }
-      },
       "balanced": {
         "master": { "model": "openrouter/anthropic/claude-sonnet-4-6" },
         "reviewer-1": { "model": "openrouter/z-ai/glm-5.1" },
