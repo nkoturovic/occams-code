@@ -8,11 +8,13 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 
 ## What's Included
 
-- **`oc` launcher** (`bin/oc`) — Interactive preset picker, agent model tweaker, memory sync, project initialization, health checks, and YOLO mode
+- **`oc` launcher** (`bin/oc`) — Interactive preset picker, agent model tweaker, memory sync, project initialization, health checks, and permission toggles
 - **4 presets** — `balanced` (default), `cheap`, `premium`, `zai-coding-plan` (subscription)
-- **9 Python scripts** — Memory sync, model optimizer, project init, provider health, repo ingestion, wiki lint, and more
+- **10 Python scripts** — Memory sync, model optimizer, config generator, project init, provider health, repo ingestion, wiki lint, and more
 - **5 slash commands** — `/preset`, `/wiki`, `/remember`, `/wiki-lint`, `/permissions`
 - **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
+- **4 MCP servers** — context7 (library docs), grep_app (code search), semantic_search (local index), websearch (Exa)
+- **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 8 workflow principles for AI agents: divide & conquer, plan first, wiki-first, keep wiki alive, ask questions, parallel execution, minimize waste, Occam's Code
 
@@ -89,23 +91,29 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 
 ### Agents
 
-| Agent | Role |
-|-------|------|
-| **orchestrator** | Main coding agent, delegates to specialists |
-| **oracle** | Strategic advisor, code reviewer, architecture decisions |
-| **fixer** | Fast implementation specialist |
-| **designer** | UI/UX specialist |
-| **explorer** | Parallel codebase search |
-| **librarian** | Library docs and API references |
+6 specialist agents, each with curated models per preset:
+
+| Agent | Role | Delegation trigger |
+|-------|------|--------------------|
+| **orchestrator** | Main agent, delegates to specialists | — (this is you) |
+| **@oracle** | Architecture, code review, complex debugging | High-stakes decisions, persistent bugs |
+| **@fixer** | Fast implementation, test writing | Bounded tasks, multi-file changes |
+| **@designer** | UI/UX, responsive layouts, visual polish | User-facing interfaces |
+| **@explorer** | Parallel codebase search | Finding files before reading them |
+| **@librarian** | Library docs, API references | Version-specific behavior, unfamiliar APIs |
 
 ### Council
 
 Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel and synthesizes their responses.
 
-```
-/preset → switch presets    /wiki → show project context
-/remember → save to wiki    /wiki-lint → check wiki health
-```
+### MCP Servers
+
+| Server | Purpose |
+|--------|---------|
+| **context7** | Remote library documentation lookup |
+| **grep_app** | Search code across open-source repos |
+| **semantic_search** | Local project code index (sentence-transformers) |
+| **websearch** (Exa) | Web search for current information |
 
 ## 8 Workflow Principles
 

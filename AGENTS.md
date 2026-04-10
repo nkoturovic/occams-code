@@ -74,20 +74,62 @@
    - **Always** → append to `~/wiki/log.md` with date, project, and what changed
    - **Always** → update `~/wiki/index.md` if you created a new page
    - Update the `updated:` field in frontmatter when editing a wiki page.
-5. **semantic_search** MCP can search indexed project code. Use it as a secondary lookup when wiki doesn't have the answer.
+ 5. **semantic_search** MCP can search indexed project code. Use it as a secondary lookup when wiki doesn't have the answer.
+
+## Agent Types & Delegation
+
+| Agent | When to delegate | Key capability |
+|-------|-----------------|----------------|
+| **@explorer** | Discover files/symbols before reading | Glob, grep, AST — 3x faster search than orchestrator |
+| **@fixer** | Bounded implementation tasks, test writing | 2x faster edits, execution-focused |
+| **@librarian** | Library docs, API references, version-specific behavior | Fetches official docs, 10x better at current APIs |
+| **@oracle** | Architecture decisions, code review, complex debugging, simplification | Deep reasoning, trade-off analysis |
+| **@designer** | UI/UX, responsive layouts, visual polish, animations | 10x better UI/UX than orchestrator |
+| **@council** | Critical decisions needing diverse model perspectives | Multi-LLM consensus (3x slower, 3x cost, high confidence) |
+
+**Don't delegate** when: single small change (<20 lines), you already have the file, or explaining > doing.
+
+## Tools Reference
+
+### Core Tools
+- **`todowrite`** — Track task decomposition. Visible in OpenCode's side panel. Update proactively.
+- **`auto_continue`** — Enable for batch work (4+ todos). Orchestrator resumes automatically on incomplete items.
+- **`background_task`** / **`background_output`** / **`background_cancel`** — Fire-and-forget parallel agents (up to 10 concurrent). Use for independent subtasks.
+- **`council_session`** — Multi-LLM consensus. Runs councillors in parallel, master synthesizes.
+
+### Code Intelligence
+- **`ast_grep_search`** / **`ast_grep_replace`** — Structured code search/replace (25 languages). Prefer over regex. Use meta-variables: `$VAR`, `$$$`.
+- **`lsp_diagnostics`** — Get errors/warnings *before* running build. Use after writing code.
+- **`lsp_goto_definition`** — Find where something is defined.
+- **`lsp_find_references`** — Find all usages across workspace.
+- **`lsp_rename`** — Safe rename across entire workspace.
+
+### MCP Servers (pre-configured)
+| Server | Purpose | When to use |
+|--------|---------|-------------|
+| **context7** | Remote library docs lookup | Auto-triggered by `@librarian` |
+| **grep_app** | Search code across open source | Finding real-world API usage patterns |
+| **semantic_search** | Local project code index | Secondary lookup when wiki lacks answer |
+| **websearch** (Exa) | Web search for current info | Docs, news, facts, people, companies |
+
+### Skills (load via `skill` tool when task matches)
+| Skill | Trigger |
+|-------|---------|
+| **agent-browser** | Web automation, screenshots, form filling, scraping |
+| **code-review** | "Review this", security audit, after implementing features |
+| **defuddle** | Clean markdown extraction from web pages (instead of raw webfetch) |
+| **obsidian-cli** | Interact with Obsidian vault from command line |
+| **obsidian-markdown** | Create/edit Obsidian-flavored markdown (wikilinks, callouts, frontmatter) |
+| **obsidian-bases** | Create .base files (database-like views in Obsidian) |
+| **json-canvas** | Create/edit .canvas files (visual canvases, mind maps) |
+| **simplify** | Clean up code after writing (readability without behavior change) |
+| **pr-integration** | Create/review PRs via GitHub CLI |
 
 ## Current Config
 
 **4 presets:** `balanced` (default) → `cheap` → `premium` → `zai-coding-plan`
 
-| Agent | Balanced | Cheap | Premium | Zai-coding-plan |
-|-------|----------|-------|---------|-----------------|
-| orchestrator | qwen/qwen3.6-plus | qwen/qwen3-coder | claude-opus-4-6 | glm-5.1 |
-| oracle | claude-sonnet-4-6 | deepseek/deepseek-v3.2 | claude-opus-4-6 | glm-5.1 |
-| fixer | z-ai/glm-5.1 | deepseek/deepseek-v3.2 | claude-opus-4-6 | glm-5.1 |
-| designer | google/gemini-3.1-flash-lite-preview | google/gemini-3-flash-preview | google/gemini-3.1-pro-preview | glm-5.1 |
-| explorer | nvidia/nemotron-3-super-120b-a12b:free | nvidia/nemotron-3-super-120b-a12b:free | claude-sonnet-4-6 | glm-5.1 |
-| librarian | qwen/qwen3.6-plus | nvidia/nemotron-3-super-120b-a12b:free | claude-sonnet-4-6 | glm-5.1 |
+Agent models per preset are in `~/.config/opencode/oh-my-opencode-slim.json`. Read it directly when needed — don't hardcode model names here.
 
 **Fallback chains:** 5 entries each, quality → cost gradient, auto-trigger on 60s timeout.
 
