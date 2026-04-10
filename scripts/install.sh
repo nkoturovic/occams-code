@@ -99,7 +99,7 @@ for f in AGENTS.md index.md overview.md log.md .gitignore; do
 done
 
 # Copy wiki content (with overwrite protection)
-for f in wiki/wiki/concepts/karpathy-llm-wiki.md wiki/wiki/sources/_template-source-summary.md wiki/raw/README.md; do
+for f in wiki/wiki/concepts/karpathy-llm-wiki.md wiki/wiki/concepts/occams-code-setup.md wiki/wiki/concepts/agent-roles-and-models.md wiki/wiki/concepts/oc-launcher.md wiki/wiki/concepts/troubleshooting.md wiki/wiki/sources/_template-source-summary.md wiki/raw/README.md; do
   if [[ -f "$REPO_ROOT/$f" ]]; then
     target="$WIKI_DIR/$f"
     target_dir="$(dirname "$target")"

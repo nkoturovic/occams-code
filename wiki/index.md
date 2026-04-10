@@ -24,6 +24,10 @@ Master routing table. Agent: read this first to find relevant pages.
 
 ## Concepts
 - [[karpathy-llm-wiki]] — Karpathy's LLM Wiki pattern: wiki beats RAG for personal knowledge management
+- [[occams-code-setup]] — Architecture: two-config system, presets, agents, fallback, council, skills, scripts
+- [[agent-roles-and-models]] — Per-agent design rationale, delegation strategy, model selection, temperature/MCP
+- [[oc-launcher]] — Boot sequence, session modes, permissions, memory sync profiles
+- [[troubleshooting]] — Common failure modes, diagnostic commands, known-bad models
 
 ## Entities
 (none yet — add entity pages for people, orgs, tools you use)

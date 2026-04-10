@@ -21,6 +21,18 @@ This wiki tracks knowledge across your projects. Fill in as you add projects and
 
 - **Wiki-first knowledge management** — Karpathy pattern: raw → wiki (one-way compile). Wiki is the single source of compiled knowledge.
 - **Occam's Code** — The simplest solution that fully solves the problem is the correct solution.
+- **Setup self-awareness** — Pre-filled wiki pages explain how the agent's own system works (architecture, roles, launcher, troubleshooting). The agent reads these to understand its environment.
+
+## Pre-filled Setup Docs
+
+These pages ship with Occam's Code and give the agent deep knowledge about its own setup:
+
+| Page | Covers |
+|------|--------|
+| [[occams-code-setup]] | Two-config architecture, presets, fallback chains, council, skills, scripts |
+| [[agent-roles-and-models]] | Per-agent rationale, delegation strategy, model selection criteria |
+| [[oc-launcher]] | Boot sequence, session modes, permissions, memory sync |
+| [[troubleshooting]] | Common failures, diagnostic commands, nuclear reset |
 
 ## Active Projects
 
@@ -37,5 +49,5 @@ This wiki tracks knowledge across your projects. Fill in as you add projects and
 ## Statistics
 
 - Sources ingested: 0
-- Wiki pages: 3 (index, overview, karpathy-llm-wiki)
-- Languages covered: (none yet)
+- Wiki pages: 7 (4 setup docs, 1 concept, index, overview)
+- Languages covered: C++ (example)
