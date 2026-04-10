@@ -115,7 +115,8 @@ oc --sync-full      # Full memory sync (project + wiki, non-incremental)
 oc --sync-config    # Sync AGENTS.md model table from config
 oc --init-project   # Create wiki page + bootstrap project memory
 oc --doctor         # Run integration health checks
-oc --yolo           # Temporary allow-all permissions for one session
+oc --unsafe        # Auto-approve all permissions for one session (default behavior)
+oc --safe          # Enable permission prompts for one session
 oc --ingest-repo URL # Snapshot GitHub repo into wiki raw/sources
 oc -c           # Continue last session
 ```
@@ -125,7 +126,7 @@ oc -c           # Continue last session
 | Command | What it does |
 |---------|-------------|
 | `/preset` | Show active preset and agent models |
-| `/yolo` | Show YOLO mode usage and safety |
+| `/permissions` | Show permission modes (`--safe` / `--unsafe`) |
 | `/wiki` | Show project wiki and relevant knowledge |
 | `/remember` | Persist session knowledge to wiki |
 | `/wiki-lint` | Run wiki content health check |

@@ -11,7 +11,7 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, agent model tweaker, memory sync, project initialization, health checks, and YOLO mode
 - **4 presets** — `balanced` (default), `cheap`, `premium`, `zai-coding-plan` (subscription)
 - **9 Python scripts** — Memory sync, model optimizer, project init, provider health, repo ingestion, wiki lint, and more
-- **5 slash commands** — `/preset`, `/wiki`, `/remember`, `/wiki-lint`, `/yolo`
+- **5 slash commands** — `/preset`, `/wiki`, `/remember`, `/wiki-lint`, `/permissions`
 - **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 8 workflow principles for AI agents: divide & conquer, plan first, wiki-first, keep wiki alive, ask questions, parallel execution, minimize waste, Occam's Code
@@ -61,14 +61,21 @@ oc --preset <name>    Use preset directly (balanced/cheap/premium/zai-coding-pla
 oc --memory-sync      Sync project + wiki memory (incremental)
 oc --sync-fast        Fast sync (project only)
 oc --sync-full        Full reindex (project + wiki)
-oc --init-project     Create wiki page + bootstrap project memory
+oc --init-project     Create project wiki page + bootstrap project memory
 oc --doctor           Run integration health checks
-oc --yolo             Temporary auto-approve permissions for one session
+oc --unsafe           Auto-approve all permissions for this session
+oc --safe             Enable permission prompts for this session
 oc --ingest-repo URL  Snapshot GitHub repo into wiki
 oc -c                 Continue last session
 oc --lint-wiki        Run wiki content health check
 oc --sync-config      Sync AGENTS.md model table from config
 ```
+
+### Permissions
+
+Default is `--unsafe` (auto-approve). We trust you. You trust your agents. Life's too short for permission dialogs.
+
+To make prompts the default, remove `"permission": "allow"` from `~/.config/opencode/opencode.json`. Then use `oc --unsafe` when you want to live dangerously.
 
 ### The Wiki
 

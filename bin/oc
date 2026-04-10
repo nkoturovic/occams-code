@@ -56,7 +56,8 @@ DOCTOR=false
 INGEST_REPO=""
 SYNC_CONFIG=false
 LINT_WIKI=false
-YOLO=false
+SAFE=false
+UNSAFE=false
 OPENCODE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -68,7 +69,8 @@ while [[ $# -gt 0 ]]; do
     --sync-full) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="full"; shift ;;
     --sync-config) SYNC_CONFIG=true; shift ;;
     --lint-wiki) LINT_WIKI=true; shift ;;
-    --yolo) YOLO=true; shift ;;
+    --safe) SAFE=true; shift ;;
+    --unsafe) UNSAFE=true; shift ;;
     --init-project) INIT_PROJECT=true; shift ;;
     --doctor) DOCTOR=true; shift ;;
     --ingest-repo) INGEST_REPO="$2"; shift 2 ;;
@@ -80,10 +82,11 @@ while [[ $# -gt 0 ]]; do
       echo "  oc --quick            Pick preset only"
       echo "  oc --preset <name>    Use preset directly"
       echo "  oc --memory-sync      Standard sync (project + wiki, incremental)"
-      echo "  oc --sync-fast        Fast sync (project only, incremental)"
+      echo "  oc --sync-fast        Fast sync (project only)"
       echo "  oc --sync-full        Full sync (project + wiki, non-incremental)"
-      echo "  oc --lint-wiki       Run wiki content health check (same as /lint)"
-      echo "  oc --yolo            Temporary auto-approve permissions for this session"
+      echo "  oc --lint-wiki        Run wiki content health check (same as /lint)"
+      echo "  oc --safe             Enable permission prompts for this session"
+      echo "  oc --unsafe           Auto-approve all permissions for this session"
       echo "  oc --sync-config      Sync AGENTS.md model table from config"
       echo "  oc --init-project     Create project wiki page + memory bootstrap"
       echo "  oc --doctor           Run integration health checks"
@@ -414,32 +417,34 @@ ask_session_mode() {
   fi
 }
 
-launch_opencode() {
-  # AGENTS.md in the working directory is automatically loaded by OpenCode.
-  # No --prompt injection needed — avoids wasting tokens on a bootstrap message.
-  if [[ "$YOLO" == true && -f "$CORE_CONFIG" ]]; then
-    local yolo_backup
-    yolo_backup=$(mktemp)
+_launch_with_permission() {
+  local mode="$1"   # "safe" or "unsafe"
+  local perm_backup
+  perm_backup=$(mktemp)
 
-    # Save current permission config and enable temporary allow-all.
-    python3 - "$CORE_CONFIG" "$yolo_backup" <<'PY'
+  # Save current permission config.
+  python3 - "$CORE_CONFIG" "$perm_backup" "$mode" <<'PY'
 import json, sys
 from pathlib import Path
 
 cfg_path = Path(sys.argv[1])
 backup_path = Path(sys.argv[2])
+mode = sys.argv[3]
 cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
 backup = {
     "had_permission": "permission" in cfg,
     "permission": cfg.get("permission")
 }
 backup_path.write_text(json.dumps(backup), encoding="utf-8")
-cfg["permission"] = "allow"
+if mode == "unsafe":
+    cfg["permission"] = "allow"
+else:
+    cfg.pop("permission", None)
 cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
 PY
 
-    _restore_permissions() {
-      python3 - "$CORE_CONFIG" "$yolo_backup" <<'PY'
+  _restore_permissions() {
+    python3 - "$CORE_CONFIG" "$perm_backup" <<'PY'
 import json, sys
 from pathlib import Path
 
@@ -456,16 +461,32 @@ else:
     cfg.pop("permission", None)
 cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
 PY
-      rm -f "$yolo_backup"
-    }
+    rm -f "$perm_backup"
+  }
 
-    trap _restore_permissions EXIT INT TERM
-    echo -e "${YELLOW}⚠ YOLO mode enabled for this session (temporary).${RESET}"
-    opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
-    local rc=$?
-    _restore_permissions
-    trap - EXIT INT TERM
-    return $rc
+  trap _restore_permissions EXIT INT TERM
+  if [[ "$mode" == "unsafe" ]]; then
+    echo -e "${YELLOW}⚠ Unsafe mode: all permissions auto-approved for this session.${RESET}"
+  else
+    echo -e "${YELLOW}⚠ Safe mode: permission prompts enabled for this session.${RESET}"
+  fi
+  opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
+  local rc=$?
+  _restore_permissions
+  trap - EXIT INT TERM
+  return $rc
+}
+
+launch_opencode() {
+  if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
+    if [[ "$SAFE" == true && "$UNSAFE" == true ]]; then
+      echo -e "${RED}Error: --safe and --unsafe are mutually exclusive.${RESET}" >&2
+      exit 1
+    fi
+    local mode="safe"
+    [[ "$UNSAFE" == true ]] && mode="unsafe"
+    _launch_with_permission "$mode"
+    return $?
   fi
 
   exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
