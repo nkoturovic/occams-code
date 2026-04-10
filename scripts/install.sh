@@ -169,6 +169,124 @@ echo -e "${BOLD}Installing oh-my-opencode-slim plugin...${RESET}"
   fi
 )
 
+# --- Install Obsidian ---
+echo ""
+echo -e "${BOLD}Obsidian (wiki viewer/editor)${RESET}"
+
+_obsidian_installed() {
+  # Check common locations across platforms
+  command -v obsidian &>/dev/null && return 0
+  [[ -f /Applications/Obsidian.app/Contents/MacOS/Obsidian ]] && return 0
+  [[ -f "${XDG_BIN_HOME:-$HOME/.local/bin}/Obsidian.AppImage" ]] && return 0
+  # Flatpak
+  command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "md.obsidian.Obsidian" && return 0
+  return 1
+}
+
+if _obsidian_installed; then
+  echo -e "  ${DIM}Already installed (skipped)${RESET}"
+else
+  echo -e "  Obsidian provides the best wiki experience (graph view, wikilinks, backlinks)."
+  echo -e "  The wiki works as plain markdown without it — Obsidian is optional but recommended."
+  echo ""
+  read -rp "  Install Obsidian? [Y/n] " _obsidian_answer
+  _obsidian_answer="${_obsidian_answer:-Y}"
+
+  if [[ "${_obsidian_answer,,}" == "y" || "${_obsidian_answer,,}" == "yes" ]]; then
+    _PLATFORM="$(uname -s)"
+    _ARCH="$(uname -m)"
+
+    # --- macOS ---
+    if [[ "$_PLATFORM" == "Darwin" ]]; then
+      if command -v brew &>/dev/null; then
+        echo -e "  ${DIM}Using Homebrew (best method on macOS)...${RESET}"
+        if brew install --cask obsidian 2>/dev/null; then
+          echo -e "  ${GREEN}✓${RESET} Installed via Homebrew"
+        else
+          echo -e "  ${YELLOW}⚠${RESET} brew cask failed. Install manually: brew install --cask obsidian"
+        fi
+      else
+        echo -e "  ${YELLOW}⚠${RESET} Homebrew not found. Install Obsidian from https://obsidian.md"
+        echo -e "  ${DIM}Tip: install Homebrew first for the best experience on macOS${RESET}"
+      fi
+
+    # --- WSL ---
+    elif grep -qi microsoft /proc/version 2>/dev/null; then
+      echo -e "  ${DIM}WSL detected — downloading Windows installer...${RESET}"
+      _OBSIDIAN_TAG=$(curl -fsSI https://github.com/obsidianmd/obsidian-releases/releases/latest 2>/dev/null \
+        | grep -i '^location:' | tr -d '\r' | sed 's|.*/tag/||' || true)
+      if [[ -n "$_OBSIDIAN_TAG" ]]; then
+        _OBSIDIAN_VERSION="${_OBSIDIAN_TAG#v}"
+        _EXE_URL="https://github.com/obsidianmd/obsidian-releases/releases/download/${_OBSIDIAN_TAG}/Obsidian-${_OBSIDIAN_VERSION}.exe"
+        if command -v wslpath &>/dev/null; then
+          _WIN_DL="$(wslpath "$(wslvar USERPROFILE 2>/dev/null)" 2>/dev/null)/Downloads"
+          [[ -d "$_WIN_DL" ]] || _WIN_DL="$HOME"
+          if curl -fSL -o "$_WIN_DL/ObsidianSetup.exe" "$_EXE_URL" 2>/dev/null; then
+            echo -e "  ${GREEN}✓${RESET} Downloaded Obsidian installer to Windows Downloads folder"
+            echo -e "  ${DIM}Run ObsidianSetup.exe from Windows Explorer, then open ~/wiki/ as a vault${RESET}"
+          else
+            echo -e "  ${YELLOW}⚠${RESET} Download failed. Get it from https://obsidian.md"
+          fi
+        else
+          echo -e "  ${YELLOW}⚠${RESET} Download from https://obsidian.md"
+        fi
+      else
+        echo -e "  ${YELLOW}⚠${RESET} Could not reach GitHub. Download from https://obsidian.md"
+      fi
+
+    # --- Linux ---
+    elif [[ "$_PLATFORM" == "Linux" ]]; then
+      _INSTALLED=false
+
+      # Method 1: Flatpak (best for distros that support it — sandboxed, auto-updates)
+      if [[ "$_INSTALLED" == "false" ]] && command -v flatpak &>/dev/null; then
+        echo -e "  ${DIM}Trying Flatpak (sandboxed, auto-updating)...${RESET}"
+        if flatpak install -y flathub md.obsidian.Obsidian 2>/dev/null; then
+          echo -e "  ${GREEN}✓${RESET} Installed via Flatpak"
+          _INSTALLED=true
+        fi
+      fi
+
+      # Method 2: AppImage (works everywhere, no root needed, self-updating)
+      if [[ "$_INSTALLED" == "false" ]]; then
+        _OBSIDIAN_TAG=$(curl -fsSI https://github.com/obsidianmd/obsidian-releases/releases/latest 2>/dev/null \
+          | grep -i '^location:' | tr -d '\r' | sed 's|.*/tag/||' || true)
+        if [[ -n "$_OBSIDIAN_TAG" ]]; then
+          _OBSIDIAN_VERSION="${_OBSIDIAN_TAG#v}"
+          if [[ "$_ARCH" == "aarch64" || "$_ARCH" == "arm64" ]]; then
+            _APPIMAGE_NAME="Obsidian-${_OBSIDIAN_VERSION}-arm64.AppImage"
+          else
+            _APPIMAGE_NAME="Obsidian-${_OBSIDIAN_VERSION}.AppImage"
+          fi
+          _APPIMAGE_URL="https://github.com/obsidianmd/obsidian-releases/releases/download/${_OBSIDIAN_TAG}/${_APPIMAGE_NAME}"
+          _INSTALL_BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
+          mkdir -p "$_INSTALL_BIN"
+          echo -e "  ${DIM}Downloading AppImage to $_INSTALL_BIN/...${RESET}"
+          if curl -fSL --progress-bar -o "$_INSTALL_BIN/Obsidian.AppImage" "$_APPIMAGE_URL" 2>/dev/null; then
+            chmod +x "$_INSTALL_BIN/Obsidian.AppImage"
+            echo -e "  ${GREEN}✓${RESET} Installed to $_INSTALL_BIN/Obsidian.AppImage"
+            # Check for libfuse2
+            if ! ldconfig -p 2>/dev/null | grep -q libfuse; then
+              echo -e "  ${DIM}Note: AppImage requires libfuse2. Install with:${RESET}"
+              echo -e "  ${DIM}  Ubuntu/Debian: sudo apt install libfuse2t64 (or libfuse2)${RESET}"
+              echo -e "  ${DIM}  Fedora: sudo dnf install fuse-libs${RESET}"
+              echo -e "  ${DIM}  Arch: sudo pacman -S fuse2${RESET}"
+            fi
+            _INSTALLED=true
+          fi
+        fi
+      fi
+
+      if [[ "$_INSTALLED" == "false" ]]; then
+        echo -e "  ${YELLOW}⚠${RESET} Auto-install failed. Download from https://obsidian.md"
+      fi
+    fi
+  else
+    echo -e "  ${DIM}Skipped. Install anytime from https://obsidian.md${RESET}"
+  fi
+fi
+unset _obsidian_answer _PLATFORM _ARCH _INSTALLED _OBSIDIAN_TAG _OBSIDIAN_VERSION 2>/dev/null || true
+
 # --- Done ---
 echo ""
 echo -e "${GREEN}Installation complete!${RESET}"
@@ -177,6 +295,6 @@ echo "Next steps:"
 echo "  1. Add to PATH: echo 'export PATH=\"\$HOME/.config/opencode/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
 echo "  2. Set up API keys (see INSTALL.md or run 'opencode' to configure)"
 echo "  3. Run: oc --doctor"
-echo "  4. Open ~/wiki/ in Obsidian (optional)"
+echo "  4. Open ~/wiki/ in Obsidian"
 echo "  5. Launch: oc"
 echo ""
