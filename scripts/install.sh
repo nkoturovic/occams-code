@@ -145,6 +145,21 @@ if [[ -d "$REPO_ROOT/wiki/wiki/patterns" ]]; then
   done
 fi
 
+# Copy language conventions (with overwrite protection)
+if [[ -d "$REPO_ROOT/wiki/wiki/languages" ]]; then
+  for f in "$REPO_ROOT"/wiki/wiki/languages/*.md; do
+    [[ -f "$f" ]] || continue
+    basename="$(basename "$f")"
+    target="$WIKI_DIR/wiki/languages/$basename"
+    if [[ ! -f "$target" ]]; then
+      cp "$f" "$target"
+      echo -e "  ${GREEN}✓${RESET} wiki/wiki/languages/$basename"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} wiki/wiki/languages/$basename (already exists, skipped)"
+    fi
+  done
+fi
+
 # .gitkeep files (portable: avoids {}/.gitkeep which needs GNU find)
 find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null || true
 
