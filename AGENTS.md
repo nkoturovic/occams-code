@@ -2,7 +2,7 @@
 
 ## Session Rules
 - Wait for the user's first message before doing anything.
-- On your **first response** in a session, check `~/wiki/index.md` for relevant project pages and knowledge. If the current project or topic has a wiki page, read it and apply that context silently (don't narrate it unless asked). If relevant conventions, patterns, or prior decisions exist in the wiki, use them.
+- **On session start**, read `~/wiki/index.md` to discover available project pages and knowledge. Apply relevant context silently (don't narrate it unless asked). **Throughout the session**, consult wiki before starting any task — not just at the start.
 - If this is an unfamiliar project (no wiki page, not your own repo), check for instruction files the project may have: `CLAUDE.md`, `.github/copilot-instructions.md`, `.copilot/`, `.cursorrules`, `.windsurfrules`, or similar. Read them if found — they contain project conventions. Our `AGENTS.md` takes precedence on conflicts.
 - Use semantic_search only as a secondary fallback, not automatically.
 - Keep changes traceable and update wiki/log when durable knowledge is produced.
@@ -54,7 +54,6 @@
 - Don't narrate wiki contents — apply silently.
 - Keep AGENTS.md concise — models prioritize content at the top.
 - One-word answers are fine when appropriate.
-- Compress wiki pages when they grow verbose — preserve human-readable originals alongside compressed versions if needed.
 
 ### 8. Occam's Code *(solution design)*
 **The simplest solution that fully solves the problem is the correct solution.**
@@ -65,105 +64,75 @@
 
 ## How memory works (for the agent)
 1. **Wiki** lives at `~/wiki/`. Read `~/wiki/index.md` first — it's the routing table to all project pages, conventions, patterns, etc.
-2. **Per-project pages** are at `~/wiki/wiki/projects/<slug>.md`. Match the current working directory to a project page by looking for the `Path:` field inside pages. If no exact match, check if the cwd is a subdirectory of a known project path.
-3. **Conventions and patterns** are at `~/wiki/wiki/languages/`, `~/wiki/wiki/patterns/`, etc. The index links to them. If the project or task relates to a known language/pattern, read it.
-4. **Session memory update**: when you discover stable facts, **proactively** persist them. Don't wait to be asked. Route to the right place:
-   - **Per-project** → `~/wiki/wiki/projects/<slug>.md` — architecture decisions, build/test commands, failure modes, gotchas specific to this project
-   - **Language/pattern** → `~/wiki/wiki/languages/<lang>.md` or `~/wiki/wiki/patterns/<name>.md` — reusable conventions, idioms, patterns that apply across projects. Create new pages if none exist.
-   - **Global** → `~/wiki/wiki/concepts/` or `~/wiki/wiki/entities/` — tools, services, general knowledge worth remembering across all work
+2. **Per-project pages** are at `~/wiki/wiki/projects/<slug>.md`. Match the current working directory to a project page by looking for the `Path:` field inside pages.
+3. **Conventions and patterns** are at `~/wiki/wiki/languages/`, `~/wiki/wiki/patterns/`, etc.
+4. **Session memory update**: when you discover stable facts, **proactively** persist them. Route to the right place:
+   - **Per-project** → `~/wiki/wiki/projects/<slug>.md`
+   - **Language/pattern** → `~/wiki/wiki/languages/<lang>.md` or `~/wiki/wiki/patterns/<name>.md`
+   - **Global** → `~/wiki/wiki/concepts/` or `~/wiki/wiki/entities/`
    - **Always** → append to `~/wiki/log.md` with date, project, and what changed
    - **Always** → update `~/wiki/index.md` if you created a new page
-   - Update the `updated:` field in frontmatter when editing a wiki page.
- 5. **semantic_search** MCP can search indexed project code. Use it as a secondary lookup when wiki doesn't have the answer.
+5. **Project semantic memory** — index in `~/.opencode_memory/projects/*` (auto-built by semantic_search backend). Use as secondary lookup when wiki lacks the answer.
+6. **Retrieval order:** wiki first → semantic index → external docs/web.
 
 ## Agent Types & Delegation
 
 | Agent | When to delegate | Key capability |
 |-------|-----------------|----------------|
-| **@explorer** | Discover files/symbols before reading | Glob, grep, AST — 3x faster search than orchestrator |
-| **@fixer** | Bounded implementation tasks, test writing | 2x faster edits, execution-focused |
-| **@librarian** | Library docs, API references, version-specific behavior | Fetches official docs, 10x better at current APIs |
-| **@oracle** | Architecture decisions, code review, complex debugging, simplification | Deep reasoning, trade-off analysis |
-| **@designer** | UI/UX, responsive layouts, visual polish, animations | 10x better UI/UX than orchestrator |
-| **@council** | Critical decisions needing diverse model perspectives | Multi-LLM consensus (3x slower, 3x cost, high confidence) |
+| **@explorer** | Discover files/symbols before reading | Glob, grep, AST — 3x faster search |
+| **@fixer** | Bounded implementation, test writing | 2x faster edits |
+| **@librarian** | Library docs, API references | 10x better at current APIs |
+| **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
+| **@designer** | UI/UX, responsive layouts, visual polish | 10x better UI/UX |
+| **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
 **Don't delegate** when: single small change (<20 lines), you already have the file, or explaining > doing.
 
 ## Tools Reference
 
-### Core Tools
-- **`todowrite`** — Track task decomposition. Visible in OpenCode's side panel. Update proactively.
-- **`auto_continue`** — Enable for batch work (4+ todos). Orchestrator resumes automatically on incomplete items.
-- **`background_task`** / **`background_output`** / **`background_cancel`** — Fire-and-forget parallel agents (up to 10 concurrent). Use for independent subtasks.
-- **`council_session`** — Multi-LLM consensus. Runs councillors in parallel, master synthesizes.
-
-### Code Intelligence
-- **`ast_grep_search`** / **`ast_grep_replace`** — Structured code search/replace (25 languages). Prefer over regex. Use meta-variables: `$VAR`, `$$$`.
-- **`lsp_diagnostics`** — Get errors/warnings *before* running build. Use after writing code.
-- **`lsp_goto_definition`** — Find where something is defined.
-- **`lsp_find_references`** — Find all usages across workspace.
-- **`lsp_rename`** — Safe rename across entire workspace.
-
-### MCP Servers (pre-configured)
-| Server | Purpose | When to use |
-|--------|---------|-------------|
-| **context7** | Remote library docs lookup | Auto-triggered by `@librarian` |
-| **grep_app** | Search code across open source | Finding real-world API usage patterns |
-| **semantic_search** | Local project code index | Secondary lookup when wiki lacks answer |
-| **websearch** (Exa) | Web search for current info | Docs, news, facts, people, companies |
-
-### Skills (load via `skill` tool when task matches)
-| Skill | Trigger |
-|-------|---------|
-| **agent-browser** | Web automation, screenshots, form filling, scraping |
-| **code-review** | "Review this", security audit, after implementing features |
-| **defuddle** | Clean markdown extraction from web pages (instead of raw webfetch) |
-| **obsidian-cli** | Interact with Obsidian vault from command line |
-| **obsidian-markdown** | Create/edit Obsidian-flavored markdown (wikilinks, callouts, frontmatter) |
-| **obsidian-bases** | Create .base files (database-like views in Obsidian) |
-| **json-canvas** | Create/edit .canvas files (visual canvases, mind maps) |
-| **simplify** | Clean up code after writing (readability without behavior change) |
-| **pr-integration** | Create/review PRs via GitHub CLI |
+| Category | Tool | When to use |
+|----------|------|-------------|
+| Tracking | `todowrite` | Task decomposition (visible in UI, update proactively) |
+| Tracking | `auto_continue` | Batch work (4+ todos) — orchestrator resumes automatically |
+| Parallel | `background_task` / `_output` / `_cancel` | Fire-and-forget parallel agents (up to 10 concurrent) |
+| Consensus | `council_session` | Multi-LLM consensus — councillors in parallel, master synthesizes |
+| Code | `ast_grep_search` / `ast_grep_replace` | Structured search/replace (25 langs). Prefer over regex |
+| Code | `lsp_diagnostics` | Errors/warnings *before* build. Use after writing code |
+| Code | `lsp_goto_definition` / `lsp_find_references` | Navigate code |
+| Code | `lsp_rename` | Safe rename across workspace |
+| MCP | **context7** — library docs (auto-triggered by @librarian) |
+| MCP | **grep_app** — open-source code search (real-world API patterns) |
+| MCP | **semantic_search** — local project code index (secondary lookup) |
+| MCP | **websearch** (Exa) — web search (docs, news, facts) |
+| Skill | **agent-browser** — web automation, screenshots, scraping |
+| Skill | **code-review** — structured code review, security audit |
+| Skill | **defuddle** — clean markdown from web pages |
+| Skill | **obsidian-cli/markdown/bases** — Obsidian vault operations |
+| Skill | **json-canvas** — visual canvases, mind maps |
+| Skill | **simplify** — code cleanup after writing |
+| Skill | **pr-integration** — GitHub PR create/review |
 
 ## Current Config
 
 **4 presets:** `balanced` (default) → `cheap` → `premium` → `zai-coding-plan`
+Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
+**Fallback chains:** 5 entries each, quality → cost gradient, 60s timeout.
+**Permissions:** `--unsafe` (default) / `--safe` (temporary prompts for one session).
 
-Agent models per preset are in `~/.config/opencode/oh-my-opencode-slim.json`. Read it directly when needed — don't hardcode model names here.
+## Council
 
-**Fallback chains:** 5 entries each, quality → cost gradient, auto-trigger on 60s timeout.
+Multi-LLM consensus for high-stakes decisions. Parallel councillors, master synthesizes.
+Default (balanced): see oh-my-opencode-slim.json for master/councillors per preset.
 
-## Memory System
+## Providers
 
-Two-layer persistent memory keeps context across sessions:
+| Provider | Models | Auth |
+|----------|--------|------|
+| openrouter | 400+ models (pay-per-token) | auth.json |
+| anthropic | claude-* (direct API) | auth.json |
+| zai-coding-plan | GLM-5.1, GLM-5, GLM-5-turbo, GLM-4.7, GLM-4.5-air (subscription) | auth.json |
 
-1. **Global + project wiki memory** — `~/wiki` (Karpathy-style markdown KB; each project gets its own page in `wiki/projects/` plus shared global pages)
-2. **Project semantic memory** — index in `~/.opencode_memory/projects/*` (auto-built by semantic_search backend)
-
-**Retrieval order (wiki-first):**
-1) `~/wiki/index.md` + project page
-2) semantic project index (`semantic_search`)
-3) external docs/web only when needed
-
-## Quick Start
-
-```
-oc              # Interactive launcher (preset → agents → launch)
-oc --quick      # Pick preset, skip agent tweaks
-oc --preset cheap   # Direct launch with preset (new session implied)
-oc --memory-sync    # Standard sync (project + wiki, incremental)
-oc --sync-fast      # Fast memory sync (project only, incremental)
-oc --sync-full      # Full memory sync (project + wiki, non-incremental)
-oc --sync-config    # Sync AGENTS.md model table from config
-oc --init-project   # Create wiki page + bootstrap project memory
-oc --doctor         # Run integration health checks
-oc --unsafe        # Auto-approve all permissions for one session (default behavior)
-oc --safe          # Enable permission prompts for one session
-oc --ingest-repo URL # Snapshot GitHub repo into wiki raw/sources
-oc -c           # Continue last session
-```
-
-## Slash Commands (type / or Ctrl+P)
+## Slash Commands
 
 | Command | What it does |
 |---------|-------------|
@@ -172,47 +141,3 @@ oc -c           # Continue last session
 | `/wiki` | Show project wiki and relevant knowledge |
 | `/remember` | Persist session knowledge to wiki |
 | `/wiki-lint` | Run wiki content health check |
-| `/models` | Change model for current agent (built-in) |
-| `/init` | Guided AGENTS.md setup (built-in) |
-| `/review` | Review uncommitted changes (built-in) |
-
-## Typical Workflow
-
-1. **Launch**: `oc` → pick session (new/continue) → pick preset → launch
-2. **Start working**: agent reads wiki automatically on first response
-3. **During session**: `/wiki` to check context, `/models` to swap current agent model, `/wiki-lint` to check wiki health
-4. **After discovery**: `/remember` to save what you learned (or agent does it proactively)
-5. **End session**: knowledge persists in wiki for next session
-
-## Working Tips
-- **Use `ultrawork` or `ulw`** in prompts for parallel agent execution
-- **Start with `balanced` preset**, switch to `cheap` for exploration, `premium` for critical work
-- **Delegate to specialists** — don't do everything in one agent
-- **Explorer first** — find files before reading them
-- **Check budget** periodically: `python3 ~/.config/opencode/scripts/model-optimizer.py --budget`
-
-## Providers
-
-| Provider | Models | Auth |
-|----------|--------|------|
-| openrouter | 400+ models (pay-per-token primary) | auth.json |
-| anthropic | claude-* (direct API) | auth.json |
-| zai-coding-plan | GLM-5.1, GLM-5, GLM-5-turbo, GLM-4.7, GLM-4.5-air (subscription) | auth.json |
-
-## Council
-
-Multi-LLM consensus for high-stakes decisions. Runs councillors in **parallel**, master synthesizes.
-
-| Council Preset | Master | Councillors |
-|---------------|--------|-------------|
-| default (balanced) | claude-sonnet-4-6 | sonnet + qwen × 2 |
-| cheap | deepseek-v3.2 | deepseek + qwen-coder × 2 |
-| premium | claude-opus-4-6 | opus + sonnet × 2 |
-| zai-coding-plan | glm-5.1 | glm-5.1 × 3 |
-
-## Troubleshooting
-
-- **Agents not working:** `opencode models --refresh`, check auth status
-- **LSP broken:** verify server installed (`which clangd`, etc.)
-- **Cost too high:** `oc --preset cheap` or run optimizer to find savings
-- **Semantic memory issues:** `python3 ~/.config/opencode/scripts/memory-sync.py --list` and rerun `oc --memory-sync`
