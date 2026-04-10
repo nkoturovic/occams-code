@@ -15,12 +15,12 @@ Master routing table. Agent: read this first to find relevant pages.
 (none yet — cross-project facts will accumulate here)
 
 ## Language Conventions
-- [[cpp]] — C++ conventions and best practices
+<!-- Add language-specific convention pages as you create them -->
+<!-- Example: [[cpp]] — C++ conventions and best practices -->
 
 ## Proven Patterns
-- [[rcu-cached-resource]] — RCU-style CachedResource<T,Token> for hot-reloadable read-heavy data
-- [[boost-asio-beast-http]] — Coroutine-based async HTTP server using Boost.Asio + Beast
-- [[docker-static-scratch]] — Multi-stage Docker build producing minimal static binary on scratch image
+<!-- Add pattern pages as you discover reusable solutions -->
+<!-- Example: [[my-pattern]] — Brief description -->
 
 ## Concepts
 - [[karpathy-llm-wiki]] — Karpathy's LLM Wiki pattern: wiki beats RAG for personal knowledge management
