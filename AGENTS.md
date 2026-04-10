@@ -11,56 +11,45 @@
 
 ## Workflow Principles
 
-### 1. Divide and Conquer
-- Break tasks into independent subtasks that can execute in parallel via agents.
-- Use TODOs to track decomposition — `todowrite` is visible in OpenCode's UI.
-- Prefer 3 parallel fixer tasks over 1 sequential mega-task.
-- Council runs councillors in **parallel** (not serial).
-
-### 2. Plan Before Execute
-- Invest substantial time in planning before writing code.
-- Present the plan to the user for review before executing.
-- Ask clarifying questions early — uncertainty compounds with parallel execution.
-- A good plan makes parallel execution safe; a bad plan makes it chaotic.
-
-### 3. Wiki-First Knowledge
-- Check `~/wiki/index.md` and project pages **before** starting any task.
-- Apply existing conventions, patterns, and decisions from wiki.
-- When discovering stable facts, **proactively** persist them to wiki (don't wait to be asked).
-- Keep wiki organized and up-to-date — it compounds in value over time.
-
-### 4. Keep Wiki Alive *(knowledge continuity)*
-**This is not optional — stale wiki is actively harmful.**
-- Wiki is **not** a write-once artifact. Update it **continuously** during every session.
-- Proactively persist: new findings, changed decisions, updated conventions, failure modes, build commands.
-- Stale wiki is worse than no wiki — it misleads. If something changed, update the page immediately.
-- Run `/wiki-lint` periodically to catch orphans, broken links, and stale claims.
-- Append to `~/wiki/log.md` on every meaningful change.
-
-### 5. Ask Questions
-- Any uncertainty or ambiguity → ask the user before proceeding.
-- Better to ask too many questions upfront than to execute the wrong plan in parallel.
-- When presenting options, state your recommendation and why.
-
-### 6. Parallel Agent Execution
-- Use `ultrawork` or `ulw` in prompts for parallel agent dispatch.
-- Delegate to specialists (`@explorer`, `@fixer`, `@librarian`) — they run concurrently.
-- Fire multiple searches in parallel before reading files.
-- Combine results after parallel work completes.
-
-### 7. Minimize Waste *(communication & operations)*
-- **Be terse.** Drop filler, keep technical accuracy. "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
-- Don't re-read files you already have in context.
-- Don't narrate wiki contents — apply silently.
-- Keep AGENTS.md concise — models prioritize content at the top.
-- One-word answers are fine when appropriate.
-
-### 8. Occam's Code *(solution design)*
+### Occam's Code *(solution design)*
 **The simplest solution that fully solves the problem is the correct solution.**
 - Fewest changes. Fewest files. Fewest abstractions.
 - If two approaches work equally, the shorter wins.
 - Every abstraction, file, and line must earn its place — nothing exists without necessity.
 - The ideal solution is monadic: indivisible, irreducible, complete.
+
+### Ask Questions
+- Any uncertainty or ambiguity → stop and ask the user before proceeding.
+- Better to ask too many questions upfront than to execute the wrong plan in parallel.
+- When presenting options, state your recommendation and why.
+
+### Plan Before Execute
+- Invest substantial time in planning before writing code.
+- Present the plan to the user for review before executing.
+- A good plan makes parallel execution safe; a bad plan makes it chaotic.
+
+### Divide and Conquer
+- Break tasks into independent subtasks that can execute in parallel via agents.
+- Use TODOs to track decomposition — `todowrite` is visible in OpenCode's UI.
+- Prefer 3 parallel fixer tasks over 1 sequential mega-task.
+
+### Parallelize
+- Delegate to specialists (`@explorer`, `@fixer`, `@librarian`) — they run concurrently.
+- Fire multiple searches in parallel before reading files.
+- Combine results after parallel work completes.
+
+### Wiki
+- Check `~/wiki/index.md` and project pages **before** starting any task. Apply existing conventions, patterns, and decisions.
+- When discovering stable facts, **proactively** persist them to wiki — don't wait to be asked.
+- Wiki is **not** a write-once artifact. Update it **continuously** during every session. Stale wiki is worse than no wiki — it misleads.
+- Append to `~/wiki/log.md` on every meaningful change. Update `~/wiki/index.md` if you created a new page.
+
+### Be Terse
+- **Be terse.** Drop filler, keep technical accuracy. "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
+- Don't re-read files you already have in context.
+- Don't narrate wiki contents — apply silently.
+- Keep AGENTS.md concise — models prioritize content at the top.
+- One-word answers are fine when appropriate.
 
 ## How memory works (for the agent)
 1. **Wiki** lives at `~/wiki/`. Read `~/wiki/index.md` first — it's the routing table to all project pages, conventions, patterns, etc.
