@@ -22,6 +22,7 @@ This wiki tracks knowledge across your projects. Fill in as you add projects and
 - **Wiki-first knowledge management** — Karpathy pattern: raw → wiki (one-way compile). Wiki is the single source of compiled knowledge.
 - **Occam's Code** — The simplest solution that fully solves the problem is the correct solution.
 - **Setup self-awareness** — Pre-filled wiki pages explain how the agent's own system works (architecture, roles, launcher, troubleshooting). The agent reads these to understand its environment.
+- **Design system support** — DESIGN.md files (from [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)) give the designer agent exact colors, typography, and component specs for pixel-perfect UI generation. See [[design-systems]].
 
 ## Pre-filled Setup Docs
 
@@ -49,5 +50,5 @@ These pages ship with Occam's Code and give the agent deep knowledge about its o
 ## Statistics
 
 - Sources ingested: 0
-- Wiki pages: 11 (4 setup docs, 3 patterns, 1 language, 1 concept, index, overview)
+- Wiki pages: 12 (4 setup docs, 1 design, 3 patterns, 1 language, 1 concept, index, overview)
 - Languages covered: C++ (example)
