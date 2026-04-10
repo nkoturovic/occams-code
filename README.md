@@ -126,6 +126,25 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 7. **Minimize Waste** — Be terse, no filler, caveman-style communication
 8. **Occam's Code** — Simplest solution that fully solves the problem wins
 
+## Autonomous Mode
+
+Want to step away and let the agent work? Use `/auto-continue on` (built into oh-my-opencode-slim).
+
+The agent will keep working through incomplete TODOs without stopping. It stops when:
+- All TODOs are completed
+- It asks you a question
+- You press Esc
+- Max iterations reached (configurable, default 50)
+
+**Best practice:** Write a design doc with clear TODOs before enabling. Descriptive TODOs help the agent recover context after long sessions.
+
+**Example workflow:**
+```
+/remember → "Write design doc with TODOs"
+/auto-continue on
+# ... go make coffee, come back to finished work
+```
+
 ## Directory Structure
 
 ```
