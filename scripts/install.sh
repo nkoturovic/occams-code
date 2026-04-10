@@ -58,11 +58,11 @@ echo -e "  ${GREEN}✓${RESET} bin/oc"
 # Scripts
 cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
 chmod +x "$OPENCODE_DIR/scripts/generate-config.py"
-echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py | wc -l) files)"
+echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
 
 # Commands
 cp "$REPO_ROOT"/commands/*.md "$OPENCODE_DIR/commands/"
-echo -e "  ${GREEN}✓${RESET} commands/ ($(ls "$REPO_ROOT"/commands/*.md | wc -l) files)"
+echo -e "  ${GREEN}✓${RESET} commands/ ($(ls "$REPO_ROOT"/commands/*.md 2>/dev/null | wc -l) files)"
 
 # Config
 if [[ -f "$REPO_ROOT/config/oh-my-opencode-slim.json" ]]; then
@@ -101,7 +101,8 @@ done
 # Copy wiki content (with overwrite protection)
 for f in wiki/wiki/concepts/karpathy-llm-wiki.md wiki/wiki/concepts/occams-code-setup.md wiki/wiki/concepts/agent-roles-and-models.md wiki/wiki/concepts/oc-launcher.md wiki/wiki/concepts/troubleshooting.md wiki/wiki/sources/_template-source-summary.md wiki/raw/README.md; do
   if [[ -f "$REPO_ROOT/$f" ]]; then
-    target="$WIKI_DIR/$f"
+    # Strip leading "wiki/" from $f since $WIKI_DIR already is ~/wiki
+    target="$WIKI_DIR/${f#wiki/}"
     target_dir="$(dirname "$target")"
     mkdir -p "$target_dir"
     if [[ ! -f "$target" ]]; then
@@ -189,10 +190,11 @@ else
   echo -e "  Obsidian provides the best wiki experience (graph view, wikilinks, backlinks)."
   echo -e "  The wiki works as plain markdown without it — Obsidian is optional but recommended."
   echo ""
-  read -rp "  Install Obsidian? [Y/n] " _obsidian_answer
+  read -rp "  Install Obsidian? [Y/n] " _obsidian_answer < /dev/tty
   _obsidian_answer="${_obsidian_answer:-Y}"
 
-  if [[ "${_obsidian_answer,,}" == "y" || "${_obsidian_answer,,}" == "yes" ]]; then
+  case "$_obsidian_answer" in
+    [Yy]|[Yy][Ee][Ss]|'')
     _PLATFORM="$(uname -s)"
     _ARCH="$(uname -m)"
 
@@ -281,9 +283,11 @@ else
         echo -e "  ${YELLOW}⚠${RESET} Auto-install failed. Download from https://obsidian.md"
       fi
     fi
-  else
-    echo -e "  ${DIM}Skipped. Install anytime from https://obsidian.md${RESET}"
-  fi
+    ;;
+    *)
+      echo -e "  ${DIM}Skipped. Install anytime from https://obsidian.md${RESET}"
+    ;;
+  esac
 fi
 unset _obsidian_answer _PLATFORM _ARCH _INSTALLED _OBSIDIAN_TAG _OBSIDIAN_VERSION 2>/dev/null || true
 

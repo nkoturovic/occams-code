@@ -87,8 +87,8 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 
 | MCP | Who gets it | Why |
 |-----|------------|-----|
-| `websearch` | Everyone except designer | General-purpose web lookup |
-| `context7` | Oracle, librarian, explorer, fixer | Library docs — deep research |
+| `websearch` | Everyone | General-purpose web lookup |
+| `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
 | `semantic_search` | Oracle, designer, explorer, librarian, fixer | Local project code index (requires `uv`) |
 
@@ -108,7 +108,7 @@ Models use `provider/model-name` format:
 - `openrouter/qwen/qwen3.6-plus` — Qwen via OpenRouter
 - `anthropic/claude-sonnet-4-6` — Claude via direct Anthropic API (if configured)
 - `openrouter/anthropic/claude-sonnet-4-6` — Claude via OpenRouter
-- `z-ai/glm-5.1` — GLM via OpenRouter (Z.AI publishes there)
+- `openrouter/z-ai/glm-5.1` — GLM via OpenRouter (Z.AI publishes there)
 - `zai-coding-plan/glm-5.1` — GLM via Z.AI subscription
 
 The `openrouter/` prefix routes through the OpenRouter provider (works for any model they host). Direct provider names (`anthropic/`, `deepseek/`) use dedicated API keys.

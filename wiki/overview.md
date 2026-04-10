@@ -49,5 +49,5 @@ These pages ship with Occam's Code and give the agent deep knowledge about its o
 ## Statistics
 
 - Sources ingested: 0
-- Wiki pages: 7 (4 setup docs, 1 concept, index, overview)
+- Wiki pages: 11 (4 setup docs, 3 patterns, 1 language, 1 concept, index, overview)
 - Languages covered: C++ (example)
