@@ -6,9 +6,6 @@
 #   oc                  # Interactive: pick preset, tweak agents, launch
 #   oc --quick          # Pick preset + session choice, skip tweaking
 #   oc --preset cheap   # Use preset directly, new session (no session prompt)
-#   oc --memory-sync    # Standard sync (project + wiki, incremental)
-#   oc --sync-fast      # Fast sync (project only, incremental)
-#   oc --sync-full      # Full sync (project + wiki, non-incremental)
 #   oc --lint-wiki      # Run wiki content health check (same as /lint)
 #   oc -c               # Continue last session (skip all prompts)
 #   oc [opencode args]  # Pass-through args to opencode
@@ -46,11 +43,12 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 1
 fi
 
+# Clean stale cache files (older than 3 days)
+find /tmp -maxdepth 1 -name "oc-*" -mtime +3 -delete 2>/dev/null || true
+
 # --- Parse arguments ---
 QUICK=false
 PRESET_ARG=""
-MEMORY_SYNC=false
-MEMORY_SYNC_PROFILE="standard"
 INIT_PROJECT=false
 DOCTOR=false
 INGEST_REPO=""
@@ -64,9 +62,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --quick|-q) QUICK=true; shift ;;
     --preset|-p) PRESET_ARG="$2"; shift 2 ;;
-    --memory-sync|-m) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="standard"; shift ;;
-    --sync-fast) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="fast"; shift ;;
-    --sync-full) MEMORY_SYNC=true; MEMORY_SYNC_PROFILE="full"; shift ;;
     --sync-config) SYNC_CONFIG=true; shift ;;
     --lint-wiki) LINT_WIKI=true; shift ;;
     --safe) SAFE=true; shift ;;
@@ -81,9 +76,6 @@ while [[ $# -gt 0 ]]; do
       echo "  oc                    Full interactive mode"
       echo "  oc --quick            Pick preset only"
       echo "  oc --preset <name>    Use preset directly"
-      echo "  oc --memory-sync      Standard sync (project + wiki, incremental)"
-      echo "  oc --sync-fast        Fast sync (project only)"
-      echo "  oc --sync-full        Full sync (project + wiki, non-incremental)"
       echo "  oc --lint-wiki        Run wiki content health check (same as /lint)"
       echo "  oc --safe             Enable permission prompts for this session"
       echo "  oc --unsafe           Auto-approve all permissions for this session"
@@ -163,28 +155,34 @@ ask_yes_no() {
 }
 
 detect_project_state() {
-  python3 "$HOME/.config/opencode/scripts/detect-project-state.py"
+  local _dps_output
+  _dps_output=$(python3 "$HOME/.config/opencode/scripts/detect-project-state.py" 2>/dev/null) || {
+    echo "HAS_WIKI_PAGE=0"
+    echo "IS_EMPTY_DIR=0"
+    echo "PROJECT_WIKI_PAGE=''"
+    echo "WIKI_STALE=0"
+    echo "WIKI_UPDATED_DATE=''"
+    echo "PROJECT_LAST_COMMIT=''"
+    echo "DEAD_WIKI_PAGES=''"
+    return
+  }
+  echo "$_dps_output"
 }
 
 smart_memory_prompts() {
   [[ ! -t 0 || ! -t 1 ]] && return
 
-  local HAS_INDEX HAS_WIKI_PAGE IS_EMPTY_DIR INDEX_AGE_DAYS PROJECT_WIKI_PAGE
+  local HAS_WIKI_PAGE IS_EMPTY_DIR PROJECT_WIKI_PAGE
   local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
   eval "$(detect_project_state)"
 
-  local stale_days="${OC_MEMORY_STALE_DAYS:-1}"
   local wiki_state="missing"
-  local index_state="missing"
 
   if [[ "$HAS_WIKI_PAGE" == "1" ]]; then
     wiki_state="ok ($(basename "${PROJECT_WIKI_PAGE:-}"))"
   fi
-  if [[ "$HAS_INDEX" == "1" ]]; then
-    index_state="ok (${INDEX_AGE_DAYS}d old)"
-  fi
 
-  echo -e "${DIM}Memory: wiki=${wiki_state}, index=${index_state}${RESET}"
+  echo -e "${DIM}Memory: wiki=${wiki_state}${RESET}"
 
   # Warn about stale wiki page
   if [[ "$WIKI_STALE" == "1" ]]; then
@@ -213,14 +211,6 @@ smart_memory_prompts() {
     fi
   fi
 
-  # project-init already runs memory sync, so skip duplicate prompt if chosen
-  if [[ "$MEMORY_SYNC" == false && "$INIT_PROJECT" == false ]]; then
-    if [[ "$HAS_INDEX" == "0" ]]; then
-      ask_yes_no "No semantic memory index found for this project. Sync now?" "y" && MEMORY_SYNC=true
-    elif [[ "$INDEX_AGE_DAYS" -ge "$stale_days" ]]; then
-      ask_yes_no "Project memory index is ${INDEX_AGE_DAYS} days old. Refresh now?" "y" && MEMORY_SYNC=true
-    fi
-  fi
   return 0
 }
 
@@ -230,42 +220,12 @@ run_project_init() {
   if ! python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"; then
     echo -e "${YELLOW}⚠ Project init reported issues — continuing${RESET}"
   fi
-  # project-init already attempts memory sync
-  MEMORY_SYNC=false
-  echo ""
-}
-
-run_memory_sync() {
-  [[ "$MEMORY_SYNC" != true ]] && return 0
-  local sync_desc="project + wiki (incremental)"
-  local sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --timeout 120)
-
-  case "$MEMORY_SYNC_PROFILE" in
-    fast)
-      sync_desc="project only (incremental, fast)"
-      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --timeout 45)
-      ;;
-    full)
-      sync_desc="project + wiki (full reindex)"
-      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --full --timeout 300)
-      ;;
-    *)
-      sync_desc="project + wiki (incremental)"
-      sync_cmd=(python3 "$HOME/.config/opencode/scripts/memory-sync.py" --project "$PWD" --wiki --timeout 120)
-      ;;
-  esac
-
-  echo -e "${DIM}Syncing memory (${sync_desc})...${RESET}"
-
-  if ! "${sync_cmd[@]}" 2>/dev/null; then
-    echo -e "${YELLOW}⚠ Memory sync failed — continuing without fresh index${RESET}"
-  fi
   echo ""
 }
 
 run_doctor() {
   local status=0
-  local HAS_INDEX HAS_WIKI_PAGE IS_EMPTY_DIR INDEX_AGE_DAYS
+  local HAS_WIKI_PAGE IS_EMPTY_DIR
   local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
 
   echo -e "${BOLD}Integration Doctor${RESET}"
@@ -326,28 +286,13 @@ run_doctor() {
     echo -e "  ${YELLOW}⚠${RESET} Dead wiki pages found (paths no longer exist)"
   fi
 
-  # Semantic index
-  if [[ "$HAS_INDEX" == "1" ]]; then
-    echo -e "  ${GREEN}✓${RESET} Semantic project index (${INDEX_AGE_DAYS}d old)"
+  # Wiki content check
+  local index_lines
+  index_lines=$(grep -c '^\- \[\[' "$HOME/wiki/index.md" 2>/dev/null || echo 0)
+  if [[ "$index_lines" -ge 3 ]]; then
+    echo -e "  ${GREEN}✓${RESET} Wiki index has content ($index_lines entries)"
   else
-    echo -e "  ${YELLOW}⚠${RESET} Missing semantic index (run: oc --memory-sync)"
-    status=1
-  fi
-
-  # Memory store
-  if [[ -d "$HOME/.opencode_memory" || -L "$HOME/.opencode_memory" ]]; then
-    echo -e "  ${GREEN}✓${RESET} OpenCode memory store"
-  else
-    echo -e "  ${YELLOW}⚠${RESET} Memory store missing (~/.opencode_memory)"
-    status=1
-  fi
-
-  # Memory backend
-  if python3 "$HOME/.config/opencode/scripts/memory-sync.py" --list >/dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${RESET} Memory backend reachable"
-  else
-    echo -e "  ${YELLOW}⚠${RESET} Memory backend not reachable"
-    status=1
+    echo -e "  ${YELLOW}⚠${RESET} Wiki index has few entries ($index_lines) — add project pages with oc --init-project"
   fi
 
   # Provider health + credits
@@ -420,7 +365,7 @@ ask_session_mode() {
 _launch_with_permission() {
   local mode="$1"   # "safe" or "unsafe"
   local perm_backup
-  perm_backup=$(mktemp)
+  perm_backup="/tmp/oc-perm-backup-$(id -u)"
 
   # Save current permission config.
   python3 - "$CORE_CONFIG" "$perm_backup" "$mode" <<'PY'
@@ -588,16 +533,35 @@ main() {
   echo -e "${DIM}  ───────${RESET}"
   echo ""
 
+  # Recover permission config from previous hard crash (SIGKILL)
+  local _perm_recovery="/tmp/oc-perm-backup-$(id -u)"
+  if [[ -f "$_perm_recovery" && -f "$CORE_CONFIG" ]]; then
+    echo -e "${YELLOW}⚠ Recovering permission config from previous crash...${RESET}"
+    python3 - "$CORE_CONFIG" "$_perm_recovery" <<'PY'
+import json, sys
+from pathlib import Path
+cfg_path = Path(sys.argv[1])
+backup_path = Path(sys.argv[2])
+if not backup_path.exists():
+    raise SystemExit(0)
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+backup = json.loads(backup_path.read_text(encoding="utf-8"))
+if backup.get("had_permission"):
+    cfg["permission"] = backup.get("permission")
+else:
+    cfg.pop("permission", None)
+cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+PY
+    rm -f "$_perm_recovery"
+  fi
+
   if [[ -n "$INGEST_REPO" ]]; then
     echo -e "${DIM}Ingesting repository digest...${RESET}"
     if ! python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO"; then
       echo -e "${RED}Repo ingestion failed.${RESET}"
       exit 1
     fi
-    echo -e "${DIM}Refreshing wiki memory only...${RESET}"
-    if ! python3 "$HOME/.config/opencode/scripts/memory-sync.py" --wiki-only 2>/dev/null; then
-      echo -e "${YELLOW}⚠ Wiki memory refresh failed — continuing${RESET}"
-    fi
+    echo -e "${GREEN}✓ Repository digest ingested into wiki.${RESET}"
     exit 0
   fi
 
@@ -640,7 +604,6 @@ main() {
     sync_agents_md
     smart_memory_prompts
     run_project_init
-    run_memory_sync
     check_providers
     echo ""
     show_config; echo ""
@@ -661,7 +624,6 @@ main() {
     # Memory awareness is useful even when resuming; preset/model config is not.
     smart_memory_prompts
     run_project_init
-    run_memory_sync
     echo -e "${DIM}Resuming last session...${RESET}"
     echo ""
     launch_opencode
@@ -671,7 +633,6 @@ main() {
   # New session: full interactive flow
   smart_memory_prompts
   run_project_init
-  run_memory_sync
 
   if [[ "$QUICK" == false ]]; then
     run_model_automation

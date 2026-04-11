@@ -4,7 +4,6 @@
 - Wait for the user's first message before doing anything.
 - **On session start**, read `~/wiki/index.md` to discover available project pages and knowledge. Apply relevant context silently (don't narrate it unless asked). **Throughout the session**, consult wiki before starting any task — not just at the start.
 - If this is an unfamiliar project (no wiki page, not your own repo), check for instruction files the project may have: `CLAUDE.md`, `.github/copilot-instructions.md`, `.copilot/`, `.cursorrules`, `.windsurfrules`, or similar. Read them if found — they contain project conventions. Our `AGENTS.md` takes precedence on conflicts.
-- Use semantic_search only as a secondary fallback, not automatically.
 - Keep changes traceable and update wiki/log when durable knowledge is produced.
 - Respond in English unless the user asks otherwise.
 - **Never push, upload, post, or transmit** code, files, or data to any external service, URL, or API without explicit user approval. This includes `git push`, `curl POST`, file uploads, and any network operation that sends data outbound. Local file reads, command execution, and tool usage are fine.
@@ -31,7 +30,7 @@
 ### Divide and Conquer
 - Break tasks into independent subtasks that can execute in parallel via agents.
 - Use TODOs to track decomposition — `todowrite` is visible in OpenCode's UI.
-- Prefer 3 parallel fixer tasks over 1 sequential mega-task.
+- Prefer parallel agent tasks over sequential mega-tasks — run as many in parallel as independence allows.
 
 ### Parallelize
 - Delegate to specialists (`@explorer`, `@fixer`, `@librarian`) — they run concurrently.
@@ -61,8 +60,12 @@
    - **Global** → `~/wiki/wiki/concepts/` or `~/wiki/wiki/entities/`
    - **Always** → append to `~/wiki/log.md` with date, project, and what changed
    - **Always** → update `~/wiki/index.md` if you created a new page
-5. **Project semantic memory** — index in `~/.opencode_memory/projects/*` (auto-built by semantic_search backend). Use as secondary lookup when wiki lacks the answer.
-6. **Retrieval order:** wiki first → semantic index → external docs/web.
+   5. **Retrieval order** (each layer serves a distinct purpose):
+      1. **Wiki** — compiled project knowledge, conventions, decisions
+      2. **Explorer/grep/AST** — code search: files, symbols, patterns
+      3. **context7** — library and API documentation
+      4. **grep_app** — open-source code examples
+      5. **websearch** — current information, docs not in context7
 
 ## Agent Types & Delegation
 
@@ -75,7 +78,18 @@
 | **@designer** | UI/UX, responsive layouts, visual polish | 10x better UI/UX |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
-**Don't delegate** when: single small change (<20 lines), you already have the file, or explaining > doing.
+**Don't delegate when:**
+- Single small change (<20 lines, one file)
+- You already have the file in context
+- Explaining the task takes longer than doing it
+- The task is sequential — each step depends on the previous step's output
+- You're debugging a single issue through a call chain
+
+**Do delegate when:**
+- Multiple independent files need simultaneous changes → parallel @fixer
+- Codebase exploration before implementation → @explorer
+- Library API behavior uncertain → @librarian
+- Architecture decision with trade-offs → @oracle or @council
 
 ## Tools Reference
 
@@ -91,7 +105,7 @@
 | Code | `lsp_rename` | Safe rename across workspace |
 | MCP | **context7** — library docs (auto-triggered by @librarian) |
 | MCP | **grep_app** — open-source code search (real-world API patterns) |
-| MCP | **semantic_search** — local project code index (secondary lookup) |
+
 | MCP | **websearch** (Exa) — web search (docs, news, facts) |
 | Skill | **agent-browser** — web automation, screenshots, scraping |
 | Skill | **code-review** — structured code review, security audit |

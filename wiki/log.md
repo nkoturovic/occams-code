@@ -1,4 +1,4 @@
-# Wiki Changelog
+# Wiki Log
 
 Chronological record of all changes. Agent appends here after every wiki edit.
 

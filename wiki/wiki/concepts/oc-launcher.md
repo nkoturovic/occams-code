@@ -1,5 +1,5 @@
 ---
-summary: "oc launcher boot sequence, session modes, permission system, memory sync profiles, and smart prompts"
+summary: "oc launcher boot sequence, session modes, permission system, and smart prompts"
 type: concept
 tags: [occams-code, opencode, launcher, bin-oc]
 sources: []
@@ -20,7 +20,7 @@ When you run `oc`, the following happens in order:
 ```
 1. Dependency checks     → jq, fzf, python3, config file (fail fast)
 2. Bash version gate     → requires 4.0+ (macOS default is 3.2, needs brew bash)
-3. Smart memory prompts  → detect-project-state.py checks wiki/memory state
+3. Smart memory prompts  → detect-project-state.py checks wiki state
 4. Session choice        → new or continue last session
 5. [New only] Provider health  → pings APIs in parallel (~3s)
 6. [New only] Preset select    → interactive fzf or --preset flag
@@ -53,19 +53,9 @@ When you run `oc`, the following happens in order:
 4. Launches OpenCode
 5. Restores original config when OpenCode exits
 
-**Edge case:** If OpenCode is killed with SIGKILL (system kill -9, OOM), the trap doesn't fire. The config may be left in the modified state. Fix: manually check `opencode.json` for `"permission": "allow"` if permissions seem wrong.
+**Edge case:** If OpenCode is killed with SIGKILL (system kill -9, OOM), the trap doesn't fire. On next launch, `oc` auto-detects the leftover backup file and recovers the original permission state.
 
 **Default:** The generated `opencode.json` includes `"permission": "allow"` — so launching without flags is equivalent to `--unsafe`.
-
-## Memory Sync Profiles
-
-| Profile | Command | Scope | Timeout |
-|---------|---------|-------|---------|
-| Standard | `oc --memory-sync` | Project + wiki, incremental | 120s |
-| Fast | `oc --sync-fast` | Project only, incremental | 45s |
-| Full | `oc --sync-full` | Project + wiki, non-incremental | 300s |
-
-**Fast path optimization:** If git is clean (no uncommitted changes) or no supported-file changes detected, indexing is skipped entirely.
 
 ## Smart Prompts (during boot)
 
@@ -75,8 +65,6 @@ When you run `oc`, the following happens in order:
 |-----------|--------|
 | No wiki page for project | "Initialize project wiki memory now?" |
 | No project AGENTS.md | "No project AGENTS.md found. Create it?" |
-| No semantic index | "No semantic memory index found. Sync now?" |
-| Index ≥1 day old | "Project memory index is X days old. Refresh now?" |
 
 All prompts are optional — the user can decline and still launch.
 
@@ -84,9 +72,9 @@ All prompts are optional — the user can decline and still launch.
 
 | Command | What it does |
 |---------|-------------|
-| `oc --doctor` | 10 integration health checks (models, AGENTS.md, wiki, providers) |
+| `oc --doctor` | Integration health checks (models, AGENTS.md, wiki, providers) |
 | `oc --sync-config` | Regenerate AGENTS.md model table from config |
-| `oc --init-project` | Create wiki page + project AGENTS.md + memory sync |
+| `oc --init-project` | Create wiki page + project AGENTS.md |
 | `oc --ingest-repo owner/repo` | Snapshot GitHub repo into wiki raw/repos/ |
 | `oc --lint-wiki` | Run wiki content health check (dead links, orphans, stale pages) |
 

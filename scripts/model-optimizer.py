@@ -12,7 +12,6 @@ Philosophy:
 Usage:
   python3 model-optimizer.py              # Scan & report only (safe default)
   python3 model-optimizer.py --apply      # Apply ONLY after showing you the diff
-  python3 model-optimizer.py --budget     # Show spending report & limits
   python3 model-optimizer.py --validate   # Validate all config models against opencode models
   python3 model-optimizer.py --startup    # Validate & repair on launch (non-blocking)
   python3 model-optimizer.py --repair    # Auto-repair broken models in config
@@ -24,8 +23,6 @@ import sys
 import urllib.request
 import urllib.error
 import datetime
-import copy
-import logging
 from pathlib import Path
 
 # ─── Configuration ───────────────────────────────────────────────────────────
@@ -34,9 +31,6 @@ CONFIG_DIR = Path(os.environ.get("OPENCODE_CONFIG", Path.home() / ".config/openc
 SLIM_JSON = CONFIG_DIR / "oh-my-opencode-slim.json"
 OPENCODE_JSON = CONFIG_DIR / "opencode.json"
 BACKUP_DIR = CONFIG_DIR / "backups"
-LOG_DIR = CONFIG_DIR / "logs"
-BUDGET_FILE = CONFIG_DIR / "budget.json"
-CHANGELOG = CONFIG_DIR / "model-changelog.json"
 
 OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
@@ -45,27 +39,6 @@ OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 KNOWN_BAD_MODELS = {
     "opencode/minimax-m2.7": "Known runtime unsupported errors in delegated flows",
     "opencode/qwen-3.6-plus": "Validates but rejected at runtime — use openrouter/qwen/qwen3.6-plus instead",
-}
-
-# ─── HARD LIMITS (edit these to set your personal boundaries) ────────────────
-# These are enforced by the script. No change can exceed them.
-
-DEFAULT_BUDGET = {
-    # Monthly spending cap in USD. Set to 0 to block ALL paid model changes.
-    "monthly_limit_usd": 50.0,
-    # Max cost increase per single change (in USD per 1M output tokens)
-    "max_cost_increase_per_m": 5.0,
-    # Never auto-swap to a model more expensive than this tier
-    # Options: "free", "budget", "standard", "premium"
-    "max_tier_for_auto": "standard",
-    # Require approval for ANY change (set true = always ask)
-    "always_require_approval": True,
-    # Block background/automatic runs entirely
-    "block_background_runs": True,
-    # Spending tracking
-    "tracked_spending_usd": 0.0,
-    "tracking_period_start": datetime.date.today().replace(day=1).isoformat(),
-    "history": [],
 }
 
 # ─── Colors ──────────────────────────────────────────────────────────────────
@@ -100,165 +73,6 @@ def error(msg):
 
 def bold(msg):
     print(f"{C.BOLD}{msg}{C.NC}")
-
-
-def dim(msg):
-    print(f"\033[2m{msg}{C.NC}")
-
-
-# ─── Budget System ───────────────────────────────────────────────────────────
-
-
-def load_budget():
-    if BUDGET_FILE.exists():
-        try:
-            return json.load(open(BUDGET_FILE))
-        except Exception:
-            pass
-    return copy.deepcopy(DEFAULT_BUDGET)
-
-
-def save_budget(budget):
-    BUDGET_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(BUDGET_FILE, "w") as f:
-        json.dump(budget, f, indent=2)
-        f.write("\n")
-
-
-def check_budget_ok(budget, estimated_cost_increase=0):
-    """Return (allowed, reason) tuple."""
-    # Check if background runs are blocked
-    if budget.get("block_background_runs", True):
-        if "--apply" in sys.argv and os.environ.get("OPENCODE_BACKGROUND"):
-            return False, "Background runs are blocked in budget settings"
-
-    # Check monthly limit
-    today = datetime.date.today()
-    period_start = datetime.date.fromisoformat(
-        budget.get("tracking_period_start", today.replace(day=1).isoformat())
-    )
-
-    # Reset if new month
-    if today.month != period_start.month or today.year != period_start.year:
-        budget["tracked_spending_usd"] = 0.0
-        budget["tracking_period_start"] = today.replace(day=1).isoformat()
-        budget["history"] = []
-        save_budget(budget)
-
-    monthly_limit = budget.get("monthly_limit_usd", 50.0)
-    current_spending = budget.get("tracked_spending_usd", 0.0)
-
-    if current_spending >= monthly_limit:
-        return (
-            False,
-            f"Monthly budget exhausted: ${current_spending:.2f} / ${monthly_limit:.2f}",
-        )
-
-    if current_spending + estimated_cost_increase > monthly_limit:
-        return (
-            False,
-            f"Change would exceed monthly budget: ${current_spending + estimated_cost_increase:.2f} > ${monthly_limit:.2f}",
-        )
-
-    # Check per-change cost increase limit
-    max_increase = budget.get("max_cost_increase_per_m", 5.0)
-    if estimated_cost_increase > max_increase:
-        return (
-            False,
-            f"Cost increase ${estimated_cost_increase:.2f}/1M exceeds limit of ${max_increase:.2f}/1M",
-        )
-
-    return True, "Within budget"
-
-
-def record_spending(budget, description, cost_estimate):
-    budget["tracked_spending_usd"] = (
-        budget.get("tracked_spending_usd", 0.0) + cost_estimate
-    )
-    budget["history"].append(
-        {
-            "date": datetime.datetime.now().isoformat(),
-            "description": description,
-            "cost_estimate": cost_estimate,
-        }
-    )
-    # Keep last 100 entries
-    budget["history"] = budget["history"][-100:]
-    save_budget(budget)
-
-
-def print_budget_report(budget):
-    """Print current spending and limits with alerts."""
-    bold("═" * 60)
-    bold("  Budget Report")
-    bold("═" * 60)
-    print()
-
-    monthly_limit = budget.get("monthly_limit_usd", 50.0)
-    current_spending = budget.get("tracked_spending_usd", 0.0)
-    remaining = monthly_limit - current_spending
-    period_start = budget.get("tracking_period_start", "unknown")
-    pct = (current_spending / monthly_limit * 100) if monthly_limit > 0 else 0
-
-    # Alert level
-    if pct >= 90:
-        alert = f"{C.RED}CRITICAL{C.NC}"
-    elif pct >= 70:
-        alert = f"{C.YELLOW}WARNING{C.NC}"
-    elif pct >= 50:
-        alert = f"{C.CYAN}MODERATE{C.NC}"
-    else:
-        alert = f"{C.GREEN}OK{C.NC}"
-
-    # Visual progress bar (40 chars wide)
-    bar_width = 40
-    filled = int(bar_width * min(pct, 100) / 100)
-    if pct >= 90:
-        bar_color = C.RED
-    elif pct >= 70:
-        bar_color = C.YELLOW
-    elif pct >= 50:
-        bar_color = C.CYAN
-    else:
-        bar_color = C.GREEN
-    bar = f"{bar_color}{'█' * filled}{C.NC}{'░' * (bar_width - filled)}"
-
-    print(f"  Monthly Limit:    ${monthly_limit:.2f}")
-    print(f"  Spent:            ${current_spending:.2f}")
-    print(f"  Remaining:        ${remaining:.2f}")
-    print(f"  Period Start:     {period_start}")
-    print(f"  Alert Level:      {alert} ({pct:.1f}%)")
-    print()
-    print(f"  [{bar}] {pct:.1f}%")
-    print()
-
-    # Policy flags
-    max_increase = budget.get("max_cost_increase_per_m", 5.0)
-    max_tier = budget.get("max_tier_for_auto", "standard")
-    approval = budget.get("always_require_approval", True)
-    bg_block = budget.get("block_background_runs", True)
-
-    print(f"  Per-change limit: ${max_increase:.2f}/1M tokens")
-    print(f"  Max auto tier:    {max_tier}")
-    print(
-        f"  Approval:         {'always required' if approval else 'auto-approve safe'}"
-    )
-    print(f"  Background runs:  {'blocked' if bg_block else 'allowed'}")
-    print()
-
-    # Recent history (last 10)
-    history = budget.get("history", [])
-    if history:
-        recent = history[-10:]
-        bold(f"  Recent History ({len(recent)} of {len(history)} entries):")
-        for entry in recent:
-            date = entry.get("date", "?")
-            desc = entry.get("description", "?")
-            cost = entry.get("cost_estimate", 0)
-            print(f"    {date[:19]:19s}  {desc[:40]:40s}  ${cost:.4f}")
-        print()
-
-    bold("═" * 60)
 
 
 # ─── Data Fetching ───────────────────────────────────────────────────────────
@@ -354,10 +168,9 @@ def find_in_catalog(model_ref, catalog):
 # ─── Improvement Detection ──────────────────────────────────────────────────
 
 
-def detect_improvements(config, catalog, budget):
+def detect_improvements(config, catalog):
     improvements = []
-    max_tier = TIER_ORDER.get(budget.get("max_tier_for_auto", "standard"), 2)
-    max_cost_increase = budget.get("max_cost_increase_per_m", 5.0)
+    max_tier = TIER_ORDER.get("standard", 2)
 
     for preset_name, preset in config.get("presets", {}).items():
         for agent_name, agent_config in preset.items():
@@ -756,9 +569,6 @@ def main():
         if arg.startswith("--"):
             mode = arg[2:]
 
-    # Load budget
-    budget = load_budget()
-
     # ─── Validate mode: check models against opencode models list ───
     if mode == "validate":
         try:
@@ -842,19 +652,40 @@ def main():
             )
             if broken_active:
                 warn(
-                    f"Found {len(broken_active)} broken model(s) in preset '{active_preset}', auto-repairing..."
+                    f"Found {len(broken_active)} broken model(s) in preset '{active_preset}':"
                 )
-                model_changes, chain_changes = repair_models(config, available)
-                if model_changes or chain_changes:
-                    backup_config()
-                    if validate_config(config):
-                        save_json(SLIM_JSON, config)
-                        total = len(model_changes) + len(chain_changes)
-                        print(
-                            f"{C.GREEN}✓ Auto-repaired {total} issue(s) in config{C.NC}"
-                        )
+                for b in broken_active:
+                    safe = SAFE_DEFAULTS.get(b.get("agent", ""), "unknown")
+                    if "preset" in b:
+                        print(f"  ✗ {b['agent']}: {b['model']} (safe default: {safe})")
                     else:
-                        error("Config validation failed after repair — skipping save")
+                        print(f"  ✗ fallback/{b['fallback_for']}: {b['model']}")
+
+                if sys.stdin.isatty():
+                    try:
+                        answer = (
+                            input("\n  Repair broken models? [Y/n] ").strip().lower()
+                        )
+                    except (EOFError, KeyboardInterrupt):
+                        answer = "n"
+                    if answer in ("", "y", "yes"):
+                        model_changes, chain_changes = repair_models(config, available)
+                        if model_changes or chain_changes:
+                            backup_config()
+                            if validate_config(config):
+                                save_json(SLIM_JSON, config)
+                                total = len(model_changes) + len(chain_changes)
+                                print(f"{C.GREEN}✓ Repaired {total} issue(s){C.NC}")
+                            else:
+                                error("Validation failed after repair — skipping save")
+                    else:
+                        warn(
+                            "Skipped — fallback chains will activate for broken models"
+                        )
+                else:
+                    warn(
+                        "Non-interactive mode: run 'model-optimizer.py --repair' to fix"
+                    )
         else:
             warn("Could not verify model availability — skipping health check")
 
@@ -863,21 +694,7 @@ def main():
     bold(f"OpenCode Model Optimizer — Cost-Controlled [{mode}]")
     print()
 
-    # Load budget
-    budget = load_budget()
-
-    if mode == "budget":
-        print_budget_report(budget)
-        return
-
     # ─── Normal scan/apply mode ───
-
-    # Check background run block
-    if budget.get("block_background_runs", True) and os.environ.get(
-        "OPENCODE_BACKGROUND"
-    ):
-        error("Background runs are blocked. Run interactively.")
-        sys.exit(1)
 
     # Load config
     try:
@@ -907,12 +724,11 @@ def main():
     catalog = build_catalog(or_models)
 
     # Detect improvements (cost savings only — never suggest spending more)
-    improvements = detect_improvements(config, catalog, budget)
+    improvements = detect_improvements(config, catalog)
 
     if not improvements:
         ok("No cost-saving improvements found. Your config is already optimized!")
         print()
-        print_budget_report(budget)
         return
 
     # Show findings
@@ -933,21 +749,9 @@ def main():
     print(f"  Total potential savings: ${total_savings:.4f}/1M output tokens")
     print()
 
-    # Budget check
-    allowed, reason = check_budget_ok(budget)
-    if not allowed:
-        warn(f"Budget check: {reason}")
-        print("No changes will be applied.")
-        return
-
-    ok(f"Budget check: {reason}")
-
     # Apply mode
     if mode == "apply":
-        if budget.get("always_require_approval", True):
-            approved = request_approval(improvements)
-        else:
-            approved = list(range(len(improvements)))
+        approved = request_approval(improvements)
 
         if not approved:
             info("No changes approved. Exiting.")
@@ -962,10 +766,6 @@ def main():
         # Validate
         if validate_config(config):
             save_json(SLIM_JSON, config)
-
-            # Record spending (even savings are tracked for audit)
-            for ch in applied:
-                record_spending(budget, f"Swap {ch['current']} → {ch['candidate']}", 0)
 
             ok(f"Applied {len(applied)} changes!")
             print()
@@ -987,7 +787,6 @@ def main():
     else:
         info("Run with --apply to apply changes (approval required)")
         print()
-        print_budget_report(budget)
 
 
 if __name__ == "__main__":

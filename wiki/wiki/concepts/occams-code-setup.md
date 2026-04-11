@@ -25,7 +25,7 @@ Occam's Code uses two config files with separate responsibilities:
 
 **Key relationship:** A model in `oh-my-opencode-slim.json` must have a corresponding provider entry in `opencode.json`. If OpenCode can't find the model in any provider, the call fails.
 
-`generate-config.py` creates `opencode.json` from a Python template with `{home}` expansion and conditional MCP setup (removes `semantic_search` if `uv` is not installed).
+`generate-config.py` creates `opencode.json` from a Python template with `{home}` expansion for user-specific paths.
 
 ## Presets
 
@@ -145,13 +145,12 @@ All scripts live in `~/.config/opencode/scripts/`:
 | Script | What it does |
 |--------|-------------|
 | `generate-config.py` | Generates `opencode.json` from template. `--dry-run`, `-o <path>` |
-| `model-optimizer.py` | Validates models against providers, finds cost savings, auto-repairs. `--validate`, `--repair`, `--startup`, `--budget` |
+| `model-optimizer.py` | Validates models against providers, finds cost savings, interactive repair. `--validate`, `--repair`, `--startup`, `--apply` |
 | `sync-agents-md.py` | Syncs AGENTS.md model table from oh-my-opencode-slim.json |
-| `memory-sync.py` | Indexes projects/wiki for semantic search. `--project`, `--wiki`, `--full`, `--list` |
 | `role-picker.py` | Builds role-aware sorted model list for fzf selection |
 | `detect-project-state.py` | Outputs shell vars for wiki/memory state (HAS_WIKI_PAGE, WIKI_STALE, etc.) |
 | `provider-health.py` | Checks API reachability + credit balance. `--all`, `--json` |
-| `project-init.py` | Creates wiki page + project AGENTS.md + memory sync |
+| `project-init.py` | Creates wiki page + project AGENTS.md |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki raw/repos/ with code insights |
 | `wiki-lint.py` | Checks dead links, orphans, stale pages, missing frontmatter. `--json` |
 

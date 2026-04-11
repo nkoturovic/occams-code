@@ -26,8 +26,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "designer": {
@@ -39,8 +38,7 @@
         ],
         "mcps": [
           "websearch",
-          "context7",
-          "semantic_search"
+          "context7"
         ]
       },
       "explorer": {
@@ -51,8 +49,7 @@
         "mcps": [
           "grep_app",
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "librarian": {
@@ -63,8 +60,7 @@
         "mcps": [
           "websearch",
           "context7",
-          "grep_app",
-          "semantic_search"
+          "grep_app"
         ]
       },
       "fixer": {
@@ -74,8 +70,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       }
     },
@@ -98,8 +93,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "designer": {
@@ -111,8 +105,7 @@
         ],
         "mcps": [
           "websearch",
-          "context7",
-          "semantic_search"
+          "context7"
         ]
       },
       "explorer": {
@@ -123,8 +116,7 @@
         "mcps": [
           "grep_app",
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "librarian": {
@@ -135,8 +127,7 @@
         "mcps": [
           "websearch",
           "context7",
-          "grep_app",
-          "semantic_search"
+          "grep_app"
         ]
       },
       "fixer": {
@@ -146,8 +137,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       }
     },
@@ -170,8 +160,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "designer": {
@@ -183,8 +172,7 @@
         ],
         "mcps": [
           "websearch",
-          "context7",
-          "semantic_search"
+          "context7"
         ]
       },
       "explorer": {
@@ -195,8 +183,7 @@
         "mcps": [
           "grep_app",
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "librarian": {
@@ -207,8 +194,7 @@
         "mcps": [
           "websearch",
           "context7",
-          "grep_app",
-          "semantic_search"
+          "grep_app"
         ]
       },
       "fixer": {
@@ -218,8 +204,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       }
     },
@@ -242,8 +227,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "designer": {
@@ -255,8 +239,7 @@
         ],
         "mcps": [
           "websearch",
-          "context7",
-          "semantic_search"
+          "context7"
         ]
       },
       "explorer": {
@@ -267,8 +250,7 @@
         "mcps": [
           "grep_app",
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       },
       "librarian": {
@@ -279,8 +261,7 @@
         "mcps": [
           "websearch",
           "context7",
-          "grep_app",
-          "semantic_search"
+          "grep_app"
         ]
       },
       "fixer": {
@@ -290,8 +271,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "websearch",
-          "semantic_search"
+          "websearch"
         ]
       }
     }
@@ -352,22 +332,46 @@
     "councillor_execution_mode": "parallel",
     "presets": {
       "balanced": {
-        "master": { "model": "openrouter/anthropic/claude-sonnet-4-6" },
-        "reviewer-1": { "model": "openrouter/z-ai/glm-5.1" },
-        "reviewer-2": { "model": "openrouter/deepseek/deepseek-v3.2" },
-        "reviewer-3": { "model": "openrouter/qwen/qwen3.6-plus" }
+        "master": {
+          "model": "openrouter/anthropic/claude-sonnet-4-6"
+        },
+        "reviewer-1": {
+          "model": "openrouter/z-ai/glm-5.1"
+        },
+        "reviewer-2": {
+          "model": "openrouter/deepseek/deepseek-v3.2"
+        },
+        "reviewer-3": {
+          "model": "openrouter/qwen/qwen3.6-plus"
+        }
       },
       "cheap": {
-        "master": { "model": "openrouter/deepseek/deepseek-v3.2" },
-        "reviewer-1": { "model": "openrouter/qwen/qwen3-coder" },
-        "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" },
-        "reviewer-3": { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free" }
+        "master": {
+          "model": "openrouter/deepseek/deepseek-v3.2"
+        },
+        "reviewer-1": {
+          "model": "openrouter/qwen/qwen3-coder"
+        },
+        "reviewer-2": {
+          "model": "openrouter/qwen/qwen3.6-plus"
+        },
+        "reviewer-3": {
+          "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        }
       },
       "premium": {
-        "master": { "model": "openrouter/anthropic/claude-opus-4-6" },
-        "reviewer-1": { "model": "openrouter/anthropic/claude-sonnet-4-6" },
-        "reviewer-2": { "model": "openrouter/z-ai/glm-5.1" },
-        "reviewer-3": { "model": "openrouter/google/gemini-3.1-pro-preview" }
+        "master": {
+          "model": "openrouter/anthropic/claude-opus-4-6"
+        },
+        "reviewer-1": {
+          "model": "openrouter/anthropic/claude-sonnet-4-6"
+        },
+        "reviewer-2": {
+          "model": "openrouter/z-ai/glm-5.1"
+        },
+        "reviewer-3": {
+          "model": "openrouter/google/gemini-3.1-pro-preview"
+        }
       }
     }
   }

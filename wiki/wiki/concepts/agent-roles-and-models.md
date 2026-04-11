@@ -90,9 +90,8 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 | `websearch` | Everyone | General-purpose web lookup |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
-| `semantic_search` | Oracle, designer, explorer, librarian, fixer | Local project code index (requires `uv`) |
 
-**Notable:** Orchestrator only gets `websearch` — it delegates specialized research to other agents. Designer gets `semantic_search` for understanding existing codebase patterns.
+**Notable:** Orchestrator only gets `websearch` — it delegates specialized research to other agents.
 
 ## Council Diversity Rules
 

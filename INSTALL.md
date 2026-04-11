@@ -27,7 +27,7 @@
 | Dependency | Purpose | Install |
 |-----------|---------|---------|
 | [Obsidian](https://obsidian.md) | Wiki viewer/editor | Download from obsidian.md |
-| [uv](https://github.com/astral-sh/uv) | Semantic search backend | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| [uv](https://github.com/astral-sh/uv) | Python package management | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | git | Repo ingestion, wiki versioning | System package manager |
 
 ### API Keys
@@ -124,19 +124,6 @@ $(brew --prefix)/opt/fzf/install
 # Then restart your shell
 ```
 
-### Semantic Search (Optional)
-
-For the semantic_search MCP backend:
-
-```bash
-# Install uv if not already installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# The MCP server will be auto-configured by generate-config.py
-# Run memory sync to build initial index:
-oc --memory-sync
-```
-
 ## Post-Install Setup
 
 ### Add `oc` to PATH
@@ -184,8 +171,6 @@ This checks:
 - Obsidian vault
 - Project wiki page
 - Wiki freshness
-- Semantic index
-- Memory store
 - Provider health
 
 ## Uninstall
@@ -215,6 +200,3 @@ Ensure `~/.config/opencode/oh-my-opencode-slim.json` exists.
 
 ### Models not loading
 Run `opencode models --refresh` and verify API keys in auth.json.
-
-### Semantic search not working
-Install `uv` and run `oc --memory-sync`.

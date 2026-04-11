@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Initialize wiki + memory for a new project.
+"""Initialize wiki for a new project.
 
-Creates/updates a project wiki page and optionally runs memory sync.
+Creates/updates a project wiki page.
 """
 
 from __future__ import annotations
@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -159,28 +158,12 @@ def append_log(project_name: str, project_path: Path, slug: str) -> None:
         f.write(entry)
 
 
-def run_memory_sync(project_path: Path) -> bool:
-    script = Path.home() / ".config" / "opencode" / "scripts" / "memory-sync.py"
-    cmd = ["python3", str(script), "--project", str(project_path), "--wiki"]
-    try:
-        result = subprocess.run(cmd, timeout=120)
-        return result.returncode == 0
-    except subprocess.TimeoutExpired:
-        print("[WARN] Memory sync timed out")
-        return False
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Initialize wiki + memory for current project"
-    )
+    parser = argparse.ArgumentParser(description="Initialize wiki for current project")
     parser.add_argument(
         "--project-path", default=str(Path.cwd()), help="Project path (default: cwd)"
     )
     parser.add_argument("--name", default=None, help="Override project display name")
-    parser.add_argument(
-        "--no-sync", action="store_true", help="Skip semantic memory sync"
-    )
     args = parser.parse_args()
 
     project_path = Path(args.project_path).resolve()
@@ -207,12 +190,6 @@ def main() -> int:
         print(f"[OK] Created project AGENTS.md at {project_path / 'AGENTS.md'}")
     if index_updated:
         print("[OK] Added entry to wiki index")
-
-    if not args.no_sync:
-        print("[INFO] Syncing project + wiki semantic memory...")
-        if not run_memory_sync(project_path):
-            print("[WARN] Memory sync failed (wiki page still initialized)")
-            return 1
 
     print("[OK] Project initialization complete")
     return 0

@@ -32,7 +32,7 @@ These pages ship with Occam's Code and give the agent deep knowledge about its o
 |------|--------|
 | [[occams-code-setup]] | Two-config architecture, presets, fallback chains, council, skills, scripts |
 | [[agent-roles-and-models]] | Per-agent rationale, delegation strategy, model selection criteria |
-| [[oc-launcher]] | Boot sequence, session modes, permissions, memory sync |
+| [[oc-launcher]] | Boot sequence, session modes, permissions |
 | [[troubleshooting]] | Common failures, diagnostic commands, nuclear reset |
 
 ## Active Projects
@@ -50,5 +50,5 @@ These pages ship with Occam's Code and give the agent deep knowledge about its o
 ## Statistics
 
 - Sources ingested: 0
-- Wiki pages: 8 (4 setup docs, 1 design, 1 concept, index, overview)
+- Wiki pages: template (grows with use)
 - Languages covered: C++ (example)

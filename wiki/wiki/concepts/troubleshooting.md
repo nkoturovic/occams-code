@@ -20,9 +20,9 @@ confidence: high
 |---------|----------|
 | Agents not working | `oc --doctor` |
 | Model different from expected | Check if fallback activated (60s timeout) |
-| Semantic search not working | `which uv` — if missing, install uv, then `oc --memory-sync` |
 | AGENTS.md model table stale | `oc --sync-config` |
 | Provider dead or credits low | `python3 ~/.config/opencode/scripts/provider-health.py` |
+| Wiki not being used by agent | Check AGENTS.md reads index.md on start. Run `/wiki` to verify. `oc --doctor` checks wiki structure and freshness |
 | Wiki has dead links or orphans | `oc --lint-wiki` or `python3 ~/.config/opencode/scripts/wiki-lint.py` |
 | Config not found | Verify `oh-my-opencode-slim.json` exists in `~/.config/opencode/` |
 | Permission state stuck | Check `opencode.json` for `"permission": "allow"` |
@@ -38,17 +38,13 @@ confidence: high
 **Cause:** macOS ships bash 3.2. `bin/oc` requires 4.0+.
 **Fix:** `brew install bash`, then use `/opt/homebrew/bin/bash` explicitly or change login shell.
 
-### Semantic search returns nothing
-**Cause:** `uv` not installed, or project not indexed.
-**Fix:** `which uv` → if missing, install it. Then `oc --memory-sync`.
-
 ### AGENTS.md model table drifts from config
 **Cause:** Config was edited but AGENTS.md not regenerated.
 **Fix:** `oc --sync-config` or `python3 ~/.config/opencode/scripts/sync-agents-md.py`.
 
 ### Permission stuck in unsafe mode
-**Cause:** OpenCode crashed hard (SIGKILL), shell trap didn't fire to restore config.
-**Fix:** Edit `opencode.json` and remove `"permission": "allow"` if you want prompts.
+**Cause:** OpenCode crashed hard (SIGKILL), shell trap didn't fire to restore config. On next launch, `oc` auto-recovers from the crash backup.
+**Fix:** The recovery is automatic. If permissions still seem wrong, edit `opencode.json` and remove `"permission": "allow"`.
 
 ### Provider returns credit errors
 **Cause:** OpenRouter credit depleted. Credit errors come as response content, not HTTP errors — fallback plugin may not detect them.
@@ -68,10 +64,6 @@ Some models validate in the catalog but fail at runtime. `model-optimizer.py` ma
 **Cause:** Project has new commits since last wiki update.
 **Fix:** `oc --lint-wiki` to detect staleness. Update wiki pages manually or `/remember` to save new discoveries.
 
-### Memory sync timeout
-**Cause:** Large project with many files, insufficient timeout.
-**Fix:** Use `oc --sync-full` with its 300s timeout, or `--sync-fast` for project-only indexing.
-
 ## When Things Break Badly
 
 ### Nuclear reset
@@ -86,7 +78,7 @@ Some models validate in the catalog but fail at runtime. `model-optimizer.py` ma
 ~/.config/opencode/oh-my-opencode-slim.json   # Plugin config (your presets)
 ~/.config/opencode/AGENTS.md                  # Agent instructions
 ~/.config/opencode/bin/oc                     # Launcher script
-~/.config/opencode/scripts/                   # 10 utility scripts
+~/.config/opencode/scripts/                   # 9 utility scripts
 ~/.config/opencode/commands/                  # 5 slash command docs
 ~/.config/opencode/auth.json                  # API keys (NEVER share)
 ```

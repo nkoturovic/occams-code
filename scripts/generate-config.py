@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Generate opencode.json with $HOME-expanded paths.
 
-The semantic_search MCP server config contains absolute paths that vary
-per user. This script generates a valid opencode.json with the current
-user's home directory substituted.
+This script generates a valid opencode.json with MCP server config paths
+expanded for the current user's home directory.
 
 Usage:
     python3 generate-config.py                  # write to default location
@@ -13,15 +12,11 @@ Usage:
 
 import argparse
 import json
-import shutil
 import sys
 from pathlib import Path
 
-# Template with {home} placeholders for user-specific paths.
-# Replace {home} with the current user's home directory at runtime.
-# Only two paths need expansion:
-#   - semantic_search command --directory
-#   - semantic_search environment CODE_SEARCH_STORAGE
+# JSON template for opencode.json core configuration.
+# No path expansion needed — all paths are relative or generic.
 TEMPLATE = r"""{
   "$schema": "https://opencode.ai/config.json",
   "provider": {
@@ -384,23 +379,6 @@ TEMPLATE = r"""{
       "type": "remote",
       "url": "https://mcp.grep.app",
       "enabled": true
-    },
-    "semantic_search": {
-      "type": "local",
-      "command": [
-        "uv",
-        "run",
-        "--directory",
-        "{home}/.local/share/opencode-context-local",
-        "python",
-        "-m",
-        "mcp_server.server"
-      ],
-      "environment": {
-        "CODE_SEARCH_STORAGE": "{home}/.opencode_memory",
-        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
-      },
-      "enabled": true
     }
   },
   "agent": {
@@ -571,48 +549,10 @@ def main():
     )
     args = parser.parse_args()
 
-    # Replace {home} placeholder with the current user's home directory
-    config_text = TEMPLATE.replace("{home}", str(Path.home()))
+    # Generate config from template
+    config_text = TEMPLATE
 
-    # Resolve uv to absolute path for reliable MCP server startup
-    # macOS: uv often at ~/.local/bin/uv or ~/.cargo/bin/uv but not in PATH
-    uv_path = shutil.which("uv")
-    if not uv_path:
-        home = str(Path.home())
-        for candidate in [
-            f"{home}/.local/bin/uv",
-            f"{home}/.cargo/bin/uv",
-            "/opt/homebrew/bin/uv",
-        ]:
-            if Path(candidate).is_file():
-                uv_path = candidate
-                break
-
-    if uv_path:
-        # Replace bare "uv" command with absolute path for reliable startup
-        try:
-            config = json.loads(config_text)
-            if "semantic_search" in config.get("mcp", {}):
-                cmd = config["mcp"]["semantic_search"]["command"]
-                if cmd and cmd[0] == "uv":
-                    cmd[0] = uv_path
-                config_text = json.dumps(config, indent=2) + "\n"
-        except json.JSONDecodeError:
-            pass
-    else:
-        # uv not installed — disable semantic_search (graceful degradation)
-        try:
-            config = json.loads(config_text)
-            config["mcp"].pop("semantic_search", None)
-            config_text = json.dumps(config, indent=2) + "\n"
-            print(
-                "Note: uv not found — semantic_search MCP disabled. Install uv to enable it.",
-                file=sys.stderr,
-            )
-        except json.JSONDecodeError:
-            pass  # Will be caught below
-
-    # Validate generated JSON before writing
+    # Validate generated JSON
     try:
         json.loads(config_text)
     except json.JSONDecodeError as e:
