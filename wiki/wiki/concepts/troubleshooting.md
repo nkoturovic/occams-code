@@ -20,7 +20,6 @@ confidence: high
 |---------|----------|
 | Agents not working | `oc --doctor` |
 | Model different from expected | Check if fallback activated (60s timeout) |
-| AGENTS.md model table stale | `oc --sync-config` |
 | Provider dead or credits low | `python3 ~/.config/opencode/scripts/provider-health.py` |
 | Wiki not being used by agent | Check AGENTS.md reads index.md on start. Run `/wiki` to verify. `oc --doctor` checks wiki structure and freshness |
 | Wiki has dead links or orphans | `oc --lint-wiki` or `python3 ~/.config/opencode/scripts/wiki-lint.py` |
@@ -37,10 +36,6 @@ confidence: high
 ### "bash version too old"
 **Cause:** macOS ships bash 3.2. `bin/oc` requires 4.0+.
 **Fix:** `brew install bash`, then use `/opt/homebrew/bin/bash` explicitly or change login shell.
-
-### AGENTS.md model table drifts from config
-**Cause:** Config was edited but AGENTS.md not regenerated.
-**Fix:** `oc --sync-config` or `python3 ~/.config/opencode/scripts/sync-agents-md.py`.
 
 ### Permission stuck in unsafe mode
 **Cause:** OpenCode crashed hard (SIGKILL), shell trap didn't fire to restore config. On next launch, `oc` auto-recovers from the crash backup.

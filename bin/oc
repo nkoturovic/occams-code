@@ -52,7 +52,6 @@ PRESET_ARG=""
 INIT_PROJECT=false
 DOCTOR=false
 INGEST_REPO=""
-SYNC_CONFIG=false
 LINT_WIKI=false
 SAFE=false
 UNSAFE=false
@@ -62,7 +61,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --quick|-q) QUICK=true; shift ;;
     --preset|-p) PRESET_ARG="$2"; shift 2 ;;
-    --sync-config) SYNC_CONFIG=true; shift ;;
     --lint-wiki) LINT_WIKI=true; shift ;;
     --safe) SAFE=true; shift ;;
     --unsafe) UNSAFE=true; shift ;;
@@ -79,7 +77,6 @@ while [[ $# -gt 0 ]]; do
       echo "  oc --lint-wiki        Run wiki content health check (same as /lint)"
       echo "  oc --safe             Enable permission prompts for this session"
       echo "  oc --unsafe           Auto-approve all permissions for this session"
-      echo "  oc --sync-config      Sync AGENTS.md model table from config"
       echo "  oc --init-project     Create project wiki page + memory bootstrap"
       echo "  oc --doctor           Run integration health checks"
       echo "  oc --ingest-repo URL  Ingest GitHub repo digest into wiki raw/sources"
@@ -239,13 +236,6 @@ run_doctor() {
     status=1
   fi
 
-  # AGENTS.md drift check
-  if python3 "$HOME/.config/opencode/scripts/sync-agents-md.py" 2>/dev/null | grep -q "already in sync"; then
-    echo -e "  ${GREEN}✓${RESET} AGENTS.md in sync with config"
-  else
-    echo -e "  ${YELLOW}⚠${RESET} AGENTS.md model table drifted (run: oc --sync-config)"
-    status=1
-  fi
 
   # Wiki structure
   if [[ -f "$HOME/wiki/AGENTS.md" && -f "$HOME/wiki/index.md" && -d "$HOME/wiki/raw" && -d "$HOME/wiki/wiki" ]]; then
@@ -312,10 +302,6 @@ run_doctor() {
   fi
 
   return "$status"
-}
-
-sync_agents_md() {
-  python3 "$HOME/.config/opencode/scripts/sync-agents-md.py" 2>/dev/null || true
 }
 
 check_providers() {
@@ -570,11 +556,6 @@ PY
     exit $?
   fi
 
-  if [[ "$SYNC_CONFIG" == true ]]; then
-    sync_agents_md
-    exit 0
-  fi
-
   if [[ "$LINT_WIKI" == true ]]; then
     echo -e "${BOLD}Wiki Lint${RESET}"
     echo ""
@@ -601,7 +582,6 @@ PY
       echo "Available: $(jq -r '.presets | keys | join(", ")' "$CONFIG")"
       exit 1
     fi
-    sync_agents_md
     smart_memory_prompts
     run_project_init
     check_providers
@@ -641,7 +621,6 @@ PY
   select_preset
   [[ "$QUICK" == false ]] && tweak_agents
 
-  sync_agents_md
   check_providers
 
   echo ""

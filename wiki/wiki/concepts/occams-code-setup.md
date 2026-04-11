@@ -146,7 +146,6 @@ All scripts live in `~/.config/opencode/scripts/`:
 |--------|-------------|
 | `generate-config.py` | Generates `opencode.json` from template. `--dry-run`, `-o <path>` |
 | `model-optimizer.py` | Validates models against providers, finds cost savings, interactive repair. `--validate`, `--repair`, `--startup`, `--apply` |
-| `sync-agents-md.py` | Syncs AGENTS.md model table from oh-my-opencode-slim.json |
 | `role-picker.py` | Builds role-aware sorted model list for fzf selection |
 | `detect-project-state.py` | Outputs shell vars for wiki/memory state (HAS_WIKI_PAGE, WIKI_STALE, etc.) |
 | `provider-health.py` | Checks API reachability + credit balance. `--all`, `--json` |
