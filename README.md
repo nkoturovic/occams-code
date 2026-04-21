@@ -11,7 +11,7 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **3 presets** — `balanced` (default), `cheap`, `premium`
 - **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
-- **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions` (plus `/auto-continue` built into plugin)
+- **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **3 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in). Plus websearch (Exa) built-in to plugin
 - **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
