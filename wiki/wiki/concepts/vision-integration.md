@@ -24,6 +24,14 @@ confidence: high
 
 Same routing applies to all: **file on disk → delegate path to @designer.** Do NOT attempt to Read non-text files yourself.
 
+## Architecture reality (tested 2026-04-22)
+
+**The Read tool cannot deliver images to models.** The Go server's `view.go` has `// TODO: handle images` — it returns a text error for image files. Images only flow in User messages (inline paste), never in tool results (`ToolResult.Content` is `string` only).
+
+This means @designer's native multimodal capability is unused for file-on-disk scenarios. All vision analysis goes through `zai_vision` MCP tools, which send images to Z.ai's API (glm-4.6v with thinking) independently.
+
+**Implication:** @designer does not need to be a multimodal model when using MCP tools. Any model that can call MCP tools and reason about text results works. However, keeping a multimodal model is recommended for future-proofing — if OpenCode implements image Read support, native multimodal will be faster than MCP roundtrips.
+
 ## Delivery paths (tested 2026-04-22)
 
 | Method | Works? | Notes |

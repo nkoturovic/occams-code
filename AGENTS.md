@@ -104,7 +104,7 @@ Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](h
 
 **For the orchestrator (text-only):** Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. Do NOT `Read` these types yourself — you cannot perceive them.
 
-**For @designer (multimodal):** You CAN read images and PDFs via the `Read` tool. Use native multimodal first — it's fast and reliable. Only use `zai_vision` MCP tools for structured analysis (OCR, UI-to-code, diagram parsing) when native viewing isn't sufficient.
+**For @designer:** Use `zai_vision` MCP tools for all image/PDF analysis. The `Read` tool cannot deliver image content to models (known platform limitation). Call MCP tools directly with the file path — the MCP server reads files from disk itself.
 
 | Situation | Action |
 |-----------|--------|
@@ -113,7 +113,7 @@ Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](h
 | URL to image/PDF | `webfetch` with `save_binary=true` → delegate saved path |
 | Inline pasted image (no file on disk) | Extract from DB (below) → delegate path |
 | Inline pasted PDF (no file on disk) | Extract from DB (below) → delegate path |
-| Video/audio | Read tool cannot ingest. If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
+| Video/audio | If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
 
 Extraction fails → ask user to save to disk.
 
@@ -127,7 +127,7 @@ mime=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$
 sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') = 'application/pdf' ORDER BY id DESC LIMIT 1" | sed 's/^data:application\/pdf;base64,//' | base64 -d > /tmp/opencode-inline.pdf && echo "/tmp/opencode-inline.pdf"
 ```
 
-@designer reads images/PDFs natively (multimodal). With Z.ai key, also has `zai_vision` MCP tools (OCR, UI-to-code, diagrams, video). SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
+@designer uses `zai_vision` MCP tools for image/PDF analysis (Read tool cannot deliver image content). SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
 
 ## Current Config
 
