@@ -68,6 +68,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Early validation
+[[ "$SAFE" == true && "$UNSAFE" == true ]] \
+  && { echo -e "${RED}--safe and --unsafe are mutually exclusive.${RESET}" >&2; exit 1; }
+
 # --- Helpers ---
 is_interactive() { [[ -t 0 && -t 1 ]]; }
 
@@ -81,10 +85,6 @@ ask_yes_no() {
 }
 
 show_config() {
-  # Show effective config: reads global preset, then shows what the plugin will use.
-  # For preset selection: project config overrides global.
-  # For model display: we show the preset's models from global (the common case).
-  # Users with per-project model overrides in .opencode/ know what they have.
   local preset model_count source="global"
   if [[ -f "$PROJECT_CONFIG" ]]; then
     local oc_p
@@ -101,8 +101,6 @@ show_config() {
   echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
   jq -r ".presets[\"$preset\"] | to_entries[] | \"  \\(.key)\\t\\(.value.model)\"" "$CONFIG" \
     | column -t -s $'\t'
-  # Note: if project config has per-agent model overrides, those are applied by
-  # the plugin at runtime (deep-merge). Edit .opencode/oh-my-opencode-slim.json directly.
 }
 
 # --- Set preset (--preset flag) ---
@@ -114,8 +112,15 @@ set_preset() {
     exit 1
   fi
   mkdir -p .opencode
-  printf '{"preset":"%s"}\n' "$preset" > "$PROJECT_CONFIG"
-  echo -e "${GREEN}Created $PROJECT_CONFIG (preset: $preset)${RESET}"
+  # Merge: preserve existing fields, only set/overwrite preset
+  if [[ -f "$PROJECT_CONFIG" ]]; then
+    local merged
+    merged=$(jq --arg p "$preset" '.preset = $p' "$PROJECT_CONFIG")
+    printf '%s\n' "$merged" > "$PROJECT_CONFIG"
+  else
+    printf '{"preset":"%s"}\n' "$preset" > "$PROJECT_CONFIG"
+  fi
+  echo -e "${GREEN}Set preset: $preset${RESET}"
 }
 
 # --- First-run: create project config if missing ---
@@ -278,7 +283,7 @@ PY
 
 # --- Main ---
 main() {
-  # Standalone commands: skip banner, run, exit
+  # Standalone commands: skip everything, run, exit
   if [[ -n "$INGEST_REPO" ]]; then
     python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO" \
       && echo -e "${GREEN}✓ Ingested${RESET}" || exit 1
@@ -287,13 +292,7 @@ main() {
   [[ "$DOCTOR" == true ]] && { run_doctor; exit $?; }
   [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
-  # Banner (only for interactive launch)
-  echo ""
-  echo -e "${BOLD}${CYAN}  OpenCode${RESET}"
-  echo -e "${DIM}  ───────${RESET}"
-  echo ""
-
-  # Recover from previous crash
+  # Crash recovery (before any output)
   local _pb="/tmp/oc-perm-backup-$(id -u)"
   if [[ -f "$_pb" && -f "$CORE_CONFIG" ]]; then
     echo -e "${YELLOW}⚠ Recovering permissions from crash...${RESET}"
@@ -310,15 +309,28 @@ PY
     rm -f "$_pb"
   fi
 
-  # --preset flag: create project config and go
+  local show_banner=false
+  is_interactive && [[ "$QUICK" == false ]] && show_banner=true
+
+  # --preset flag: merge into project config
   if [[ -n "$PRESET_ARG" ]]; then
     set_preset "$PRESET_ARG"
   fi
 
-  show_config
-  echo ""
+  # First-run setup (before show_config, so config reflects the final state)
+  [[ "$QUICK" == false ]] && first_run_setup
 
-  # Session choice (skip if --preset, --quick, or continuing)
+  # Banner + config (interactive, non-quick only)
+  if [[ "$show_banner" == true ]]; then
+    echo ""
+    echo -e "${BOLD}${CYAN}  OpenCode${RESET}"
+    echo -e "${DIM}  ───────${RESET}"
+    echo ""
+    show_config
+    echo ""
+  fi
+
+  # Session choice (skip if --quick, --preset, or continuing)
   if [[ -z "$PRESET_ARG" && "$QUICK" == false ]]; then
     local continuing=false
     for a in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
@@ -327,17 +339,12 @@ PY
     [[ "$continuing" == false ]] && ask_session_mode
   fi
 
-  # First-run setup (only if no project config and interactive)
-  [[ "$QUICK" == false ]] && first_run_setup
-
   # Launch
-  echo -e "${DIM}Launching...${RESET}"
-  echo ""
   if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
-    [[ "$SAFE" == true && "$UNSAFE" == true ]] \
-      && { echo -e "${RED}--safe and --unsafe are mutually exclusive.${RESET}" >&2; exit 1; }
+    [[ "$show_banner" == false ]] && echo "" # spacing for non-interactive
     launch_with_permissions "$([[ "$UNSAFE" == true ]] && echo unsafe || echo safe)"
   else
+    [[ "$show_banner" == true ]] && echo -e "${DIM}Launching...${RESET}" && echo ""
     exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
   fi
 }
