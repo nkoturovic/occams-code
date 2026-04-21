@@ -119,7 +119,7 @@ Skills 1–4 are bundled with OpenCode. Skills 5–7 require [obsidian-skills](h
 
 ## Current Config
 
-**4 presets:** `balanced` (default) → `cheap` → `premium` → `zai-coding-plan`
+**3 presets:** `balanced` (default) → `cheap` → `premium`
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
 **Fallback chains:** 5 entries each, quality → cost gradient, 60s timeout.
 **Permissions:** `--unsafe` (default) / `--safe` (temporary prompts for one session).
@@ -135,7 +135,6 @@ Default (balanced): see oh-my-opencode-slim.json for master/councillors per pres
 |----------|--------|------|
 | openrouter | 400+ models (pay-per-token) | auth.json |
 | anthropic | claude-* (direct API) | auth.json |
-| zai-coding-plan | GLM-5.1, GLM-5, GLM-5-turbo, GLM-4.7, GLM-4.5-air (subscription) | auth.json |
 
 ## Slash Commands
 
@@ -146,4 +145,4 @@ Default (balanced): see oh-my-opencode-slim.json for master/councillors per pres
 | `/auto-continue` | Toggle autonomous mode (`on` / `off`) — agent keeps working through TODOs |
 | `/wiki` | Show project wiki and relevant knowledge |
 | `/remember` | Persist session knowledge to wiki |
-| `/wiki-lint` | Run wiki content health check |
+

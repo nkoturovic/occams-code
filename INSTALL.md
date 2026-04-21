@@ -156,12 +156,10 @@ oc --doctor
 ```
 
 This checks:
-- Model config validation
-- AGENTS.md sync with config
-- Wiki structure
-- Obsidian vault
-- Project wiki page
-- Wiki freshness
+- Config validity (JSON, preset, agents)
+- Project config (if present)
+- Wiki structure and index
+- Wiki content health (dead links, orphans, stale pages)
 
 ## Uninstall
 

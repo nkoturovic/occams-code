@@ -35,7 +35,6 @@ Four presets, ordered by cost:
 | **cheap** | Exploration, bulk tasks | Qwen Coder, DeepSeek, Nemotron (free), Gemini Flash |
 | **balanced** | Default — best cost/quality trade-off | GLM-5.1, Claude Sonnet, DeepSeek, Qwen, Gemini Flash |
 | **premium** | Critical work — best available | Claude Opus, Claude Sonnet, Gemini Pro |
-| **zai-coding-plan** | Subscription (Z.AI) | GLM-5.1 for all agents |
 
 Active preset is set in `oh-my-opencode-slim.json` → `"preset"` field.
 

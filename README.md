@@ -8,10 +8,10 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 
 ## What's Included
 
-- **`oc` launcher** (`bin/oc`) — Interactive preset picker, agent model tweaker, project initialization, health checks, and permission toggles
-- **4 presets** — `balanced` (default), `cheap`, `premium`, `zai-coding-plan` (subscription)
+- **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
+- **3 presets** — `balanced` (default), `cheap`, `premium`
 - **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
-- **5 slash commands** — `/preset`, `/wiki`, `/remember`, `/wiki-lint`, `/permissions`
+- **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`
 - **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **3 MCP servers** — context7 (library docs), grep_app (code search), websearch (Exa)
 - **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
@@ -23,15 +23,16 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 ### Prerequisites
 
 - [OpenCode](https://github.com/sst/opencode) installed (`npm install -g opencode` or `bun install -g opencode`)
-- Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), [fzf](https://github.com/junegunn/fzf), git, curl
+- Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), git, curl
 - `npm` or `bun` (for oh-my-opencode-slim plugin)
 - API keys for at least one provider (OpenRouter, Anthropic, or Z.AI)
+- *Optional:* [fzf](https://github.com/junegunn/fzf) for interactive preset picker
 
 <details>
 <summary>Platform-specific notes</summary>
 
-- **Linux:** bash 4+ is default. `sudo apt install python3 jq fzf git curl` (Debian/Ubuntu)
-- **macOS:** `brew install bash jq fzf` (bash 5 required, system bash 3.2 won't work with `oc`)
+- **Linux:** bash 4+ is default. `sudo apt install python3 jq git curl` (Debian/Ubuntu)
+- **macOS:** `brew install bash jq` (bash 5 required, system bash 3.2 won't work with `oc`)
 - **Windows:** Use WSL2, then same as Linux
 
 </details>
@@ -47,7 +48,7 @@ cd occams-code
 The installer will:
 1. Copy scripts, commands, and config to `~/.config/opencode/`
 2. Copy the wiki template to `~/wiki/`
-3. Generate `opencode.json` with your home directory paths
+3. Copy `opencode.json` core config
 4. Install oh-my-opencode-slim plugin
 
 See [INSTALL.md](INSTALL.md) for detailed per-platform instructions.
@@ -55,7 +56,7 @@ See [INSTALL.md](INSTALL.md) for detailed per-platform instructions.
 ### First Launch
 
 ```bash
-oc                  # Interactive: pick preset → tweak agents → launch
+oc                  # Interactive: pick preset, launch
 oc --preset cheap   # Skip prompts, use cheap preset
 oc --doctor         # Check everything is set up correctly
 ```
@@ -181,8 +182,8 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── opencode.json                  # Core config
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── bin/oc                         # Launcher script
-├── scripts/                       # Python utilities (8 scripts)
-└── commands/                      # Slash command definitions (5 commands)
+├── scripts/                       # Python utilities (4 scripts)
+└── commands/                      # Slash command definitions (4 commands)
 
 ~/wiki/
 ├── AGENTS.md                      # Wiki schema (LLM follows these rules)

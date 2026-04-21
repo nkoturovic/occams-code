@@ -18,28 +18,29 @@ confidence: high
 When you run `oc`, the following happens in order:
 
 ```
-1. Dependency checks     → jq, fzf, python3, config file (fail fast)
+1. Dependency checks     → jq, config file (fail fast)
 2. Bash version gate     → requires 4.0+ (macOS default is 3.2, needs brew bash)
-3. Smart memory prompts  → detect-project-state.py checks wiki state
-4. Session choice        → new or continue last session
-5. [New only] Provider health  → pings APIs in parallel (~3s)
-6. [New only] Preset select    → interactive fzf or --preset flag
-7. Permission setup      → --safe or --unsafe modifies opencode.json
-8. Launch                → exec opencode (replaces shell process)
+3. Crash recovery        → recover permissions from previous crash if backup exists
+4. Standalone commands   → --doctor, --ingest-repo, --init-project (exit early)
+5. Preset select         → --preset flag or first-run fzf prompt
+6. Show config           → display active preset and agent models
+7. Session choice        → new or continue last session (skip if --quick/--preset)
+8. First-run setup       → create project config if missing
+9. Launch                → exec opencode (replaces shell process)
 ```
 
 ## Session Modes
 
 | Command | Behavior |
 |---------|----------|
-| `oc` | Full interactive: session choice → preset → tweaks → launch |
-| `oc -c` | Continue last session (skips preset/tweaks, still runs memory prompts) |
-| `oc --quick` | Pick preset only, skip agent tweaking |
-| `oc --preset <name>` | Direct preset, skip session/preset prompts |
+| `oc` | Full interactive: session choice → preset → launch |
+| `oc -c` | Continue last session (skips preset selection) |
+| `oc --quick` | Skip prompts, use project/global config directly |
+| `oc --preset <name>` | Set preset, create project config, launch |
 | `oc --safe` | Enable permission prompts for this session |
 | `oc --unsafe` | Auto-approve all permissions for this session |
 
-**Continue sessions** (`oc -c`) skip preset selection and agent tweaking but still run memory prompts — wiki state is always checked.
+**Continue sessions** (`oc -c`) skip preset selection but still show config.
 
 ## Permission System
 
@@ -55,22 +56,17 @@ When you run `oc`, the following happens in order:
 
 **Default:** The generated `opencode.json` includes `"permission": "allow"` — so launching without flags is equivalent to `--unsafe`.
 
-## Smart Prompts (during boot)
+## Per-Project Config
 
-`detect-project-state.py` outputs shell variables that drive interactive prompts:
+On first `oc` in a new project, the launcher offers to create `.opencode/oh-my-opencode-slim.json` with a preset choice. The plugin reads this file natively and deep-merges it with the global config.
 
-| Condition | Prompt |
-|-----------|--------|
-| No wiki page for project | "Initialize project wiki memory now?" |
-| No project AGENTS.md | "No project AGENTS.md found. Create it?" |
-
-All prompts are optional — the user can decline and still launch.
+Edit the file directly to override preset or individual agent models. No wizard needed.
 
 ## Utility Commands
 
 | Command | What it does |
 |---------|-------------|
-| `oc --doctor` | Integration health checks (models, AGENTS.md, wiki, providers) |
+| `oc --doctor` | Diagnostics (config validity, wiki structure, wiki lint) |
 | `oc --init-project` | Create wiki page + project AGENTS.md |
 | `oc --ingest-repo owner/repo` | Snapshot GitHub repo into wiki raw/repos/ |
 

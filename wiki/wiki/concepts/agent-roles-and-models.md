@@ -98,7 +98,7 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 For meaningful multi-model consensus:
 1. **Master ≠ any reviewer** — master synthesizes, shouldn't be biased by its own prior output
 2. **No duplicate reviewers** — each brings unique training data and failure modes
-3. **Cross-provider diversity** — mix Anthropic, Google, DeepSeek, Qwen, Z.AI when possible
+3. **Cross-provider diversity** — mix Anthropic, Google, DeepSeek, Qwen when possible
 4. **4 distinct perspectives minimum** — fewer than 4 defeats the purpose of council
 
 ## Model ID Format
@@ -107,8 +107,7 @@ Models use `provider/model-name` format:
 - `openrouter/qwen/qwen3.6-plus` — Qwen via OpenRouter
 - `anthropic/claude-sonnet-4-6` — Claude via direct Anthropic API (if configured)
 - `openrouter/anthropic/claude-sonnet-4-6` — Claude via OpenRouter
-- `openrouter/z-ai/glm-5.1` — GLM via OpenRouter (Z.AI publishes there)
-- `zai-coding-plan/glm-5.1` — GLM via Z.AI subscription
+- `openrouter/deepseek/deepseek-v3.2` — DeepSeek via OpenRouter
 
 The `openrouter/` prefix routes through the OpenRouter provider (works for any model they host). Direct provider names (`anthropic/`, `deepseek/`) use dedicated API keys.
 
