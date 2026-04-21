@@ -13,7 +13,7 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
 - **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`
 - **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
-- **4 MCP servers** — context7 (library docs), grep_app (code search), websearch (Exa), zai_vision (image analysis, opt-in)
+- **3 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in). Plus websearch (Exa) built-in to plugin
 - **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 7 workflow principles for AI agents, ordered by criticality
@@ -155,8 +155,9 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 |--------|---------|
 | **context7** | Remote library documentation lookup |
 | **grep_app** | Search code across open-source repos |
-| **websearch** (Exa) | Web search for current information |
 | **zai_vision** | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai API key) |
+
+**Built-in:** websearch (Exa) — provided by oh-my-opencode-slim plugin, no config needed.
 
 ## 7 Workflow Principles
 

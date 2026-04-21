@@ -61,6 +61,7 @@ These differences are **deliberate** — do not "fix" them:
 | Auth paths | May have personal paths (e.g., `~/.local/share/opencode/auth.json`) | Generic `auth.json` |
 | Presets | 4 (including zai-coding-plan) | 3 (balanced, cheap, premium) — zai-coding-plan is live-only |
 | Per-project config | `.opencode/oh-my-opencode-slim.json` with personal overrides | Same file, plugin reads natively, deep-merges |
+| Direct provider routing | e.g., `anthropic/claude-sonnet-4-6` (no OpenRouter markup) | `openrouter/anthropic/claude-sonnet-4-6` (works for all users) |
 
 ## Scrubbing Checklist
 

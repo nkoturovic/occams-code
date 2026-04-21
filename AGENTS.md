@@ -150,7 +150,7 @@ Default (balanced): see oh-my-opencode-slim.json for master/councillors per pres
 |---------|-------------|
 | `/preset` | Show active preset and agent models |
 | `/permissions` | Show permission modes (`--safe` / `--unsafe`) |
-| `/auto-continue` | Toggle autonomous mode (`on` / `off`) — agent keeps working through TODOs |
+| `/auto-continue` | Toggle autonomous mode (plugin built-in) |
 | `/wiki` | Show project wiki and relevant knowledge |
 | `/remember` | Persist session knowledge to wiki |
 
