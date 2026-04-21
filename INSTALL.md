@@ -20,13 +20,13 @@
 | Python 3.10+ | System package manager | `python3 --version` |
 | Bash 4.0+ | System default (Linux) or `brew install bash` (macOS) | `bash --version` |
 | jq | `sudo apt install jq` / `brew install jq` | `jq --version` |
-| fzf | `sudo apt install fzf` / `brew install fzf` | `fzf --version` |
 
 ### Optional
 
 | Dependency | Purpose | Install |
 |-----------|---------|---------|
 | [Obsidian](https://obsidian.md) | Wiki viewer/editor | Download from obsidian.md |
+| fzf | Interactive model picker | `sudo apt install fzf` / `brew install fzf` |
 | [uv](https://github.com/astral-sh/uv) | Python package management | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | git | Repo ingestion, wiki versioning | System package manager |
 
@@ -72,8 +72,8 @@ cp config/oh-my-opencode-slim.json ~/.config/opencode/oh-my-opencode-slim.json
 # 4. Copy AGENTS.md
 cp AGENTS.md ~/.config/opencode/AGENTS.md
 
-# 5. Generate opencode.json with your home directory
-python3 scripts/generate-config.py
+# 5. Copy opencode.json template
+cp config/opencode.json ~/.config/opencode/opencode.json
 
 # 6. Copy wiki template
 cp -r wiki/ ~/wiki/
@@ -113,15 +113,6 @@ chsh -s /opt/homebrew/bin/bash
 
 # Restart terminal, then verify:
 env bash --version   # Should show 5.x
-```
-
-### macOS: fzf Setup
-
-`brew install fzf` installs the binary but does not set up shell keybindings. To enable them:
-
-```bash
-$(brew --prefix)/opt/fzf/install
-# Then restart your shell
 ```
 
 ## Post-Install Setup
@@ -171,7 +162,6 @@ This checks:
 - Obsidian vault
 - Project wiki page
 - Wiki freshness
-- Provider health
 
 ## Uninstall
 

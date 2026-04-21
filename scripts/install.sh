@@ -23,7 +23,7 @@ echo -e "  ${DIM}───────────────────${RESE
 echo ""
 
 # --- Dependency checks ---
-for cmd in python3 jq fzf curl; do
+for cmd in python3 jq curl; do
   if ! command -v "$cmd" &>/dev/null; then
     echo -e "${RED}Error: $cmd is required but not installed.${RESET}" >&2
     exit 1
@@ -62,7 +62,6 @@ fi
 # Scripts
 if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
   cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
-  chmod +x "$OPENCODE_DIR/scripts/generate-config.py"
   echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
 else
   echo -e "  ${YELLOW}⚠${RESET} No Python scripts found in source"
@@ -92,11 +91,14 @@ else
   echo -e "  ${YELLOW}⚠${RESET} AGENTS.md not found in source"
 fi
 
-# --- Generate opencode.json ---
+# --- Copy opencode.json ---
 echo ""
-echo -e "${BOLD}Generating opencode.json...${RESET}"
-python3 "$OPENCODE_DIR/scripts/generate-config.py"
-echo -e "  ${GREEN}✓${RESET} opencode.json generated"
+if [[ -f "$REPO_ROOT/config/opencode.json" ]]; then
+  cp "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json"
+  echo -e "  ${GREEN}✓${RESET} opencode.json copied"
+else
+  echo -e "${BOLD}Note:${RESET} opencode.json not in repo — run 'oc --doctor' to verify config"
+fi
 
 # --- Wiki template ---
 echo ""

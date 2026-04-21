@@ -1,3 +1,6 @@
+# Project-local config (per-project preset + model overrides)
+.opencode/
+
 # Secrets and auth
 auth.json
 budget.json

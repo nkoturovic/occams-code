@@ -24,9 +24,8 @@ When you run `oc`, the following happens in order:
 4. Session choice        → new or continue last session
 5. [New only] Provider health  → pings APIs in parallel (~3s)
 6. [New only] Preset select    → interactive fzf or --preset flag
-7. [New only] Agent tweaks     → role-picker.py with role-aware sorting (optional)
-8. Permission setup      → --safe or --unsafe modifies opencode.json
-9. Launch                → exec opencode (replaces shell process)
+7. Permission setup      → --safe or --unsafe modifies opencode.json
+8. Launch                → exec opencode (replaces shell process)
 ```
 
 ## Session Modes
@@ -74,7 +73,6 @@ All prompts are optional — the user can decline and still launch.
 | `oc --doctor` | Integration health checks (models, AGENTS.md, wiki, providers) |
 | `oc --init-project` | Create wiki page + project AGENTS.md |
 | `oc --ingest-repo owner/repo` | Snapshot GitHub repo into wiki raw/repos/ |
-| `oc --lint-wiki` | Run wiki content health check (dead links, orphans, stale pages) |
 
 ## Bash Version Gate
 

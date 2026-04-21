@@ -20,18 +20,16 @@ confidence: high
 |---------|----------|
 | Agents not working | `oc --doctor` |
 | Model different from expected | Check if fallback activated (60s timeout) |
-| Provider dead or credits low | `python3 ~/.config/opencode/scripts/provider-health.py` |
 | Wiki not being used by agent | Check AGENTS.md reads index.md on start. Run `/wiki` to verify. `oc --doctor` checks wiki structure and freshness |
-| Wiki has dead links or orphans | `oc --lint-wiki` or `python3 ~/.config/opencode/scripts/wiki-lint.py` |
+| Wiki has dead links or orphans | `oc --doctor` |
 | Config not found | Verify `oh-my-opencode-slim.json` exists in `~/.config/opencode/` |
 | Permission state stuck | Check `opencode.json` for `"permission": "allow"` |
 
 ## Common Failure Modes
 
 ### Model different from configured
-**Cause:** Fallback chain activated (primary model timed out) or auto-repair changed it.
-**How to check:** Run `model-optimizer.py --validate` to see current state.
-**Fix:** If primary is valid, the timeout may be too short for complex tasks. The chain falls back gracefully — this is expected behavior.
+**Cause:** Fallback chain activated (primary model timed out).
+**Fix:** This is expected behavior — the chain falls back gracefully. Check `oh-my-opencode-slim.json` fallback chains for the ordering.
 
 ### "bash version too old"
 **Cause:** macOS ships bash 3.2. `bin/oc` requires 4.0+.
@@ -43,21 +41,21 @@ confidence: high
 
 ### Provider returns credit errors
 **Cause:** OpenRouter credit depleted. Credit errors come as response content, not HTTP errors — fallback plugin may not detect them.
-**Fix:** Check balance: `python3 ~/.config/opencode/scripts/provider-health.py`. Top up at openrouter.ai/keys.
+**Fix:** Check your balance at openrouter.ai/keys and top up credits.
 
 ### Fallback timeout too short
 **Cause:** Complex tasks (especially oracle/opus) can exceed 60s.
 **Fix:** 60s is the configured default. This is a known trade-off — shorter timeout = faster fallback to working models, but may abort a slow-but-correct response.
 
 ### Known-bad models
-Some models validate in the catalog but fail at runtime. `model-optimizer.py` maintains a `KNOWN_BAD_MODELS` list and auto-repairs on startup.
+Some models validate in the catalog but fail at runtime. Check the model's provider status page or try a different model in the fallback chain.
 
 ### Models not loading after provider change
 **Fix:** `opencode models --refresh` to rebuild the model cache.
 
 ### Wiki pages stale
 **Cause:** Project has new commits since last wiki update.
-**Fix:** `oc --lint-wiki` to detect staleness. Update wiki pages manually or `/remember` to save new discoveries.
+**Fix:** `oc --doctor` to detect staleness. Update wiki pages manually or `/remember` to save new discoveries.
 
 ## When Things Break Badly
 

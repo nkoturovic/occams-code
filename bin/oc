@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
-# oc - OpenCode launcher with smart role-aware model picker
+# oc - OpenCode launcher
 #
 # Usage:
-#   oc                  # Interactive: pick preset, tweak agents, launch
-#   oc --quick          # Pick preset + session choice, skip tweaking
-#   oc --preset cheap   # Use preset directly, new session (no session prompt)
-#   oc --lint-wiki      # Run wiki content health check (same as /lint)
-#   oc -c               # Continue last session (skip all prompts)
-#   oc [opencode args]  # Pass-through args to opencode
+#   oc                  # Interactive: pick preset (first run), session, launch
+#   oc --quick          # Skip prompts, use project/global config directly
+#   oc --preset cheap   # Set preset (writes project config), launch
+#   oc --doctor         # Run diagnostics (config, wiki, lint)
+#   oc --init-project   # Create project wiki page + AGENTS.md
+#   oc --ingest-repo URL  Snapshot GitHub repo into wiki
+#   oc -c               # Continue last session
 #
 
 # --- Bash version gate (requires 4.0+) ---
@@ -23,493 +24,248 @@ set -euo pipefail
 
 CONFIG="$HOME/.config/opencode/oh-my-opencode-slim.json"
 CORE_CONFIG="$HOME/.config/opencode/opencode.json"
-BOLD='\033[1m'
-DIM='\033[2m'
-CYAN='\033[36m'
-GREEN='\033[32m'
-YELLOW='\033[33m'
-RED='\033[31m'
-RESET='\033[0m'
+PROJECT_CONFIG=".opencode/oh-my-opencode-slim.json"
 
-# --- Dependency checks ---
-for cmd in jq fzf python3; do
-  if ! command -v "$cmd" &>/dev/null; then
-    echo -e "${RED}Error: $cmd is required but not installed.${RESET}" >&2
-    exit 1
-  fi
-done
+BOLD='\033[1m'; DIM='\033[2m'; CYAN='\033[36m'; GREEN='\033[32m'
+YELLOW='\033[33m'; RED='\033[31m'; RESET='\033[0m'
+
+# --- Dependency check ---
+if ! command -v jq &>/dev/null; then
+  echo -e "${RED}Error: jq is required.${RESET}" >&2; exit 1
+fi
 if [[ ! -f "$CONFIG" ]]; then
-  echo -e "${RED}Error: Config not found: $CONFIG${RESET}" >&2
-  exit 1
+  echo -e "${RED}Error: Config not found: $CONFIG${RESET}" >&2; exit 1
 fi
 
-# Clean stale cache files (older than 3 days)
-find /tmp -maxdepth 1 -name "oc-*" -mtime +3 -delete 2>/dev/null || true
-
 # --- Parse arguments ---
-QUICK=false
-PRESET_ARG=""
-INIT_PROJECT=false
-DOCTOR=false
-INGEST_REPO=""
-LINT_WIKI=false
-SAFE=false
-UNSAFE=false
-OPENCODE_ARGS=()
+QUICK=false; PRESET_ARG=""; INIT_PROJECT=false; DOCTOR=false
+INGEST_REPO=""; SAFE=false; UNSAFE=false; OPENCODE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --quick|-q) QUICK=true; shift ;;
-    --preset|-p) PRESET_ARG="$2"; shift 2 ;;
-    --lint-wiki) LINT_WIKI=true; shift ;;
-    --safe) SAFE=true; shift ;;
-    --unsafe) UNSAFE=true; shift ;;
+    --quick|-q)    QUICK=true; shift ;;
+    --preset|-p)   PRESET_ARG="$2"; shift 2 ;;
+    --safe)        SAFE=true; shift ;;
+    --unsafe)      UNSAFE=true; shift ;;
     --init-project) INIT_PROJECT=true; shift ;;
-    --doctor) DOCTOR=true; shift ;;
+    --doctor)      DOCTOR=true; shift ;;
     --ingest-repo) INGEST_REPO="$2"; shift 2 ;;
     --help|-h)
-      echo "oc - OpenCode launcher with smart model picker"
+      echo "oc - OpenCode launcher"
       echo ""
       echo "Usage:"
-      echo "  oc                    Full interactive mode"
-      echo "  oc --quick            Pick preset only"
-      echo "  oc --preset <name>    Use preset directly"
-      echo "  oc --lint-wiki        Run wiki content health check (same as /lint)"
-      echo "  oc --safe             Enable permission prompts for this session"
-      echo "  oc --unsafe           Auto-approve all permissions for this session"
-      echo "  oc --init-project     Create project wiki page + memory bootstrap"
-      echo "  oc --doctor           Run integration health checks"
-      echo "  oc --ingest-repo URL  Ingest GitHub repo digest into wiki raw/sources"
+      echo "  oc                    Interactive launch (first run picks preset)"
+      echo "  oc --quick            Skip prompts, use project/global config"
+      echo "  oc --preset <name>    Set preset, create project config, launch"
+      echo "  oc --doctor           Run diagnostics (config, wiki, lint)"
+      echo "  oc --init-project     Create project wiki page + AGENTS.md"
+      echo "  oc --ingest-repo URL  Snapshot GitHub repo into wiki"
+      echo "  oc --safe             Permission prompts for this session"
+      echo "  oc --unsafe           Auto-approve all for this session"
       echo "  oc -c                 Continue last session"
-      exit 0
-      ;;
+      exit 0 ;;
     *) OPENCODE_ARGS+=("$1"); shift ;;
   esac
 done
 
 # --- Helpers ---
-MODEL_CACHE="/tmp/oc-models-cache-$(date +%Y%m%d)"
-get_models() {
-  if [[ ! -f "$MODEL_CACHE" ]]; then
-    opencode models 2>/dev/null > "$MODEL_CACHE" || true
-  fi
-  cat "$MODEL_CACHE"
-}
-
-# Build role-aware picker: shows best models for the agent role first
-build_role_picker() {
-  local agent="$1"
-  local current="$2"
-  local picker_file="/tmp/oc-picker-${agent}-$(date +%Y%m%d).txt"
-
-  if [[ -f "$picker_file" ]]; then
-    cat "$picker_file"
-    return
-  fi
-
-  # Fetch OpenRouter pricing once
-  local or_json="/tmp/oc-or-pricing-$(date +%Y%m%d).json"
-  if [[ ! -f "$or_json" ]]; then
-    curl -sf --max-time 15 https://openrouter.ai/api/v1/models > "$or_json.tmp" 2>/dev/null && \
-      mv "$or_json.tmp" "$or_json" || rm -f "$or_json.tmp"
-  fi
-
-  # Delegate to standalone Python picker script
-  get_models | python3 "$HOME/.config/opencode/scripts/role-picker.py" "$agent" "$current" "$or_json" \
-    2>/dev/null > "$picker_file"
-
-  cat "$picker_file"
-}
-
-show_config() {
-  local preset
-  preset=$(jq -r '.preset' "$CONFIG")
-  echo -e "${BOLD}Active preset: ${CYAN}$preset${RESET}"
-  echo ""
-  jq -r '.presets[.preset] | to_entries[] | "  \(.key)\t\(.value.model)"' "$CONFIG" \
-    | column -t -s $'\t'
-}
+is_interactive() { [[ -t 0 && -t 1 ]]; }
 
 ask_yes_no() {
-  local question="$1"
-  local default="${2:-y}"
-  local prompt
-  local answer
-
-  [[ ! -t 0 || ! -t 1 ]] && [[ "$default" == "y" ]] && return 0
-  [[ ! -t 0 || ! -t 1 ]] && return 1
-
-  if [[ "$default" == "y" ]]; then
-    prompt="[Y/n]"
-  else
-    prompt="[y/N]"
-  fi
-
+  local question="$1" default="${2:-y}" prompt answer
+  is_interactive || { [[ "$default" == "y" ]] && return 0 || return 1; }
+  [[ "$default" == "y" ]] && prompt="[Y/n]" || prompt="[y/N]"
   read -r -p "$(echo -e "${CYAN}?${RESET} ${question} ${prompt} ")" answer
-  answer="${answer,,}"
-  [[ -z "$answer" ]] && answer="$default"
+  answer="${answer,,}"; [[ -z "$answer" ]] && answer="$default"
   [[ "$answer" == "y" || "$answer" == "yes" ]]
 }
 
-detect_project_state() {
-  local _dps_output
-  _dps_output=$(python3 "$HOME/.config/opencode/scripts/detect-project-state.py" 2>/dev/null) || {
-    echo "HAS_WIKI_PAGE=0"
-    echo "IS_EMPTY_DIR=0"
-    echo "PROJECT_WIKI_PAGE=''"
-    echo "WIKI_STALE=0"
-    echo "WIKI_UPDATED_DATE=''"
-    echo "PROJECT_LAST_COMMIT=''"
-    echo "DEAD_WIKI_PAGES=''"
-    return
-  }
-  echo "$_dps_output"
-}
-
-smart_memory_prompts() {
-  [[ ! -t 0 || ! -t 1 ]] && return
-
-  local HAS_WIKI_PAGE IS_EMPTY_DIR PROJECT_WIKI_PAGE
-  local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
-  eval "$(detect_project_state)"
-
-  local wiki_state="missing"
-
-  if [[ "$HAS_WIKI_PAGE" == "1" ]]; then
-    wiki_state="ok ($(basename "${PROJECT_WIKI_PAGE:-}"))"
-  fi
-
-  echo -e "${DIM}Memory: wiki=${wiki_state}${RESET}"
-
-  # Warn about stale wiki page
-  if [[ "$WIKI_STALE" == "1" ]]; then
-    echo -e "${YELLOW}⚠ Wiki page may be stale (updated: ${WIKI_UPDATED_DATE}, last commit: ${PROJECT_LAST_COMMIT})${RESET}"
-  fi
-
-  # Warn about dead wiki pages (pointing to non-existent paths)
-  if [[ -n "${DEAD_WIKI_PAGES:-}" ]]; then
-    echo -e "${YELLOW}⚠ Dead wiki pages found (paths no longer exist):${RESET}"
-    IFS='|' read -ra dead_arr <<< "$DEAD_WIKI_PAGES"
-    for dp in "${dead_arr[@]}"; do
-      [[ -n "$dp" ]] && echo -e "  ${DIM}$(basename "$dp")${RESET}"
-    done
-  fi
-
-  local has_project_agents_md=false
-  [[ -f "$PWD/AGENTS.md" ]] && has_project_agents_md=true
-
-  if [[ "$INIT_PROJECT" == false && ( "$HAS_WIKI_PAGE" == "0" || "$has_project_agents_md" == false ) ]]; then
-    if [[ "$HAS_WIKI_PAGE" == "0" && "$IS_EMPTY_DIR" == "1" ]]; then
-      ask_yes_no "This directory looks new/empty. Initialize project wiki memory now?" "y" && INIT_PROJECT=true
-    elif [[ "$HAS_WIKI_PAGE" == "0" ]]; then
-      ask_yes_no "No matching project/workspace wiki page found for this path. Initialize now?" "y" && INIT_PROJECT=true
-    elif [[ "$has_project_agents_md" == false ]]; then
-      ask_yes_no "No project AGENTS.md found (wiki page exists). Create it?" "y" && INIT_PROJECT=true
+show_config() {
+  # Show effective config: reads global preset, then shows what the plugin will use.
+  # For preset selection: project config overrides global.
+  # For model display: we show the preset's models from global (the common case).
+  # Users with per-project model overrides in .opencode/ know what they have.
+  local preset model_count source="global"
+  if [[ -f "$PROJECT_CONFIG" ]]; then
+    local oc_p
+    oc_p=$(jq -r '.preset // empty' "$PROJECT_CONFIG" 2>/dev/null) || true
+    if [[ -n "$oc_p" ]]; then
+      preset="$oc_p"
+      source="project"
     fi
   fi
-
-  return 0
-}
-
-run_project_init() {
-  [[ "$INIT_PROJECT" != true ]] && return 0
-  echo -e "${DIM}Initializing project wiki + memory...${RESET}"
-  if ! python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"; then
-    echo -e "${YELLOW}⚠ Project init reported issues — continuing${RESET}"
+  if [[ -z "${preset:-}" ]]; then
+    preset=$(jq -r '.preset' "$CONFIG")
   fi
-  echo ""
+  model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
+  echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
+  jq -r ".presets[\"$preset\"] | to_entries[] | \"  \\(.key)\\t\\(.value.model)\"" "$CONFIG" \
+    | column -t -s $'\t'
+  # Note: if project config has per-agent model overrides, those are applied by
+  # the plugin at runtime (deep-merge). Edit .opencode/oh-my-opencode-slim.json directly.
 }
 
+# --- Set preset (--preset flag) ---
+set_preset() {
+  local preset="$1"
+  if ! jq -e ".presets.\"$preset\"" "$CONFIG" >/dev/null 2>&1; then
+    echo -e "${RED}Preset '$preset' not found.${RESET}" >&2
+    echo "Available: $(jq -r '.presets | keys | join(", ")' "$CONFIG")" >&2
+    exit 1
+  fi
+  mkdir -p .opencode
+  printf '{"preset":"%s"}\n' "$preset" > "$PROJECT_CONFIG"
+  echo -e "${GREEN}Created $PROJECT_CONFIG (preset: $preset)${RESET}"
+}
+
+# --- First-run: create project config if missing ---
+first_run_setup() {
+  is_interactive || return
+  [[ -f "$PROJECT_CONFIG" ]] && return
+
+  local current_preset
+  current_preset=$(jq -r '.preset' "$CONFIG")
+
+  if ask_yes_no "No project config found. Use '$current_preset' for this project?" "y"; then
+    mkdir -p .opencode
+    printf '{"preset":"%s"}\n' "$current_preset" > "$PROJECT_CONFIG"
+    echo -e "${GREEN}Created $PROJECT_CONFIG${RESET}"
+    return
+  fi
+
+  # Pick a preset (fzf if available, otherwise plain prompt)
+  local selected="$current_preset"
+  if command -v fzf &>/dev/null; then
+    local preview_cmd="jq -r '.presets[\"{}\"] | to_entries[] | \"  \" + .key + \": \" + .value.model' $CONFIG 2>/dev/null"
+    selected=$(jq -r '.presets | keys[]' "$CONFIG" \
+      | fzf --height=~15 --layout=reverse --border --border-label=" Presets " \
+             --header="Enter=select  Esc=cancel" \
+             --preview="$preview_cmd" --preview-window=right:40%:wrap \
+             --pointer="▶" --prompt="Preset: " \
+      || echo "$current_preset")
+    [[ -z "$selected" ]] && selected="$current_preset"
+  else
+    echo -e "${BOLD}Available presets:${RESET}"
+    jq -r '.presets | keys[]' "$CONFIG" | sed 's/^/  /'
+    read -r -p "$(echo -e "${CYAN}?${RESET} Preset: ")" selected
+    selected="${selected:-$current_preset}"
+  fi
+
+  mkdir -p .opencode
+  printf '{"preset":"%s"}\n' "$selected" > "$PROJECT_CONFIG"
+  echo -e "${GREEN}Created $PROJECT_CONFIG (preset: $selected)${RESET}"
+}
+
+# --- Session mode ---
+ask_session_mode() {
+  local arg
+  for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
+    case "$arg" in -c|--continue|--session|--fork) return ;; esac
+  done
+  is_interactive || return
+  echo -e "${BOLD}Session${RESET}"
+  echo -e "  ${CYAN}1${RESET}) New  ${CYAN}2${RESET}) Continue"
+  local choice
+  read -r -p "$(echo -e "${CYAN}?${RESET} [1]: ")" choice
+  [[ "${choice:-1}" == "2" || "$choice" == "c" ]] && OPENCODE_ARGS+=("-c")
+}
+
+# --- Standalone: doctor (config + wiki + lint) ---
 run_doctor() {
   local status=0
-  local HAS_WIKI_PAGE IS_EMPTY_DIR
-  local WIKI_STALE WIKI_UPDATED_DATE PROJECT_LAST_COMMIT DEAD_WIKI_PAGES
+  echo -e "${BOLD}Doctor${RESET}"; echo ""
 
-  echo -e "${BOLD}Integration Doctor${RESET}"
-  echo ""
-
-  # Model validation
-  if python3 "$HOME/.config/opencode/scripts/model-optimizer.py" --validate >/dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${RESET} Model config validation"
+  # Global config
+  if jq empty "$CONFIG" 2>/dev/null; then
+    local preset model_count
+    preset=$(jq -r '.preset' "$CONFIG")
+    model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
+    echo -e "  ${GREEN}✓${RESET} Global config (preset: $preset, $model_count agents)"
   else
-    echo -e "  ${YELLOW}⚠${RESET} Model config invalid (run: python3 ~/.config/opencode/scripts/model-optimizer.py --repair)"
-    status=1
+    echo -e "  ${RED}✗${RESET} Global config invalid JSON"; status=1
   fi
 
+  # Project config
+  if [[ -f "$PROJECT_CONFIG" ]]; then
+    local oc_p
+    oc_p=$(jq -r '.preset // "—"' "$PROJECT_CONFIG" 2>/dev/null)
+    echo -e "  ${GREEN}✓${RESET} Project config (preset: $oc_p)"
+  else
+    echo -e "  ${DIM}  No project config (using global)${RESET}"
+  fi
 
   # Wiki structure
   if [[ -f "$HOME/wiki/AGENTS.md" && -f "$HOME/wiki/index.md" && -d "$HOME/wiki/raw" && -d "$HOME/wiki/wiki" ]]; then
-    echo -e "  ${GREEN}✓${RESET} Karpathy wiki structure"
+    echo -e "  ${GREEN}✓${RESET} Wiki structure"
   else
-    echo -e "  ${YELLOW}⚠${RESET} Wiki structure incomplete at ~/wiki"
-    status=1
+    echo -e "  ${YELLOW}⚠${RESET} Wiki structure incomplete"; status=1
   fi
 
-  # Obsidian vault
-  if [[ -d "$HOME/wiki/.obsidian" ]]; then
-    echo -e "  ${GREEN}✓${RESET} Obsidian vault configured"
-  else
-    echo -e "  ${YELLOW}⚠${RESET} Obsidian vault not configured at ~/wiki/.obsidian"
-  fi
-
-  # Project state detection
-  local PROJECT_WIKI_PAGE=""
-  eval "$(detect_project_state)"
-  if [[ "$HAS_WIKI_PAGE" == "1" ]]; then
-    local page_label
-    page_label=$(basename "${PROJECT_WIKI_PAGE:-}")
-    echo -e "  ${GREEN}✓${RESET} Project wiki page${page_label:+ ($page_label)}"
-  else
-    echo -e "  ${YELLOW}⚠${RESET} Missing project wiki page (run: oc --init-project)"
-    status=1
-  fi
-
-  # Wiki freshness
-  if [[ "$WIKI_STALE" == "1" ]]; then
-    echo -e "  ${YELLOW}⚠${RESET} Wiki page stale (updated: ${WIKI_UPDATED_DATE}, last commit: ${PROJECT_LAST_COMMIT})"
-  elif [[ "$HAS_WIKI_PAGE" == "1" ]]; then
-    echo -e "  ${GREEN}✓${RESET} Wiki page fresh"
-  fi
-
-  # Dead wiki pages
-  if [[ -n "${DEAD_WIKI_PAGES:-}" ]]; then
-    echo -e "  ${YELLOW}⚠${RESET} Dead wiki pages found (paths no longer exist)"
-  fi
-
-  # Wiki content check
+  # Wiki index
   local index_lines
   index_lines=$(grep -c '^\- \[\[' "$HOME/wiki/index.md" 2>/dev/null || echo 0)
   if [[ "$index_lines" -ge 3 ]]; then
-    echo -e "  ${GREEN}✓${RESET} Wiki index has content ($index_lines entries)"
+    echo -e "  ${GREEN}✓${RESET} Wiki index ($index_lines entries)"
   else
-    echo -e "  ${YELLOW}⚠${RESET} Wiki index has few entries ($index_lines) — add project pages with oc --init-project"
+    echo -e "  ${YELLOW}⚠${RESET} Wiki index sparse ($index_lines entries)"; status=1
   fi
 
-  # Provider health + credits
-  local health_out
-  health_out=$(python3 "$HOME/.config/opencode/scripts/provider-health.py" --all 2>/dev/null) || true
-  if echo "$health_out" | grep -q '✗\|⚠'; then
-    echo "$health_out"
-  else
-    echo -e "  ${GREEN}✓${RESET} All providers healthy"
+  # Wiki lint
+  if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/wiki-lint.py" ]]; then
+    echo ""
+    python3 "$HOME/.config/opencode/scripts/wiki-lint.py" || true
   fi
 
   echo ""
-  if [[ "$status" -eq 0 ]]; then
-    echo -e "${GREEN}All systems healthy.${RESET}"
-  else
-    echo -e "${YELLOW}Some checks need attention. Use suggested commands above.${RESET}"
-  fi
-
+  [[ "$status" -eq 0 ]] && echo -e "${GREEN}All good.${RESET}" \
+                         || echo -e "${YELLOW}Some checks need attention.${RESET}"
   return "$status"
 }
 
-check_providers() {
-  # Quick parallel runtime check of all providers in active config.
-  # Silent when all OK; shows warnings for dead providers.
-  local output
-  output=$(python3 "$HOME/.config/opencode/scripts/provider-health.py" 2>/dev/null) || true
-  if echo "$output" | grep -q '✗'; then
-    echo -e "${BOLD}Provider Health${RESET}"
-    echo "$output"
-    echo ""
+# --- Standalone: project init ---
+run_project_init() {
+  if ! command -v python3 &>/dev/null || [[ ! -f "$HOME/.config/opencode/scripts/project-init.py" ]]; then
+    echo -e "${YELLOW}⚠ project-init.py not found${RESET}"; return 1
   fi
+  python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"
 }
 
-run_model_automation() {
-  # Validate models & auto-repair if broken (non-blocking)
-  echo -e "${DIM}Validating models...${RESET}"
-  python3 "$HOME/.config/opencode/scripts/model-optimizer.py" --startup 2>/dev/null || true
-  echo ""
-}
+# --- Permission management ---
+launch_with_permissions() {
+  local mode="$1" perm_backup="/tmp/oc-perm-backup-$(id -u)"
 
-ask_session_mode() {
-  # If user already specified -c/--continue/--session/--fork via CLI, skip the prompt.
-  local arg
-  for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
-    case "$arg" in
-      -c|--continue|--session|--fork) return ;;
-    esac
-  done
-
-  # Non-interactive → default to new session.
-  [[ ! -t 0 || ! -t 1 ]] && return
-
-  echo -e "${BOLD}Session${RESET}"
-  echo -e "  ${CYAN}1${RESET}) New session"
-  echo -e "  ${CYAN}2${RESET}) Continue last session"
-  echo ""
-  local choice
-  read -r -p "$(echo -e "${CYAN}?${RESET} Choice [1]: ")" choice
-  choice="${choice:-1}"
-
-  if [[ "$choice" == "2" || "$choice" == "c" ]]; then
-    OPENCODE_ARGS+=("-c")
-  fi
-}
-
-_launch_with_permission() {
-  local mode="$1"   # "safe" or "unsafe"
-  local perm_backup
-  perm_backup="/tmp/oc-perm-backup-$(id -u)"
-
-  # Save current permission config.
+  # Save + apply
   python3 - "$CORE_CONFIG" "$perm_backup" "$mode" <<'PY'
 import json, sys
 from pathlib import Path
-
-cfg_path = Path(sys.argv[1])
-backup_path = Path(sys.argv[2])
-mode = sys.argv[3]
-cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-backup = {
-    "had_permission": "permission" in cfg,
-    "permission": cfg.get("permission")
-}
-backup_path.write_text(json.dumps(backup), encoding="utf-8")
-if mode == "unsafe":
-    cfg["permission"] = "allow"
-else:
-    cfg.pop("permission", None)
-cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+c, b, m = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+cfg = json.loads(c.read_text())
+b.write_text(json.dumps({"h": "permission" in cfg, "v": cfg.get("permission")}))
+if m == "unsafe": cfg["permission"] = "allow"
+else: cfg.pop("permission", None)
+c.write_text(json.dumps(cfg, indent=2) + "\n")
 PY
 
-  _restore_permissions() {
+  restore() {
     python3 - "$CORE_CONFIG" "$perm_backup" <<'PY'
 import json, sys
 from pathlib import Path
-
-cfg_path = Path(sys.argv[1])
-backup_path = Path(sys.argv[2])
-if not backup_path.exists():
-    raise SystemExit(0)
-
-cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-backup = json.loads(backup_path.read_text(encoding="utf-8"))
-if backup.get("had_permission"):
-    cfg["permission"] = backup.get("permission")
-else:
-    cfg.pop("permission", None)
-cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+c, b = Path(sys.argv[1]), Path(sys.argv[2])
+if not b.exists(): raise SystemExit(0)
+cfg, bk = json.loads(c.read_text()), json.loads(b.read_text())
+if bk["h"]: cfg["permission"] = bk["v"]
+else: cfg.pop("permission", None)
+c.write_text(json.dumps(cfg, indent=2) + "\n")
 PY
     rm -f "$perm_backup"
   }
 
-  trap _restore_permissions EXIT INT TERM
-  if [[ "$mode" == "unsafe" ]]; then
-    echo -e "${YELLOW}⚠ Unsafe mode: all permissions auto-approved for this session.${RESET}"
-  else
-    echo -e "${YELLOW}⚠ Safe mode: permission prompts enabled for this session.${RESET}"
-  fi
+  trap restore EXIT INT TERM
+  [[ "$mode" == "unsafe" ]] && echo -e "${YELLOW}⚠ Unsafe mode${RESET}" \
+                            || echo -e "${YELLOW}⚠ Safe mode${RESET}"
   opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
   local rc=$?
-  _restore_permissions
-  trap - EXIT INT TERM
-  return $rc
-}
-
-launch_opencode() {
-  if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
-    if [[ "$SAFE" == true && "$UNSAFE" == true ]]; then
-      echo -e "${RED}Error: --safe and --unsafe are mutually exclusive.${RESET}" >&2
-      exit 1
-    fi
-    local mode="safe"
-    [[ "$UNSAFE" == true ]] && mode="unsafe"
-    _launch_with_permission "$mode"
-    return $?
-  fi
-
-  exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
-}
-
-# --- Step 1: Select preset ---
-select_preset() {
-  local current_preset
-  current_preset=$(jq -r '.preset' "$CONFIG")
-  local preview_cmd="jq -r '.presets[\"{}\"] | to_entries[] | \"  \" + .key + \": \" + .value.model' $CONFIG 2>/dev/null"
-
-  echo -e "${BOLD}Select a preset${RESET} ${DIM}(current: $current_preset)${RESET}"
-  echo ""
-
-  local selected
-  selected=$(jq -r '.presets | keys[]' "$CONFIG" \
-    | fzf --height=~15 --layout=reverse --border --border-label=" Presets " \
-           --header="Current: $current_preset  |  Enter=select  Esc=keep" \
-           --preview="$preview_cmd" \
-           --preview-window=right:40%:wrap \
-           --pointer="▶" --prompt="Preset: " \
-    || echo "$current_preset")
-
-  [[ -z "$selected" ]] && selected="$current_preset"
-
-  if [[ "$selected" != "$current_preset" ]]; then
-    local tmpf; tmpf=$(mktemp)
-    jq --arg p "$selected" '.preset = $p' "$CONFIG" > "$tmpf" \
-      && cp "$tmpf" "$CONFIG" && rm "$tmpf"
-    echo -e "${GREEN}Preset → $selected${RESET}"
-  else
-    echo -e "${DIM}Keeping: $selected${RESET}"
-  fi
-  echo ""
-}
-
-# --- Step 2: Tweak agents with role-aware picker ---
-tweak_agents() {
-  [[ ! -t 0 || ! -t 1 ]] && return
-
-  echo -e "${BOLD}Agent Models${RESET}"
-  jq -r '.presets[.preset] | to_entries[] | "  \(.key): \(.value.model)"' "$CONFIG"
-  echo ""
-
-  if ! ask_yes_no "Modify agent models?" "n"; then
-    return
-  fi
-
-  local agent_list
-  agent_list=$(jq -r '.presets[.preset] | to_entries[] | "\(.key)  →  \(.value.model)"' "$CONFIG")
-
-  echo -e "${DIM}Tab=select agents to change, Enter=confirm selection${RESET}"
-  echo ""
-
-  local selected_agents
-  selected_agents=$(echo "$agent_list" \
-    | fzf --multi --height=~12 --layout=reverse --border --border-label=" Select agents to change " \
-           --header="Tab=select  Enter=confirm" \
-           --pointer="▶" --marker="✓" --prompt="Agents: " \
-    || echo "")
-
-  [[ -z "$selected_agents" ]] && { echo -e "${DIM}No changes.${RESET}"; return; }
-
-  echo "$selected_agents" | while IFS= read -r line; do
-    local agent current_model selected_model tmpf
-    agent=$(echo "$line" | awk '{print $1}')
-    current_model=$(jq -r --arg a "$agent" '.presets[.preset][$a].model' "$CONFIG")
-
-    echo ""
-    echo -e "${BOLD}$agent${RESET} ${DIM}(current: $current_model)${RESET}"
-    echo -e "${DIM}Type to filter · ↑↓ navigate · Enter select · Esc keep current${RESET}"
-    echo ""
-
-    selected_model=$(build_role_picker "$agent" "$current_model" \
-      | fzf --height=~25 --layout=reverse --border --border-label=" $agent " \
-             --header="★ recommended  💰 budget  🆓 free" \
-             --query="${current_model%%/*}/" \
-             --pointer="▶" --prompt="$agent: " \
-      || echo "$current_model")
-
-    selected_model=$(echo "$selected_model" | awk '{print $1}')
-    [[ -z "$selected_model" ]] && selected_model="$current_model"
-
-    if [[ "$selected_model" != "$current_model" ]]; then
-      tmpf=$(mktemp)
-      jq --arg a "$agent" --arg m "$selected_model" '.presets[.preset][$a].model = $m' "$CONFIG" \
-        > "$tmpf" && cp "$tmpf" "$CONFIG" && rm "$tmpf"
-      echo -e "  ${GREEN}✓ $agent → $selected_model${RESET}"
-    else
-      echo -e "  ${DIM}  $agent unchanged${RESET}"
-    fi
-  done
+  restore; trap - EXIT INT TERM; return $rc
 }
 
 # --- Main ---
@@ -519,117 +275,62 @@ main() {
   echo -e "${DIM}  ───────${RESET}"
   echo ""
 
-  # Recover permission config from previous hard crash (SIGKILL)
-  local _perm_recovery="/tmp/oc-perm-backup-$(id -u)"
-  if [[ -f "$_perm_recovery" && -f "$CORE_CONFIG" ]]; then
-    echo -e "${YELLOW}⚠ Recovering permission config from previous crash...${RESET}"
-    python3 - "$CORE_CONFIG" "$_perm_recovery" <<'PY'
+  # Recover from previous crash
+  local _pb="/tmp/oc-perm-backup-$(id -u)"
+  if [[ -f "$_pb" && -f "$CORE_CONFIG" ]]; then
+    echo -e "${YELLOW}⚠ Recovering permissions from crash...${RESET}"
+    python3 - "$CORE_CONFIG" "$_pb" <<'PY'
 import json, sys
 from pathlib import Path
-cfg_path = Path(sys.argv[1])
-backup_path = Path(sys.argv[2])
-if not backup_path.exists():
-    raise SystemExit(0)
-cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-backup = json.loads(backup_path.read_text(encoding="utf-8"))
-if backup.get("had_permission"):
-    cfg["permission"] = backup.get("permission")
-else:
-    cfg.pop("permission", None)
-cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+c, b = Path(sys.argv[1]), Path(sys.argv[2])
+if not b.exists(): raise SystemExit(0)
+cfg, bk = json.loads(c.read_text()), json.loads(b.read_text())
+if bk["h"]: cfg["permission"] = bk["v"]
+else: cfg.pop("permission", None)
+c.write_text(json.dumps(cfg, indent=2) + "\n")
 PY
-    rm -f "$_perm_recovery"
+    rm -f "$_pb"
   fi
 
+  # Standalone commands (exit without launching)
   if [[ -n "$INGEST_REPO" ]]; then
-    echo -e "${DIM}Ingesting repository digest...${RESET}"
-    if ! python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO"; then
-      echo -e "${RED}Repo ingestion failed.${RESET}"
-      exit 1
-    fi
-    echo -e "${GREEN}✓ Repository digest ingested into wiki.${RESET}"
+    python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO" \
+      && echo -e "${GREEN}✓ Ingested${RESET}" || exit 1
     exit 0
   fi
+  [[ "$DOCTOR" == true ]] && { run_doctor; exit $?; }
+  [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
-  if [[ "$DOCTOR" == true ]]; then
-    run_doctor
-    exit $?
-  fi
-
-  if [[ "$LINT_WIKI" == true ]]; then
-    echo -e "${BOLD}Wiki Lint${RESET}"
-    echo ""
-    if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/wiki-lint.py" ]]; then
-      python3 "$HOME/.config/opencode/scripts/wiki-lint.py" || true
-    else
-      echo -e "${YELLOW}⚠ wiki-lint.py not found — did not run lint.${RESET}"
-    fi
-    exit 0
-  fi
-
-  show_config
-  echo ""
-
-  # --preset implies new session; skip session choice
+  # --preset flag: create project config and go
   if [[ -n "$PRESET_ARG" ]]; then
-    if jq -e ".presets.\"$PRESET_ARG\"" "$CONFIG" >/dev/null 2>&1; then
-      local tmpf; tmpf=$(mktemp)
-      jq --arg p "$PRESET_ARG" '.preset = $p' "$CONFIG" > "$tmpf" \
-        && cp "$tmpf" "$CONFIG" && rm "$tmpf"
-      echo -e "${GREEN}Preset: $PRESET_ARG${RESET}"
-    else
-      echo -e "${RED}Preset '$PRESET_ARG' not found.${RESET}"
-      echo "Available: $(jq -r '.presets | keys | join(", ")' "$CONFIG")"
-      exit 1
-    fi
-    smart_memory_prompts
-    run_project_init
-    check_providers
-    echo ""
-    show_config; echo ""
-    echo -e "${DIM}Launching...${RESET}"
-    echo ""
-    launch_opencode
-    return $?
+    set_preset "$PRESET_ARG"
   fi
 
-  # Session choice FIRST — continue skips preset/tweak entirely
-  ask_session_mode
-  local continuing=false
-  for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
-    case "$arg" in -c|--continue|--session|--fork) continuing=true ;; esac
-  done
-
-  if [[ "$continuing" == true ]]; then
-    # Memory awareness is useful even when resuming; preset/model config is not.
-    smart_memory_prompts
-    run_project_init
-    echo -e "${DIM}Resuming last session...${RESET}"
-    echo ""
-    launch_opencode
-    return $?
-  fi
-
-  # New session: full interactive flow
-  smart_memory_prompts
-  run_project_init
-
-  if [[ "$QUICK" == false ]]; then
-    run_model_automation
-  fi
-
-  select_preset
-  [[ "$QUICK" == false ]] && tweak_agents
-
-  check_providers
-
-  echo ""
-  echo -e "${BOLD}${GREEN}Final:${RESET}"
   show_config
   echo ""
+
+  # Session choice (skip if --preset, --quick, or continuing)
+  if [[ -z "$PRESET_ARG" && "$QUICK" == false ]]; then
+    local continuing=false
+    for a in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
+      case "$a" in -c|--continue|--session|--fork) continuing=true ;; esac
+    done
+    [[ "$continuing" == false ]] && ask_session_mode
+  fi
+
+  # First-run setup (only if no project config and interactive)
+  [[ "$QUICK" == false ]] && first_run_setup
+
+  # Launch
   echo -e "${DIM}Launching...${RESET}"
   echo ""
-  launch_opencode
+  if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
+    [[ "$SAFE" == true && "$UNSAFE" == true ]] \
+      && { echo -e "${RED}--safe and --unsafe are mutually exclusive.${RESET}" >&2; exit 1; }
+    launch_with_permissions "$([[ "$UNSAFE" == true ]] && echo unsafe || echo safe)"
+  else
+    exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
+  fi
 }
 
 main
