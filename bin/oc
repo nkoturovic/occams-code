@@ -179,8 +179,8 @@ ask_session_mode() {
   echo -e "${BOLD}Session${RESET}"
   echo -e "  ${CYAN}1${RESET}) New  ${CYAN}2${RESET}) Continue"
   local choice
-  read -r -p "$(echo -e "${CYAN}?${RESET} [1]: ")" choice
-  [[ "${choice:-1}" == "2" || "$choice" == "c" ]] && OPENCODE_ARGS+=("-c")
+  read -r -p "$(echo -e "${CYAN}?${RESET} [2]: ")" choice
+  [[ "${choice:-2}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
 }
 
 # --- Standalone: doctor (config + wiki + lint) ---
@@ -245,7 +245,7 @@ run_project_init() {
 
 # --- Permission management ---
 launch_with_permissions() {
-  local mode="$1" perm_backup="/tmp/oc-perm-backup-$(id -u)"
+  local mode="$1" perm_backup="/tmp/oc-perm-backup-$(id -u)-$$"
 
   # Save + apply
   python3 - "$CORE_CONFIG" "$perm_backup" "$mode" <<'PY'
@@ -293,8 +293,9 @@ main() {
   [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
   # Crash recovery (before any output)
-  local _pb="/tmp/oc-perm-backup-$(id -u)"
-  if [[ -f "$_pb" && -f "$CORE_CONFIG" ]]; then
+  local _pb
+  for _pb in /tmp/oc-perm-backup-$(id -u)-*; do
+    [[ -f "$_pb" ]] || break
     echo -e "${YELLOW}⚠ Recovering permissions from crash...${RESET}"
     python3 - "$CORE_CONFIG" "$_pb" <<'PY'
 import json, sys
@@ -307,7 +308,7 @@ else: cfg.pop("permission", None)
 c.write_text(json.dumps(cfg, indent=2) + "\n")
 PY
     rm -f "$_pb"
-  fi
+  done
 
   local show_banner=false
   is_interactive && [[ "$QUICK" == false ]] && show_banner=true
