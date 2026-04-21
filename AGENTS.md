@@ -100,7 +100,11 @@ Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](h
 
 ## Non-text Content
 
-`@designer` is the visual specialist — route all non-text files there. Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. NEVER `Read` these types yourself.
+`@designer` is the visual specialist — route all non-text files there.
+
+**For the orchestrator (text-only):** Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. Do NOT `Read` these types yourself — you cannot perceive them.
+
+**For @designer (multimodal):** You CAN read images and PDFs via the `Read` tool. Use native multimodal first — it's fast and reliable. Only use `zai_vision` MCP tools for structured analysis (OCR, UI-to-code, diagram parsing) when native viewing isn't sufficient.
 
 | Situation | Action |
 |-----------|--------|

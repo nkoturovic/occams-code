@@ -26,13 +26,14 @@ Same routing applies to all: **file on disk → delegate path to @designer.** Do
 
 ## Delivery paths (tested 2026-04-22)
 
-| Method | Works? | How |
-|--------|--------|-----|
-| File on disk → delegate to @designer | ✅ | @designer reads via native multimodal |
+| Method | Works? | Notes |
+|--------|--------|-------|
+| File on disk → delegate to @designer | ✅ | Orchestrator routing validated (test #2). @designer reads via native multimodal. |
 | URL to image/PDF → webfetch → delegate | ✅ | `webfetch save_binary=true` downloads to disk → delegate path |
 | Inline paste → DB extract → delegate | ✅ (extraction) | AGENTS.md has extraction commands for images and PDFs |
 | Inline paste → forward to subagent | ❌ | Platform limitation — binary not forwarded |
 | Video/audio file on disk | ⚠️ | Read tool cannot ingest. Needs `zai_vision` MCP or external tools |
+| zai_vision MCP tools | ⚠️ | Connectivity confirmed. Reliability issues: 2/3 calls timed out at default 30s timeout. Fixed by adding `"timeout": 300000` to MCP config. |
 
 ## Per-preset designer models
 
@@ -63,8 +64,8 @@ MCP connectivity confirmed (tool invocation succeeded). Output quality unvalidat
 
 ## Known limitations
 
-- Routing depends on orchestrator following AGENTS.md instructions — not platform-enforced. First vision test showed orchestrator ignored the rule.
-- Inline pasted content needs DB extraction workaround (see AGENTS.md). Works for images and PDFs.
+- OpenCode loads AGENTS.md into ALL agents (not just orchestrator). Previously, @designer followed orchestrator rules ("NEVER Read images") and bypassed native multimodal in favor of MCP tools. **Fixed:** AGENTS.md now scopes instructions per agent role.
+- zai_vision MCP has timeout issues at default 30s. Vision analysis via Z.ai API (glm-4.6v with thinking) can take >30s. **Fixed:** added `"timeout": 300000` (5min) to MCP config in opencode.json.
 - Video/audio cannot be ingested via Read tool — needs MCP or external tools.
 - DB extraction uses `ORDER BY id DESC LIMIT 1` — in concurrent sessions, may extract from wrong session. Low risk in typical single-session use.
 
