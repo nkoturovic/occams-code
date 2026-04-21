@@ -105,8 +105,8 @@
 | Code | `lsp_rename` | Safe rename across workspace |
 | MCP | **context7** — library docs (auto-triggered by @librarian) |
 | MCP | **grep_app** — open-source code search (real-world API patterns) |
-
 | MCP | **websearch** (Exa) — web search (docs, news, facts) |
+| MCP | **zai_vision** — image analysis, UI-to-code, OCR, error screenshots, diagrams, video (opt-in, needs Z.ai key) |
 | Skill | **agent-browser** — web automation, screenshots, scraping |
 | Skill | **code-review** — structured code review, security audit |
 | Skill | **simplify** — code cleanup after writing |
@@ -116,6 +116,14 @@
 | Skill | **json-canvas** — visual canvases, mind maps |
 
 Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
+
+## Vision
+
+When users provide images (mockups, screenshots, diagrams, error screenshots):
+- Route to `@designer` — it has Gemini (native multimodal) + `zai_vision` MCP tools
+- **Vision MCP tools** (8 total, need Z.ai key): `ui_to_artifact`, `extract_text_from_screenshot`, `diagnose_error_screenshot`, `understand_technical_diagram`, `analyze_data_visualization`, `ui_diff_check`, `image_analysis`, `video_analysis`
+- Without Z.ai key: @designer still sees images via Gemini's native multimodal — just no structured vision tools
+- Best practice: save images to local paths, reference by filename
 
 ## Current Config
 

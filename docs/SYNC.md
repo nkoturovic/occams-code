@@ -84,6 +84,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Custom model table in AGENTS.md → replace with pointer to oh-my-opencode-slim.json
 - [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.json` → strip personal models
+- [ ] Z.ai Vision MCP `Z_AI_API_KEY` value → must be empty string `""` (never share API keys)
 
 ### Verification
 After scrubbing, run: `grep -rn "personal_username\|/home/\|specific_project_name" repo/` — should return 0 matches.

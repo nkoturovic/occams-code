@@ -38,7 +38,8 @@
         ],
         "mcps": [
           "websearch",
-          "context7"
+          "context7",
+          "zai_vision"
         ]
       },
       "explorer": {
@@ -105,7 +106,8 @@
         ],
         "mcps": [
           "websearch",
-          "context7"
+          "context7",
+          "zai_vision"
         ]
       },
       "explorer": {
@@ -172,7 +174,8 @@
         ],
         "mcps": [
           "websearch",
-          "context7"
+          "context7",
+          "zai_vision"
         ]
       },
       "explorer": {
@@ -230,7 +233,7 @@
       "designer": [
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5v-turbo",
         "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],

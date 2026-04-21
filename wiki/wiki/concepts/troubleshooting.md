@@ -67,7 +67,7 @@ Some models validate in the catalog but fail at runtime. Check the model's provi
 
 ### Config file locations
 ```
-~/.config/opencode/opencode.json              # Core config (generated)
+~/.config/opencode/opencode.json              # Core config (static)
 ~/.config/opencode/oh-my-opencode-slim.json   # Plugin config (your presets)
 ~/.config/opencode/AGENTS.md                  # Agent instructions
 ~/.config/opencode/bin/oc                     # Launcher script

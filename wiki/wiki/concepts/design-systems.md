@@ -7,6 +7,7 @@ sources:
 related:
   - occams-code-setup
   - agent-roles-and-models
+  - vision-integration
 created: 2026-04-10
 updated: 2026-04-10
 confidence: high
@@ -129,3 +130,4 @@ No special setup required. The designer agent automatically reads any DESIGN.md 
 ## Related
 - [[occams-code-setup]] — Architecture and agent configuration
 - [[agent-roles-and-models]] — Designer agent role and capabilities
+- [[vision-integration]] — Vision integration for image-based design workflows

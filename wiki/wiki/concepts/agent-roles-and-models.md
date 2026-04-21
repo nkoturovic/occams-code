@@ -55,6 +55,7 @@ Needs: architecture decisions, complex debugging, code review. Infrequent but hi
 ### Designer — Multimodal capability + creativity
 Needs: screenshot analysis, CSS/layout reasoning, responsive design, accessibility. Must support vision input.
 - Best: Gemini 3 Flash/Pro (native multimodal), Claude Sonnet 4
+- Vision specialist: GLM-5V-Turbo (best Design2Code scores, in fallback chain)
 - Temperature: 0.5 (higher than other roles — creative exploration)
 
 ### Explorer — Speed + cost efficiency
@@ -90,6 +91,7 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 | `websearch` | Everyone | General-purpose web lookup |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
+| `zai_vision` | Designer | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai key) |
 
 **Notable:** Orchestrator only gets `websearch` — it delegates specialized research to other agents.
 
