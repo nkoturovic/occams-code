@@ -147,8 +147,16 @@ first_run_setup() {
   else
     echo -e "${BOLD}Available presets:${RESET}"
     jq -r '.presets | keys[]' "$CONFIG" | sed 's/^/  /'
-    read -r -p "$(echo -e "${CYAN}?${RESET} Preset: ")" selected
-    selected="${selected:-$current_preset}"
+    local valid_presets
+    valid_presets=$(jq -r '.presets | keys[]' "$CONFIG")
+    while true; do
+      read -r -p "$(echo -e "${CYAN}?${RESET} Preset: ")" selected
+      selected="${selected:-$current_preset}"
+      if echo "$valid_presets" | grep -qx "$selected"; then
+        break
+      fi
+      echo -e "${YELLOW}'$selected' not found. Available: $(echo "$valid_presets" | tr '\n' ' ')${RESET}"
+    done
   fi
 
   mkdir -p .opencode
@@ -270,6 +278,16 @@ PY
 
 # --- Main ---
 main() {
+  # Standalone commands: skip banner, run, exit
+  if [[ -n "$INGEST_REPO" ]]; then
+    python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO" \
+      && echo -e "${GREEN}✓ Ingested${RESET}" || exit 1
+    exit 0
+  fi
+  [[ "$DOCTOR" == true ]] && { run_doctor; exit $?; }
+  [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
+
+  # Banner (only for interactive launch)
   echo ""
   echo -e "${BOLD}${CYAN}  OpenCode${RESET}"
   echo -e "${DIM}  ───────${RESET}"
@@ -291,15 +309,6 @@ c.write_text(json.dumps(cfg, indent=2) + "\n")
 PY
     rm -f "$_pb"
   fi
-
-  # Standalone commands (exit without launching)
-  if [[ -n "$INGEST_REPO" ]]; then
-    python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO" \
-      && echo -e "${GREEN}✓ Ingested${RESET}" || exit 1
-    exit 0
-  fi
-  [[ "$DOCTOR" == true ]] && { run_doctor; exit $?; }
-  [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
   # --preset flag: create project config and go
   if [[ -n "$PRESET_ARG" ]]; then

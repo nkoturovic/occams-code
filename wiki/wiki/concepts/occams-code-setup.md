@@ -28,7 +28,7 @@ Occam's Code uses two config files with separate responsibilities:
 
 ## Presets
 
-Four presets, ordered by cost:
+Three presets, ordered by cost:
 
 | Preset | Use case | Key models |
 |--------|----------|------------|

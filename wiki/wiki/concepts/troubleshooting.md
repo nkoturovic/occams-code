@@ -71,8 +71,8 @@ Some models validate in the catalog but fail at runtime. Check the model's provi
 ~/.config/opencode/oh-my-opencode-slim.json   # Plugin config (your presets)
 ~/.config/opencode/AGENTS.md                  # Agent instructions
 ~/.config/opencode/bin/oc                     # Launcher script
-~/.config/opencode/scripts/                   # 9 utility scripts
-~/.config/opencode/commands/                  # 5 slash command docs
+~/.config/opencode/scripts/                   # 4 utility scripts
+~/.config/opencode/commands/                  # 4 slash command docs
 ~/.config/opencode/auth.json                  # API keys (NEVER share)
 ```
 

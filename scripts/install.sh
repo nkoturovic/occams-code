@@ -75,27 +75,39 @@ else
   echo -e "  ${YELLOW}⚠${RESET} No command files found in source"
 fi
 
-# Config
+# Config (don't overwrite existing — user may have customized presets/fallback)
 if [[ -f "$REPO_ROOT/config/oh-my-opencode-slim.json" ]]; then
-  cp "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json"
-  echo -e "  ${GREEN}✓${RESET} oh-my-opencode-slim.json"
+  if [[ ! -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]]; then
+    cp "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json"
+    echo -e "  ${GREEN}✓${RESET} oh-my-opencode-slim.json"
+  else
+    echo -e "  ${YELLOW}⊙${RESET} oh-my-opencode-slim.json (already exists, skipped)"
+  fi
 else
   echo -e "  ${YELLOW}⚠${RESET} config/oh-my-opencode-slim.json not found (skip)"
 fi
 
-# AGENTS.md
+# AGENTS.md (don't overwrite — user may have customized)
 if [[ -f "$REPO_ROOT/AGENTS.md" ]]; then
-  cp "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
-  echo -e "  ${GREEN}✓${RESET} AGENTS.md"
+  if [[ ! -f "$OPENCODE_DIR/AGENTS.md" ]]; then
+    cp "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
+    echo -e "  ${GREEN}✓${RESET} AGENTS.md"
+  else
+    echo -e "  ${YELLOW}⊙${RESET} AGENTS.md (already exists, skipped)"
+  fi
 else
   echo -e "  ${YELLOW}⚠${RESET} AGENTS.md not found in source"
 fi
 
-# --- Copy opencode.json ---
+# --- Copy opencode.json (don't overwrite — has provider keys and personal paths) ---
 echo ""
 if [[ -f "$REPO_ROOT/config/opencode.json" ]]; then
-  cp "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json"
-  echo -e "  ${GREEN}✓${RESET} opencode.json copied"
+  if [[ ! -f "$OPENCODE_DIR/opencode.json" ]]; then
+    cp "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json"
+    echo -e "  ${GREEN}✓${RESET} opencode.json copied"
+  else
+    echo -e "  ${YELLOW}⊙${RESET} opencode.json (already exists, skipped)"
+  fi
 else
   echo -e "${BOLD}Note:${RESET} opencode.json not in repo — run 'oc --doctor' to verify config"
 fi

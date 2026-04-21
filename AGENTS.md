@@ -115,7 +115,7 @@
 | Skill | **obsidian-cli/markdown/bases** — Obsidian vault operations |
 | Skill | **json-canvas** — visual canvases, mind maps |
 
-Skills 1–4 are bundled with OpenCode. Skills 5–7 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
+Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
 
 ## Current Config
 
