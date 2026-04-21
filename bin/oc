@@ -176,10 +176,8 @@ ask_session_mode() {
     case "$arg" in -c|--continue|--session|--fork) return ;; esac
   done
   is_interactive || return
-  echo -e "${BOLD}Session${RESET}"
-  echo -e "  ${CYAN}1${RESET}) New  ${CYAN}2${RESET}) Continue"
   local choice
-  read -r -p "$(echo -e "  ${BOLD}[1]:${RESET} ")" choice
+  read -r -p "$(echo -e "${BOLD}Session (1=New, 2=Continue) [1]:${RESET} ")" choice
   [[ "${choice:-1}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
 }
 
