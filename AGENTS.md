@@ -72,75 +72,24 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 - Library API behavior uncertain → @librarian
 - Architecture decision with trade-offs → @oracle or @council
 
-## Tools Reference
-
-| Category | Tool | When to use |
-|----------|------|-------------|
-| Tracking | `todowrite` | Task decomposition (visible in UI, update proactively) |
-| Tracking | `auto_continue` | Batch work (4+ todos) — orchestrator resumes automatically |
-| Parallel | `background_task` / `_output` / `_cancel` | Fire-and-forget parallel agents (up to 10 concurrent) |
-| Consensus | `council_session` | Multi-LLM consensus — councillors in parallel, master synthesizes |
-| Code | `ast_grep_search` / `ast_grep_replace` | Structured search/replace (25 langs). Prefer over regex |
-| Code | `lsp_diagnostics` | Errors/warnings *before* build. Use after writing code |
-| Code | `lsp_goto_definition` / `lsp_find_references` | Navigate code |
-| Code | `lsp_rename` | Safe rename across workspace |
-| MCP | **context7** — library docs (auto-triggered by @librarian) |
-| MCP | **grep_app** — open-source code search (real-world API patterns) |
-| MCP | **websearch** (Exa) — web search (docs, news, facts) |
-| MCP | **zai_vision** — image analysis, UI-to-code, OCR, error screenshots, diagrams, video (opt-in, needs Z.ai key) |
-| Skill | **agent-browser** — web automation, screenshots, scraping |
-| Skill | **code-review** — structured code review, security audit |
-| Skill | **simplify** — code cleanup after writing |
-| Skill | **pr-integration** — GitHub PR create/review |
-| Skill | **defuddle** — clean markdown from web pages |
-| Skill | **obsidian-cli/markdown/bases** — Obsidian vault operations |
-| Skill | **json-canvas** — visual canvases, mind maps |
-
-Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
-
 ## Non-text Content
 
 `@designer` is the visual specialist — route all non-text files there.
 
 **For the orchestrator (text-only):** Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. Do NOT `Read` these types yourself — you cannot perceive them.
 
-**For @designer:** Use `zai_vision` MCP tools for all image/PDF analysis. The `Read` tool cannot deliver image content to models (known platform limitation). Call MCP tools directly with the file path — the MCP server reads files from disk itself.
+**For @designer:** Use `zai_vision` MCP tools for all image/PDF analysis. The `Read` tool cannot deliver image content to models (known platform limitation). Call MCP tools directly with the file path — the MCP server reads files from disk itself. SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
 
 | Situation | Action |
 |-----------|--------|
 | Image/PDF on disk | Delegate file path to `@designer` |
 | User asks to "analyze" / "describe" / "look at" a visual | Delegate to `@designer` |
 | URL to image/PDF | `webfetch` with `save_binary=true` → delegate saved path |
-| Inline pasted image (no file on disk) | Extract from DB (below) → delegate path |
-| Inline pasted PDF (no file on disk) | Extract from DB (below) → delegate path |
+| Inline pasted image/PDF (no file on disk) | Extract from DB (see `~/wiki/wiki/concepts/vision-integration.md`) → delegate path |
 | Video/audio | If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
 
 Extraction fails → ask user to save to disk.
 
-**Image:**
-```bash
-mime=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.mime') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's|image/||') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's/^data:image\/[^;]*;base64,//' | base64 -d > /tmp/opencode-inline.$mime && echo "/tmp/opencode-inline.$mime"
-```
-
-**PDF:**
-```bash
-sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') = 'application/pdf' ORDER BY id DESC LIMIT 1" | sed 's/^data:application\/pdf;base64,//' | base64 -d > /tmp/opencode-inline.pdf && echo "/tmp/opencode-inline.pdf"
-```
-
-@designer uses `zai_vision` MCP tools for image/PDF analysis (Read tool cannot deliver image content). SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
-
 ## Current Config
 
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
-Fallback chains: 5 entries each, quality → cost gradient, 60s timeout.
-Permissions: `--unsafe` (default) / `--safe` (temporary prompts for one session).
-
-## Slash Commands
-
-| Command | What it does |
-|---------|-------------|
-| `/preset` | Show active preset and agent models |
-| `/permissions` | Show permission modes (`--safe` / `--unsafe`) |
-| `/auto-continue` | Toggle autonomous mode (plugin built-in) |
-| `/wiki` | Show project wiki and relevant knowledge |
-| `/remember` | Persist session knowledge to wiki |
