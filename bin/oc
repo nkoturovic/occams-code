@@ -179,8 +179,8 @@ ask_session_mode() {
   echo -e "${BOLD}Session${RESET}"
   echo -e "  ${CYAN}1${RESET}) New  ${CYAN}2${RESET}) Continue"
   local choice
-  read -r -p "$(echo -e "  ${BOLD}[2]:${RESET} ")" choice
-  [[ "${choice:-2}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
+  read -r -p "$(echo -e "  ${BOLD}[1]:${RESET} ")" choice
+  [[ "${choice:-1}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
 }
 
 # --- Standalone: doctor (config + wiki + lint) ---
