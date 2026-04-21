@@ -79,7 +79,7 @@ ask_yes_no() {
   local question="$1" default="${2:-y}" prompt answer
   is_interactive || { [[ "$default" == "y" ]] && return 0 || return 1; }
   [[ "$default" == "y" ]] && prompt="[Y/n]" || prompt="[y/N]"
-  read -r -p "$(echo -e "${CYAN}?${RESET} ${question} ${prompt} ")" answer
+  read -r -p "$(echo -e "${BOLD}${question}${RESET} ${prompt} ")" answer
   answer="${answer,,}"; [[ -z "$answer" ]] && answer="$default"
   [[ "$answer" == "y" || "$answer" == "yes" ]]
 }
@@ -155,7 +155,7 @@ first_run_setup() {
     local valid_presets
     valid_presets=$(jq -r '.presets | keys[]' "$CONFIG")
     while true; do
-      read -r -p "$(echo -e "${CYAN}?${RESET} Preset: ")" selected
+      read -r -p "$(echo -e "${BOLD}Preset:${RESET} ")" selected
       selected="${selected:-$current_preset}"
       if echo "$valid_presets" | grep -qx "$selected"; then
         break
@@ -179,7 +179,7 @@ ask_session_mode() {
   echo -e "${BOLD}Session${RESET}"
   echo -e "  ${CYAN}1${RESET}) New  ${CYAN}2${RESET}) Continue"
   local choice
-  read -r -p "$(echo -e "${CYAN}?${RESET} [2]: ")" choice
+  read -r -p "$(echo -e "  ${BOLD}[2]:${RESET} ")" choice
   [[ "${choice:-2}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
 }
 
