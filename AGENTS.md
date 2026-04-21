@@ -85,10 +85,15 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 | Image/PDF on disk | Delegate file path to `@designer` |
 | User asks to "analyze" / "describe" / "look at" a visual | Delegate to `@designer` |
 | URL to image/PDF | `webfetch` with `save_binary=true` → delegate saved path |
-| Inline pasted image/PDF (no file on disk) | Extract from DB (see `~/wiki/wiki/concepts/vision-integration.md`) → delegate path |
+| Inline pasted image/PDF (no file on disk) | Extract via command below → delegate path to @designer |
 | Video/audio | If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
 
 Extraction fails → ask user to save to disk.
+
+**Inline paste extraction** (run this, then delegate the output path to @designer):
+```bash
+MIME=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.mime') FROM part WHERE json_extract(data,'$.mime') LIKE 'image%' OR json_extract(data,'$.mime')='application/pdf' ORDER BY id DESC LIMIT 1") && EXT=$(echo "$MIME" | sed 's|image/||; s|application/pdf|pdf|') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.url') FROM part WHERE json_extract(data,'$.mime')='$MIME' ORDER BY id DESC LIMIT 1" | sed 's/^data:[^;]*;base64,//' | base64 -d > "/tmp/opencode-inline.$EXT" && echo "/tmp/opencode-inline.$EXT"
+```
 
 ## Current Config
 
