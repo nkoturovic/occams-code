@@ -7,8 +7,9 @@ related:
   - occams-code-setup
   - oc-launcher
   - agent-roles-and-models
+  - vision-integration
 created: 2026-04-10
-updated: 2026-04-10
+updated: 2026-04-22
 confidence: high
 ---
 
@@ -49,6 +50,10 @@ confidence: high
 
 ### Known-bad models
 Some models validate in the catalog but fail at runtime. Check the model's provider status page or try a different model in the fallback chain.
+
+### Orchestrator fails on images/PDFs
+**Cause:** Orchestrator tried to `Read` a non-text file instead of delegating to @designer.
+**Fix:** Remind it to delegate. AGENTS.md has explicit routing rules. For inline pasted content, AGENTS.md has DB extraction commands. For URLs, use `webfetch save_binary=true` then delegate the saved path.
 
 ### Models not loading after provider change
 **Fix:** `opencode models --refresh` to rebuild the model cache.

@@ -12,20 +12,13 @@
 
 ### Occam's Code *(solution design)*
 **The simplest solution that fully solves the problem is the correct solution.**
-- Fewest changes. Fewest files. Fewest abstractions.
-- If two approaches work equally, the shorter wins.
-- Every abstraction, file, and line must earn its place — nothing exists without necessity.
-- The ideal solution is monadic: indivisible, irreducible, complete.
+Fewest changes. Fewest files. Fewest abstractions. If two approaches work equally, the shorter wins.
 
 ### Ask Questions
 - Any uncertainty or ambiguity → stop and ask the user before proceeding.
 - Better to ask too many questions upfront than to execute the wrong plan in parallel.
 - When presenting options, state your recommendation and why.
-
-### Plan Before Execute
-- Invest substantial time in planning before writing code.
-- Present the plan to the user for review before executing.
-- A good plan makes parallel execution safe; a bad plan makes it chaotic.
+- Present plans to the user for review before executing — good plans make parallel execution safe; bad plans make it chaotic.
 
 ### Divide and Conquer
 - Break tasks into independent subtasks that can execute in parallel via agents.
@@ -38,10 +31,15 @@
 - Combine results after parallel work completes.
 
 ### Wiki
-- Check `~/wiki/index.md` and project pages **before** starting any task. Apply existing conventions, patterns, and decisions.
-- When discovering stable facts, **proactively** persist them to wiki — don't wait to be asked.
-- Wiki is **not** a write-once artifact. Update it **continuously** during every session. Stale wiki is worse than no wiki — it misleads.
-- Append to `~/wiki/log.md` on every meaningful change. Update `~/wiki/index.md` if you created a new page.
+- **On session start**, read `~/wiki/index.md` — the routing table to all project pages, conventions, patterns.
+- Check wiki **before** starting any task. Stale wiki is worse than no wiki — update it continuously.
+- When discovering stable facts, proactively persist them:
+  - Per-project → `~/wiki/wiki/projects/<slug>.md` (match by `Path:` field)
+  - Language/pattern → `~/wiki/wiki/languages/` or `~/wiki/wiki/patterns/`
+  - Global → `~/wiki/wiki/concepts/` or `~/wiki/wiki/entities/`
+  - **Always** → append to `~/wiki/log.md` with date, project, and what changed
+  - **Always** → update `~/wiki/index.md` if you created a new page
+- **Retrieval order:** Wiki → Code search → context7 → grep_app → websearch
 
 ### Be Terse
 - **Be terse.** Drop filler, keep technical accuracy. "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
@@ -49,23 +47,6 @@
 - Don't narrate wiki contents — apply silently.
 - Keep AGENTS.md concise — models prioritize content at the top.
 - One-word answers are fine when appropriate.
-
-## How memory works (for the agent)
-1. **Wiki** lives at `~/wiki/`. Read `~/wiki/index.md` first — it's the routing table to all project pages, conventions, patterns, etc.
-2. **Per-project pages** are at `~/wiki/wiki/projects/<slug>.md`. Match the current working directory to a project page by looking for the `Path:` field inside pages.
-3. **Conventions and patterns** are at `~/wiki/wiki/languages/`, `~/wiki/wiki/patterns/`, etc.
-4. **Session memory update**: when you discover stable facts, **proactively** persist them. Route to the right place:
-   - **Per-project** → `~/wiki/wiki/projects/<slug>.md`
-   - **Language/pattern** → `~/wiki/wiki/languages/<lang>.md` or `~/wiki/wiki/patterns/<name>.md`
-   - **Global** → `~/wiki/wiki/concepts/` or `~/wiki/wiki/entities/`
-   - **Always** → append to `~/wiki/log.md` with date, project, and what changed
-   - **Always** → update `~/wiki/index.md` if you created a new page
-   5. **Retrieval order** (each layer serves a distinct purpose):
-      1. **Wiki** — compiled project knowledge, conventions, decisions
-      2. **Explorer/grep/AST** — code search: files, symbols, patterns
-      3. **context7** — library and API documentation
-      4. **grep_app** — open-source code examples
-      5. **websearch** — current information, docs not in context7
 
 ## Agent Types & Delegation
 
@@ -117,32 +98,38 @@
 
 Skills 1–4 are bundled with OpenCode. Skills 5–9 require [obsidian-skills](https://github.com/kepano/obsidian-skills) (`install.sh` installs automatically).
 
-## Vision
+## Non-text Content
 
-When users provide images (mockups, screenshots, diagrams, error screenshots):
-- Route to `@designer` — it has Gemini (native multimodal) + `zai_vision` MCP tools
-- **Vision MCP tools** (8 total, need Z.ai key): `ui_to_artifact`, `extract_text_from_screenshot`, `diagnose_error_screenshot`, `understand_technical_diagram`, `analyze_data_visualization`, `ui_diff_check`, `image_analysis`, `video_analysis`
-- Without Z.ai key: @designer still sees images via Gemini's native multimodal — just no structured vision tools
-- Best practice: save images to local paths, reference by filename
+`@designer` is the visual specialist — route all non-text files there. Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. NEVER `Read` these types yourself.
+
+| Situation | Action |
+|-----------|--------|
+| Image/PDF on disk | Delegate file path to `@designer` |
+| User asks to "analyze" / "describe" / "look at" a visual | Delegate to `@designer` |
+| URL to image/PDF | `webfetch` with `save_binary=true` → delegate saved path |
+| Inline pasted image (no file on disk) | Extract from DB (below) → delegate path |
+| Inline pasted PDF (no file on disk) | Extract from DB (below) → delegate path |
+| Video/audio | Read tool cannot ingest. If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
+
+Extraction fails → ask user to save to disk.
+
+**Image:**
+```bash
+mime=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.mime') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's|image/||') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's/^data:image\/[^;]*;base64,//' | base64 -d > /tmp/opencode-inline.$mime && echo "/tmp/opencode-inline.$mime"
+```
+
+**PDF:**
+```bash
+sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') = 'application/pdf' ORDER BY id DESC LIMIT 1" | sed 's/^data:application\/pdf;base64,//' | base64 -d > /tmp/opencode-inline.pdf && echo "/tmp/opencode-inline.pdf"
+```
+
+@designer reads images/PDFs natively (multimodal). With Z.ai key, also has `zai_vision` MCP tools (OCR, UI-to-code, diagrams, video). SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
 
 ## Current Config
 
-**3 presets:** `balanced` (default) → `cheap` → `premium`
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
-**Fallback chains:** 5 entries each, quality → cost gradient, 60s timeout.
-**Permissions:** `--unsafe` (default) / `--safe` (temporary prompts for one session).
-
-## Council
-
-Multi-LLM consensus for high-stakes decisions. Parallel councillors, master synthesizes.
-Default (balanced): see oh-my-opencode-slim.json for master/councillors per preset.
-
-## Providers
-
-| Provider | Models | Auth |
-|----------|--------|------|
-| openrouter | 400+ models (pay-per-token) | auth.json |
-| anthropic | claude-* (direct API) | auth.json |
+Fallback chains: 5 entries each, quality → cost gradient, 60s timeout.
+Permissions: `--unsafe` (default) / `--safe` (temporary prompts for one session).
 
 ## Slash Commands
 
@@ -153,4 +140,3 @@ Default (balanced): see oh-my-opencode-slim.json for master/councillors per pres
 | `/auto-continue` | Toggle autonomous mode (plugin built-in) |
 | `/wiki` | Show project wiki and relevant knowledge |
 | `/remember` | Persist session knowledge to wiki |
-
