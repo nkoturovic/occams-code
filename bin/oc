@@ -176,9 +176,16 @@ ask_session_mode() {
     case "$arg" in -c|--continue|--session|--fork) return ;; esac
   done
   is_interactive || return
+  # Only offer Continue if sessions exist for this directory
+  local has_sessions=""
+  if [[ -f "$HOME/.local/share/opencode/opencode.db" ]]; then
+    has_sessions=$(sqlite3 "$HOME/.local/share/opencode/opencode.db" "SELECT 1 FROM session WHERE directory='$(pwd)' LIMIT 1" 2>/dev/null)
+  fi
   local choice
-  read -r -p "$(echo -e "${BOLD}Session (1=New, 2=Continue) [1]:${RESET} ")" choice
-  [[ "${choice:-1}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
+  if [[ -n "$has_sessions" ]]; then
+    read -r -p "$(echo -e "${BOLD}Session (1=New, 2=Continue) [1]:${RESET} ")" choice
+    [[ "${choice:-1}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
+  fi
 }
 
 # --- Standalone: doctor (config + wiki + lint) ---
@@ -339,12 +346,24 @@ PY
   fi
 
   # Launch
+  # Strip -c if no sessions exist (prevents black screen on empty sessions)
+  local _args=()
+  local has_c=false
+  for a in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
+    [[ "$a" == "-c" || "$a" == "--continue" ]] && has_c=true || _args+=("$a")
+  done
+  if [[ "$has_c" == true ]]; then
+    local has_sessions=""
+    [[ -f "$HOME/.local/share/opencode/opencode.db" ]] &&
+      has_sessions=$(sqlite3 "$HOME/.local/share/opencode/opencode.db" "SELECT 1 FROM session WHERE directory='$(pwd)' LIMIT 1" 2>/dev/null)
+    [[ -n "$has_sessions" ]] && _args+=("-c")
+  fi
   if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
     [[ "$show_banner" == false ]] && echo "" # spacing for non-interactive
     launch_with_permissions "$([[ "$UNSAFE" == true ]] && echo unsafe || echo safe)"
   else
     [[ "$show_banner" == true ]] && echo -e "${DIM}Launching...${RESET}" && echo ""
-    exec opencode "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"
+    exec opencode "${_args[@]+"${_args[@]}"}"
   fi
 }
 
