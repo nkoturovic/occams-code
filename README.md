@@ -159,15 +159,14 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 
 **Built-in:** websearch (Exa) — provided by oh-my-opencode-slim plugin, no config needed.
 
-## 7 Workflow Principles
+## Workflow Principles
 
 1. **Occam's Code** — Simplest solution that fully solves the problem wins
-2. **Ask Questions** — Uncertainty → ask before proceeding
-3. **Plan Before Execute** — Present plan, get feedback, then execute
-4. **Divide and Conquer** — Break into independent parallel subtasks
-5. **Parallelize** — Delegate to specialist agents, run concurrently
-6. **Wiki** — Check wiki before starting, update it continuously
-7. **Be Terse** — No filler, caveman-style communication
+2. **Ask Questions** — Uncertainty → ask before proceeding; present plans for review
+3. **Divide and Conquer** — Break into independent parallel subtasks
+4. **Parallelize** — Delegate to specialist agents, run concurrently
+5. **Wiki** — Check wiki before starting, update it continuously
+6. **Be Terse** — No filler, caveman-style communication
 
 ## Autonomous Mode
 

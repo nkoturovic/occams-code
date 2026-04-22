@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # occams-code installer
-# Copies scripts, config, wiki template, and generates opencode.json
+# Copies scripts, config, wiki template, and opencode.json to ~/.config/opencode/
 #
 set -euo pipefail
 

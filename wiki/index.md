@@ -29,7 +29,7 @@ Master routing table. Agent: read this first to find relevant pages.
 - [[oc-launcher]] — Boot sequence, session modes, permissions
 - [[troubleshooting]] — Common failure modes, diagnostic commands, known-bad models
 - [[design-systems]] — DESIGN.md files: plain-text design systems for pixel-perfect AI-generated UI
-- [[vision-integration]] — Vision integration: Gemini native + Z.ai Vision MCP + GLM-5V-Turbo fallback
+- [[vision-integration]] — Non-text content handling: images, PDFs via @designer MCP tools, delivery paths, future re-evaluation
 
 ## Entities
 (none yet — add entity pages for people, orgs, tools you use)
