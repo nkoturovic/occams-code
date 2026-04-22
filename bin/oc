@@ -97,6 +97,12 @@ show_config() {
   if [[ -z "${preset:-}" ]]; then
     preset=$(jq -r '.preset' "$CONFIG")
   fi
+  # Guard: fall back to global default if preset not found
+  if ! jq -e ".presets[\"$preset\"]" "$CONFIG" >/dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: preset '$preset' not found, falling back to global default${RESET}"
+    preset=$(jq -r '.preset' "$CONFIG")
+    source="global (fallback)"
+  fi
   model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
   echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
   if [[ -f "$PROJECT_CONFIG" ]] && jq -e '.agents' "$PROJECT_CONFIG" >/dev/null 2>&1; then
@@ -168,7 +174,7 @@ first_run_setup() {
   done
 
   mkdir -p .opencode
-  printf '{"preset":"%s"}\n' "$selected" > "$PROJECT_CONFIG"
+  jq -n --arg p "$selected" '{"preset":$p}' > "$PROJECT_CONFIG"
   echo -e "${GREEN}Created $PROJECT_CONFIG (preset: $selected)${RESET}"
 }
 

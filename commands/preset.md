@@ -16,6 +16,11 @@ if proj.exists():
     if 'preset' in pc:
         preset, source = pc['preset'], 'project'
 
+# Guard: fall back if preset removed from config
+if preset not in cfg['presets']:
+    print(f'Warning: preset {preset!r} not found, using global default')
+    preset, source = cfg['preset'], 'global (fallback)'
+
 agents = cfg['presets'][preset]
 print(f'Active: {preset} ({source})')
 for a, c in agents.items():
