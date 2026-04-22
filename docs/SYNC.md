@@ -53,13 +53,13 @@ These differences are **deliberate** — do not "fix" them:
 
 | Aspect | Live Setup | Repo |
 |--------|-----------|------|
-| Default preset | Your chosen default (e.g., zai-coding-plan) | `balanced` |
+| Default preset | Your chosen default (e.g., `default`) | `balanced` |
 | Fallback chain order | Your preference (e.g., subscription-first) | OpenRouter-first (broadest compatibility) |
 | Workflow Principles intro | May mention your preset/subscription | Generic (no preset-specific text) |
 | Council default | Your preset | `balanced` |
-| Providers table order | Your primary first | openrouter first, zai-coding-plan last |
+| Providers table order | Your primary first | openrouter first |
 | Auth paths | May have personal paths (e.g., `~/.local/share/opencode/auth.json`) | Generic `auth.json` |
-| Presets | 4 (including zai-coding-plan) | 3 (balanced, cheap, premium) — zai-coding-plan is live-only |
+| Presets | 4 (including your live-only preset) | 3 (balanced, cheap, premium) — live-only preset excluded |
 | Per-project config | `.opencode/oh-my-opencode-slim.json` with personal overrides | Same file, plugin reads natively, deep-merges |
 | Direct provider routing | e.g., `anthropic/claude-sonnet-4-6` (no OpenRouter markup) | `openrouter/anthropic/claude-sonnet-4-6` (works for all users) |
 
@@ -78,10 +78,10 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] "subscription-based" / "subscription APIs are slower" / "compensate with parallelism" → remove
 - [ ] "concurrency mitigates subscription latency" → simplify to just "parallel"
 - [ ] Your provider listed first → reorder to openrouter-first
-- [ ] References to `zai-coding-plan` preset → remove (live-only, not in repo config)
+- [ ] References to your live-only preset → remove (not in repo config)
 
 ### Config-specific
-- [ ] `z-ai/*` or `zai-coding-plan/*` model IDs in fallback chains → replace with openrouter equivalents
+- [ ] `zai-coding-plan/*` or subscription-specific model IDs in fallback chains → replace with openrouter equivalents
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Custom model table in AGENTS.md → replace with pointer to oh-my-opencode-slim.json
 - [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.json` → strip personal models
@@ -155,7 +155,7 @@ For "SYNC with SCRUBBING" files: copy, then **restore personal context**:
 - Re-add subscription latency notes
 - Re-add personal auth paths
 - Re-order providers with your primary first
-- Re-add `zai-coding-plan` preset to oh-my-opencode-slim.json
+- Re-add your live-only preset to oh-my-opencode-slim.json
 
 ### 3. Verify
 ```bash
