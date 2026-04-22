@@ -53,7 +53,7 @@ These differences are **deliberate** — do not "fix" them:
 
 | Aspect | Live Setup | Repo |
 |--------|-----------|------|
-| Default preset | Your chosen default (e.g., `default`) | `balanced` |
+| Default preset | Your chosen default (e.g., `custom`) | `balanced` |
 | Fallback chain order | Your preference (e.g., subscription-first) | OpenRouter-first (broadest compatibility) |
 | Workflow Principles intro | May mention your preset/subscription | Generic (no preset-specific text) |
 | Council default | Your preset | `balanced` |
