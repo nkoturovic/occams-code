@@ -17,7 +17,7 @@ There are two directions:
 
 | File | Live location | Repo location | Notes |
 |------|--------------|---------------|-------|
-| Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~351 lines. No model tweaker, no startup health checks |
+| Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~363 lines. No model tweaker, no startup health checks |
 | Scripts | `~/.config/opencode/scripts/*.py` | `scripts/*.py` | 4 files: wiki-lint.py, project-init.py, repo-ingest.py, detect-project-state.py |
 | Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 4 files: permissions, preset, remember, wiki |
 
@@ -130,7 +130,7 @@ python3 -c "import json; json.load(open('config/oh-my-opencode-slim.json'))"
 
 # Line count reasonable
 wc -l AGENTS.md  # Should be ~100 lines
-wc -l bin/oc     # Should be ~351 lines
+wc -l bin/oc     # Should be ~363 lines
 ```
 
 ### 5. Commit and push
