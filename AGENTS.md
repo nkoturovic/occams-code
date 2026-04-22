@@ -75,23 +75,22 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-The orchestrator is text-only and cannot perceive non-text content. All images, PDFs, video, and audio go through `@designer`.
+The orchestrator is text-only and cannot perceive non-text content. All images, PDFs, video, and audio must go through `@designer`.
 
 **Flow:**
-1. User provides image/PDF/video/audio → locate file (Glob) → delegate to `@designer` with file path and what the user wants
-2. `@designer` reads the file directly via Read tool (primary for images/PDFs), uses `zai_vision` MCP for video or as fallback
+1. User provides image/PDF/video/audio → locate file (Glob) → delegate to `@designer` with file path and the user's question
+2. `@designer` reads the file and returns text analysis to the orchestrator
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — you cannot perceive them
-- SVG is text (XML) — you CAN Read it. Delegate to `@designer` only for visual appearance questions
-- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to @designer. Do NOT use webfetch for PDFs
-- User pastes image (no file path) → extract to disk (command below) → delegate file path to @designer
+- SVG is text (XML) — you CAN Read it directly. Delegate to `@designer` only for visual appearance questions
+- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@designer`. Do NOT use webfetch for PDFs
+- User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@designer`
 
 **@designer instructions:**
-- **Images and PDFs:** ALWAYS Read first — your model sees content directly. Faster and higher quality than MCP
-- **Video (≤8MB):** Use `zai_vision` MCP → `video_analysis`. Read tool does not support video
+- **Images and PDFs:** ALWAYS Read first — your model sees content directly
+- **Video:** Requires `zai_vision` MCP (opt-in per-project). If available → use `video_analysis`. If unavailable → inform the user they can enable it per-project
 - **Audio:** Not supported — no available tool can process audio. Inform the user
-- Do NOT use `zai_vision` as a substitute for Read on images/PDFs — Read is the primary tool
 - Always return your analysis as text output — the orchestrator depends on your result
 
 **Inline paste extraction:**
