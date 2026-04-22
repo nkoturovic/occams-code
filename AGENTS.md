@@ -74,20 +74,17 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-`@designer` handles all visual tasks — analysis, UI/UX, and implementation. The orchestrator uses `zai_vision` MCP tools to pre-analyze images before delegating, producing better delegation prompts.
+The orchestrator is text-only and cannot perceive images. All visual content goes through `@designer`.
 
-**Visual content flow:**
-1. Encounter image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text summary of what you're dealing with
-2. Build a delegation prompt with: your MCP analysis, what the user wants, and the file path
-3. Delegate to `@designer` — do NOT answer visual questions yourself
-
-**The MCP result is for context only, never your final answer.**
+**Flow:**
+1. User provides image/PDF/video → locate file (Glob) → delegate to `@designer` with file path and what the user wants
+2. `@designer` reads the file directly (multimodal model) and uses `zai_vision` MCP tools for structured analysis
 
 **Orchestrator rules:**
-- Do NOT Read image/PDF/video files yourself — you cannot perceive them. Use MCP tools instead
+- Do NOT Read image/PDF/video files yourself — you cannot perceive them
 - SVG is text (XML) — you CAN Read it. Delegate to `@designer` only for visual appearance questions
-- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → MCP on saved file → delegate. Do NOT use webfetch for PDFs
-- User pastes image (no file path) → extract to disk (command below) → MCP on extracted file → delegate
+- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to @designer. Do NOT use webfetch for PDFs
+- User pastes image (no file path) → extract to disk (command below) → delegate file path to @designer
 
 **@designer instructions:**
 - Read image/PDF files first — your model can see content via the provider's media delivery

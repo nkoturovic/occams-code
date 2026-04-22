@@ -16,8 +16,7 @@
           "*"
         ],
         "mcps": [
-          "websearch",
-          "zai_vision"
+          "websearch"
         ]
       },
       "oracle": {
@@ -85,8 +84,7 @@
           "*"
         ],
         "mcps": [
-          "websearch",
-          "zai_vision"
+          "websearch"
         ]
       },
       "oracle": {
@@ -154,8 +152,7 @@
           "*"
         ],
         "mcps": [
-          "websearch",
-          "zai_vision"
+          "websearch"
         ]
       },
       "oracle": {
