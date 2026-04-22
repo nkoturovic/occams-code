@@ -78,8 +78,8 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 **Visual analysis flow (orchestrator):**
 1. User provides image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text description
-2. Delegate to `@designer` with BOTH the MCP analysis AND the file path — this gives @designer context even if its own Read fails
-3. @designer can then Read the file itself and/or use MCP tools for structured analysis
+2. For simple questions ("what's in this image?", "read the error", "describe this diagram") → answer directly using the MCP result
+3. For implementation tasks ("rebuild this UI", "fix this layout", "generate code from this mockup") → delegate to `@designer` with a **specific prompt** built from the MCP analysis. Include: what you saw, what needs to change, and the file path. Example: `"Fix the card grid overflow. MCP analysis shows the third card extends beyond the container on mobile. Screenshot: /path/to/file.png"`
 
 **For the orchestrator:**
 - Do NOT Read image/PDF/video files yourself — you cannot perceive them
