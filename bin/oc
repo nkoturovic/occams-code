@@ -99,8 +99,19 @@ show_config() {
   fi
   model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
   echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
-  jq -r ".presets[\"$preset\"] | to_entries[] | \"  \\(.key)\\t\\(.value.model)\"" "$CONFIG" \
-    | column -t -s $'\t'
+  if [[ -f "$PROJECT_CONFIG" ]] && jq -e '.agents' "$PROJECT_CONFIG" >/dev/null 2>&1; then
+    jq -r --slurpfile proj "$PROJECT_CONFIG" --arg p "$preset" '
+      .presets[$p] | to_entries | map(
+        .key as $k | .value.model as $default |
+        (($proj[0].agents[$k].model // $default)) as $model |
+        (if $proj[0].agents[$k].model then " ← override" else "" end) as $tag |
+        "\($k)\t\($model)\($tag)"
+      ) | .[]
+    ' "$CONFIG" | column -t -s $'\t'
+  else
+    jq -r ".presets[\"$preset\"] | to_entries[] | \"  \\(.key)\\t\\(.value.model)\"" "$CONFIG" \
+      | column -t -s $'\t'
+  fi
 }
 
 # --- Set preset (--preset flag) ---
