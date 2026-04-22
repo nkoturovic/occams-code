@@ -19,7 +19,7 @@ There are two directions:
 |------|--------------|---------------|-------|
 | Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~363 lines. No model tweaker, no startup health checks |
 | Scripts | `~/.config/opencode/scripts/*.py` | `scripts/*.py` | 4 files: wiki-lint.py, project-init.py, repo-ingest.py, detect-project-state.py |
-| Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 4 files: permissions, preset, remember, wiki |
+| Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 5 files: permissions, preset, remember, wiki, wiki-lint |
 
 ### Files that SYNC with SCRUBBING (live → repo only)
 
