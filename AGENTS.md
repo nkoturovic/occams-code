@@ -76,17 +76,24 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 `@designer` is the visual specialist — route all non-text files there.
 
-**For the orchestrator (text-only):** Before using `Read`, check the extension. If it matches an image (png, jpg, jpeg, gif, webp, svg, bmp, ico, tiff, avif) or PDF → delegate to `@designer`. Do NOT `Read` these types yourself — you cannot perceive them.
+**For the orchestrator:**
+- If you can see a pasted image directly (multimodal model), describe what you see and include that when delegating to `@designer`
+- If you can't perceive the image (text-only), call vision MCP tools first, then delegate with the analysis
+- For file paths to images/PDFs/video: delegate to `@designer` — it has specialized tools
+- For SVG files: Read them yourself (it's XML text). Delegate to `@designer` only for visual appearance questions
+- For image/PDF URLs: `bash -c 'curl -sL "URL" -o /tmp/file.ext'`, then delegate the saved path. Do NOT use webfetch for PDFs (it garbles binary content)
 
-**For @designer:** Use `zai_vision` MCP tools for all image/PDF analysis. The `Read` tool cannot deliver image content to models (known platform limitation). Call MCP tools directly with the file path — the MCP server reads files from disk itself. SVG is XML text — you CAN read it for structure, but delegate to @designer for visual questions.
+**For @designer:**
+- Try the Read tool first on image/PDF paths — you can see content via the provider's media delivery
+- Use vision MCP tools for structured analysis: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
 
 | Situation | Action |
 |-----------|--------|
 | Image/PDF on disk | Delegate file path to `@designer` |
 | User asks to "analyze" / "describe" / "look at" a visual | Delegate to `@designer` |
-| URL to image/PDF | `webfetch` with `save_binary=true` → delegate saved path |
+| URL to image/PDF | `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate saved path |
 | Inline pasted image/PDF (no file on disk) | Extract via command below → delegate path to @designer |
-| Video/audio | If `zai_vision` MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
+| Video/audio | If vision MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
 
 Extraction fails → ask user to save to disk.
 

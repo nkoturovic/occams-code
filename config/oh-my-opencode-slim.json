@@ -16,7 +16,8 @@
           "*"
         ],
         "mcps": [
-          "websearch"
+          "websearch",
+          "zai_vision"
         ]
       },
       "oracle": {
@@ -84,7 +85,8 @@
           "*"
         ],
         "mcps": [
-          "websearch"
+          "websearch",
+          "zai_vision"
         ]
       },
       "oracle": {
@@ -152,7 +154,8 @@
           "*"
         ],
         "mcps": [
-          "websearch"
+          "websearch",
+          "zai_vision"
         ]
       },
       "oracle": {
@@ -232,8 +235,8 @@
       ],
       "designer": [
         "openrouter/google/gemini-3.1-pro-preview",
-        "openrouter/google/gemini-3-flash-preview",
         "openrouter/z-ai/glm-5v-turbo",
+        "openrouter/google/gemini-3-flash-preview",
         "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],
