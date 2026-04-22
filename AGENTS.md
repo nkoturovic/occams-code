@@ -78,8 +78,10 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 **Visual content flow:**
 1. Encounter image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text summary of what you're dealing with
-2. ALWAYS delegate to `@designer` with a **specific prompt** built from the MCP summary. Include: your MCP analysis, what the user wants, and the file path. The MCP pre-analysis lets you ask @designer the right questions
-3. The ONLY exception: a trivially answerable factual question ("is there a button?", "what color?") where the MCP result already gives a complete answer — in that case, answer directly and skip delegation. When in doubt, delegate.
+2. Build a delegation prompt with: your MCP analysis, what the user wants, and the file path
+3. Delegate to `@designer` — do NOT answer visual questions yourself
+
+**The MCP result is for context only, never your final answer.**
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video files yourself — you cannot perceive them. Use MCP tools instead
