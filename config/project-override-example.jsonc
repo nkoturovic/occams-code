@@ -1,0 +1,28 @@
+// Example per-project config override
+// Place at: <project-root>/.opencode/oh-my-opencode-slim.jsonc
+// The plugin deep-merges this with the global config.
+// Only listed fields change — everything else inherits from the preset.
+
+{
+  // Select which preset to use (overrides global default)
+  "preset": "balanced",
+
+  // Override specific agent settings
+  "agents": {
+    // Use a cheaper designer model for this project
+    "designer": {
+      "model": "openrouter/google/gemini-3-flash-preview"
+    }
+
+    // Other examples (uncomment as needed):
+
+    // "explorer": {
+    //   "model": "openrouter/deepseek/deepseek-v3.2",
+    //   "temperature": 0.2
+    // },
+
+    // "oracle": {
+    //   "model": "openrouter/anthropic/claude-sonnet-4-6"
+    // }
+  }
+}
