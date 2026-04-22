@@ -14,11 +14,11 @@
 **The simplest solution that fully solves the problem is the correct solution.**
 Fewest changes. Fewest files. Fewest abstractions. If two approaches work equally, the shorter wins.
 
-### Ask Questions
+### Plan & Ask Questions
+- Present plans to the user for review before executing — good plans make parallel execution safe; good plans produce good TODOs.
 - Any uncertainty or ambiguity → stop and ask the user before proceeding.
 - Better to ask too many questions upfront than to execute the wrong plan in parallel.
 - When presenting options, state your recommendation and why.
-- Present plans to the user for review before executing — good plans make parallel execution safe; bad plans make it chaotic.
 
 ### Divide and Conquer
 - Break tasks into independent subtasks that can execute in parallel via agents.
