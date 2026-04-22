@@ -78,7 +78,7 @@ The orchestrator is text-only and cannot perceive images. All visual content goe
 
 **Flow:**
 1. User provides image/PDF/video → locate file (Glob) → delegate to `@designer` with file path and what the user wants
-2. `@designer` reads the file directly (multimodal model) and uses `zai_vision` MCP tools for structured analysis
+2. `@designer` reads the file directly via Read tool (primary), uses `zai_vision` MCP only for video or fallback
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video files yourself — you cannot perceive them
@@ -87,8 +87,9 @@ The orchestrator is text-only and cannot perceive images. All visual content goe
 - User pastes image (no file path) → extract to disk (command below) → delegate file path to @designer
 
 **@designer instructions:**
-- Read image/PDF files first — your model can see content via the provider's media delivery
-- Use `zai_vision` MCP tools for structured tasks: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
+- **ALWAYS Read image/PDF files first** — your model sees content directly via provider media delivery. This is faster and higher quality than MCP
+- Use `zai_vision` MCP tools ONLY for: video files (`video_analysis` ≤8MB), or as fallback when Read doesn't work
+- Do NOT use `zai_vision` as a substitute for direct Read — Read is the primary tool
 - Always return your analysis as text output — the orchestrator depends on your result
 
 **Inline paste extraction:**
