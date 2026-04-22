@@ -74,25 +74,25 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-`@designer` is the visual specialist. The orchestrator uses vision MCP tools to analyze images before delegating, so @designer gets rich context.
+`@designer` handles all visual tasks — analysis, UI/UX, and implementation. The orchestrator uses `zai_vision` MCP tools to pre-analyze images before delegating, producing better delegation prompts.
 
-**Visual analysis flow (orchestrator):**
-1. User provides image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text description
-2. For quick factual questions ("is there a button?", "what color is the header?") → answer directly using the MCP result
-3. For everything else — detailed analysis, descriptions, implementation, "explain what's in this image" → delegate to `@designer` with a **specific prompt** built from the MCP analysis. Include: what you saw, what needs to happen, and the file path. Example: `"Fix the card grid overflow. MCP analysis shows the third card extends beyond the container on mobile. Screenshot: /path/to/file.png"`
+**Visual content flow:**
+1. Encounter image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to understand what you're dealing with
+2. Quick factual question ("is there a button?", "what color?") → answer directly from MCP result
+3. Everything else → delegate to `@designer` with a **specific prompt** built from the MCP analysis. Include what you saw, what the user wants, and the file path
 
-**For the orchestrator:**
-- Do NOT Read image/PDF/video files yourself — you cannot perceive them
-- ALWAYS call a vision MCP tool on the file first, then include that analysis when delegating
-- For SVG files: Read them yourself (it's XML text). Delegate to `@designer` only for visual appearance questions
-- For image/PDF URLs: `bash -c 'curl -sL "URL" -o /tmp/file.ext'`, then MCP on saved file, then delegate. Do NOT use webfetch for PDFs (it garbles binary content)
+**Orchestrator rules:**
+- Do NOT Read image/PDF/video files yourself — you cannot perceive them. Use MCP tools instead
+- SVG is text (XML) — you CAN Read it. Delegate to `@designer` only for visual appearance questions
+- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → MCP on saved file → delegate. Do NOT use webfetch for PDFs
+- User pastes image (no file path) → extract to disk (command below) → MCP on extracted file → delegate
 
-**For @designer:**
-- Read image/PDF files first — you can see content via the provider's media delivery
-- Use vision MCP tools for structured tasks: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
+**@designer instructions:**
+- Read image/PDF files first — your model can see content via the provider's media delivery
+- Use `zai_vision` MCP tools for structured tasks: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
 - Always return your analysis as text output — the orchestrator depends on your result
 
-**Inline paste extraction** (run this, then use MCP on the output path, then delegate to @designer):
+**Inline paste extraction:**
 ```bash
 MIME=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.mime') FROM part WHERE json_extract(data,'$.mime') LIKE 'image%' OR json_extract(data,'$.mime')='application/pdf' ORDER BY id DESC LIMIT 1") && EXT=$(echo "$MIME" | sed 's|image/||; s|application/pdf|pdf|') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.url') FROM part WHERE json_extract(data,'$.mime')='$MIME' ORDER BY id DESC LIMIT 1" | sed 's/^data:[^;]*;base64,//' | base64 -d > "/tmp/opencode-inline.$EXT" && echo "/tmp/opencode-inline.$EXT"
 ```
