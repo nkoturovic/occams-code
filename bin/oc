@@ -137,8 +137,8 @@ set_preset() {
 
 # --- First-run: create project config if missing ---
 first_run_setup() {
-  is_interactive || return
-  [[ -f "$PROJECT_CONFIG" ]] && return
+  is_interactive || return 0
+  [[ -f "$PROJECT_CONFIG" ]] && return 0
 
   local current_preset presets
   current_preset=$(jq -r '.preset' "$CONFIG")
@@ -179,8 +179,8 @@ ask_session_mode() {
   for arg in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
     case "$arg" in -c|--continue|--session|--fork) return ;; esac
   done
-  is_interactive || return
-  has_sessions || return
+  is_interactive || return 0
+  has_sessions || return 0
   local choice
   read -r -p "$(echo -e "${BOLD}Session (1=New, 2=Continue) [1]:${RESET} ")" choice
   [[ "${choice:-1}" == "1" || "$choice" == "n" ]] || OPENCODE_ARGS+=("-c")
@@ -322,7 +322,7 @@ PY
   fi
 
   # First-run setup (before show_config, so config reflects the final state)
-  [[ "$QUICK" == false ]] && first_run_setup
+  [[ "$QUICK" == false ]] && first_run_setup || true
 
   # Banner + config (interactive, non-quick only)
   if [[ "$show_banner" == true ]]; then
@@ -340,7 +340,7 @@ PY
     for a in "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}"; do
       case "$a" in -c|--continue|--session|--fork) continuing=true ;; esac
     done
-    [[ "$continuing" == false ]] && ask_session_mode
+    [[ "$continuing" == false ]] && ask_session_mode || true
   fi
 
   # Launch — strip -c if no sessions exist (prevents black screen)
