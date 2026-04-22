@@ -56,7 +56,7 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 | **@fixer** | Bounded implementation, test writing | 2x faster edits |
 | **@librarian** | Library docs, API references | 10x better at current APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
-| **@designer** | UI/UX, responsive layouts, visual polish | 10x better UI/UX |
+| **@designer** | Visual analysis (images, PDFs, video), UI/UX, layouts | 10x better UI/UX |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
 **Don't delegate when:**
@@ -67,6 +67,7 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 - You're debugging a single issue through a call chain
 
 **Do delegate when:**
+- Visual content (images, PDFs, video) → @designer (architecturally enforced — orchestrator cannot perceive)
 - Multiple independent files need simultaneous changes → parallel @fixer
 - Codebase exploration before implementation → @explorer
 - Library API behavior uncertain → @librarian
@@ -74,7 +75,7 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-The orchestrator is text-only and cannot perceive images. All non-text content goes through `@designer`.
+The orchestrator is text-only and cannot perceive non-text content. All images, PDFs, video, and audio go through `@designer`.
 
 **Flow:**
 1. User provides image/PDF/video/audio → locate file (Glob) → delegate to `@designer` with file path and what the user wants
