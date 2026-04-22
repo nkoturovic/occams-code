@@ -75,15 +75,6 @@ done
 # --- Helpers ---
 is_interactive() { [[ -t 0 && -t 1 ]]; }
 
-ask_yes_no() {
-  local question="$1" default="${2:-y}" prompt answer
-  is_interactive || { [[ "$default" == "y" ]] && return 0 || return 1; }
-  [[ "$default" == "y" ]] && prompt="[Y/n]" || prompt="[y/N]"
-  read -r -p "$(echo -e "${BOLD}${question}${RESET} ${prompt} ")" answer
-  answer="${answer,,}"; [[ -z "$answer" ]] && answer="$default"
-  [[ "$answer" == "y" || "$answer" == "yes" ]]
-}
-
 show_config() {
   local preset model_count source="global"
   if [[ -f "$PROJECT_CONFIG" ]]; then
