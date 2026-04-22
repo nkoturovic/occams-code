@@ -74,33 +74,29 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-`@designer` is the visual specialist — route all non-text files there.
+`@designer` is the visual specialist. The orchestrator uses vision MCP tools to analyze images before delegating, so @designer gets rich context.
+
+**Visual analysis flow (orchestrator):**
+1. User provides image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text description
+2. Delegate to `@designer` with BOTH the MCP analysis AND the file path — this gives @designer context even if its own Read fails
+3. @designer can then Read the file itself and/or use MCP tools for structured analysis
 
 **For the orchestrator:**
-- If you can see a pasted image directly (multimodal model), describe what you see and include that when delegating to `@designer`
-- If you can't perceive the image (text-only), call vision MCP tools first, then delegate with the analysis
-- For file paths to images/PDFs/video: delegate to `@designer` — it has specialized tools
+- Do NOT Read image/PDF/video files yourself — you cannot perceive them
+- ALWAYS call a vision MCP tool on the file first, then include that analysis when delegating
 - For SVG files: Read them yourself (it's XML text). Delegate to `@designer` only for visual appearance questions
-- For image/PDF URLs: `bash -c 'curl -sL "URL" -o /tmp/file.ext'`, then delegate the saved path. Do NOT use webfetch for PDFs (it garbles binary content)
+- For image/PDF URLs: `bash -c 'curl -sL "URL" -o /tmp/file.ext'`, then MCP on saved file, then delegate. Do NOT use webfetch for PDFs (it garbles binary content)
 
 **For @designer:**
-- Try the Read tool first on image/PDF paths — you can see content via the provider's media delivery
-- Use vision MCP tools for structured analysis: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
+- Read image/PDF files first — you can see content via the provider's media delivery
+- Use vision MCP tools for structured tasks: OCR (`extract_text_from_screenshot`), UI-to-code (`ui_to_artifact`), error diagnosis (`diagnose_error_screenshot`), diagram parsing (`understand_technical_diagram`), UI comparison (`ui_diff_check`), video (`video_analysis` ≤8MB)
+- Always return your analysis as text output — the orchestrator depends on your result
 
-| Situation | Action |
-|-----------|--------|
-| Image/PDF on disk | Delegate file path to `@designer` |
-| User asks to "analyze" / "describe" / "look at" a visual | Delegate to `@designer` |
-| URL to image/PDF | `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate saved path |
-| Inline pasted image/PDF (no file on disk) | Extract via command below → delegate path to @designer |
-| Video/audio | If vision MCP is configured, use `video_analysis`. Otherwise suggest external tools. |
-
-Extraction fails → ask user to save to disk.
-
-**Inline paste extraction** (run this, then delegate the output path to @designer):
+**Inline paste extraction** (run this, then use MCP on the output path, then delegate to @designer):
 ```bash
 MIME=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.mime') FROM part WHERE json_extract(data,'$.mime') LIKE 'image%' OR json_extract(data,'$.mime')='application/pdf' ORDER BY id DESC LIMIT 1") && EXT=$(echo "$MIME" | sed 's|image/||; s|application/pdf|pdf|') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data,'$.url') FROM part WHERE json_extract(data,'$.mime')='$MIME' ORDER BY id DESC LIMIT 1" | sed 's/^data:[^;]*;base64,//' | base64 -d > "/tmp/opencode-inline.$EXT" && echo "/tmp/opencode-inline.$EXT"
 ```
+Extraction fails → ask user to save to disk.
 
 ## Current Config
 
