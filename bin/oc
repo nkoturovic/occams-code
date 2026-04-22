@@ -139,41 +139,33 @@ first_run_setup() {
   is_interactive || return
   [[ -f "$PROJECT_CONFIG" ]] && return
 
-  local current_preset
+  local current_preset presets
   current_preset=$(jq -r '.preset' "$CONFIG")
+  presets=$(jq -r '.presets | keys[]' "$CONFIG")
 
-  if ask_yes_no "No project config found. Use '$current_preset' for this project?" "y"; then
-    mkdir -p .opencode
-    printf '{"preset":"%s"}\n' "$current_preset" > "$PROJECT_CONFIG"
-    echo -e "${GREEN}Created $PROJECT_CONFIG${RESET}"
-    return
-  fi
+  local i=1 default_num=1 total
+  total=$(echo "$presets" | wc -l)
+  echo -e "${BOLD}No project config. Select preset:${RESET}"
+  while IFS= read -r p; do
+    if [[ "$p" == "$current_preset" ]]; then
+      echo -e "  ${GREEN}$i) $p${RESET} ${DIM}(default)${RESET}"
+      default_num=$i
+    else
+      echo "  $i) $p"
+    fi
+    ((i++))
+  done <<< "$presets"
 
-  # Pick a preset (fzf if available, otherwise plain prompt)
   local selected="$current_preset"
-  if command -v fzf &>/dev/null; then
-    local preview_cmd="jq -r '.presets[\"{}\"] | to_entries[] | \"  \" + .key + \": \" + .value.model' $CONFIG 2>/dev/null"
-    selected=$(jq -r '.presets | keys[]' "$CONFIG" \
-      | fzf --height=~15 --layout=reverse --border --border-label=" Presets " \
-             --header="Enter=select  Esc=cancel" \
-             --preview="$preview_cmd" --preview-window=right:40%:wrap \
-             --pointer="▶" --prompt="Preset: " \
-      || echo "$current_preset")
-    [[ -z "$selected" ]] && selected="$current_preset"
-  else
-    echo -e "${BOLD}Available presets:${RESET}"
-    jq -r '.presets | keys[]' "$CONFIG" | sed 's/^/  /'
-    local valid_presets
-    valid_presets=$(jq -r '.presets | keys[]' "$CONFIG")
-    while true; do
-      read -r -p "$(echo -e "${BOLD}Preset:${RESET} ")" selected
-      selected="${selected:-$current_preset}"
-      if echo "$valid_presets" | grep -qx "$selected"; then
-        break
-      fi
-      echo -e "${YELLOW}'$selected' not found. Available: $(echo "$valid_presets" | tr '\n' ' ')${RESET}"
-    done
-  fi
+  while true; do
+    read -r -p "$(echo -e "${BOLD}Select [${default_num}]:${RESET} ")" input
+    input="${input:-$default_num}"
+    if [[ "$input" =~ ^[0-9]+$ ]] && [ "$input" -ge 1 ] && [ "$input" -le "$total" ]; then
+      selected=$(echo "$presets" | sed -n "${input}p")
+      break
+    fi
+    echo -e "${YELLOW}Enter 1-${total}${RESET}"
+  done
 
   mkdir -p .opencode
   printf '{"preset":"%s"}\n' "$selected" > "$PROJECT_CONFIG"
