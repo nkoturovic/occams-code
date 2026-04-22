@@ -74,22 +74,23 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-The orchestrator is text-only and cannot perceive images. All visual content goes through `@designer`.
+The orchestrator is text-only and cannot perceive images. All non-text content goes through `@designer`.
 
 **Flow:**
-1. User provides image/PDF/video → locate file (Glob) → delegate to `@designer` with file path and what the user wants
-2. `@designer` reads the file directly via Read tool (primary), uses `zai_vision` MCP only for video or fallback
+1. User provides image/PDF/video/audio → locate file (Glob) → delegate to `@designer` with file path and what the user wants
+2. `@designer` reads the file directly via Read tool (primary for images/PDFs), uses `zai_vision` MCP for video or as fallback
 
 **Orchestrator rules:**
-- Do NOT Read image/PDF/video files yourself — you cannot perceive them
+- Do NOT Read image/PDF/video/audio files yourself — you cannot perceive them
 - SVG is text (XML) — you CAN Read it. Delegate to `@designer` only for visual appearance questions
 - Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to @designer. Do NOT use webfetch for PDFs
 - User pastes image (no file path) → extract to disk (command below) → delegate file path to @designer
 
 **@designer instructions:**
-- **ALWAYS Read image/PDF files first** — your model sees content directly via provider media delivery. This is faster and higher quality than MCP
-- Use `zai_vision` MCP tools ONLY for: video files (`video_analysis` ≤8MB), or as fallback when Read doesn't work
-- Do NOT use `zai_vision` as a substitute for direct Read — Read is the primary tool
+- **Images and PDFs:** ALWAYS Read first — your model sees content directly. Faster and higher quality than MCP
+- **Video (≤8MB):** Use `zai_vision` MCP → `video_analysis`. Read tool does not support video
+- **Audio:** Not supported — no available tool can process audio. Inform the user
+- Do NOT use `zai_vision` as a substitute for Read on images/PDFs — Read is the primary tool
 - Always return your analysis as text output — the orchestrator depends on your result
 
 **Inline paste extraction:**
