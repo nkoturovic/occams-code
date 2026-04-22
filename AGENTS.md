@@ -77,9 +77,9 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 `@designer` handles all visual tasks — analysis, UI/UX, and implementation. The orchestrator uses `zai_vision` MCP tools to pre-analyze images before delegating, producing better delegation prompts.
 
 **Visual content flow:**
-1. Encounter image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to understand what you're dealing with
+1. Encounter image/PDF/video → call `zai_vision` MCP tool first (e.g., `zai_vision_analyze_image`) to get a text summary of what you're dealing with
 2. Quick factual question ("is there a button?", "what color?") → answer directly from MCP result
-3. Everything else → delegate to `@designer` with a **specific prompt** built from the MCP analysis. Include what you saw, what the user wants, and the file path
+3. Everything else (descriptions, analysis, implementation) → delegate to `@designer` with a **specific prompt** built from the MCP summary. Include: your MCP analysis, what the user wants, and the file path. The MCP pre-analysis lets you ask @designer the right questions
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video files yourself — you cannot perceive them. Use MCP tools instead
