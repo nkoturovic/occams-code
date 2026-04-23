@@ -2,7 +2,7 @@
   "preset": "custom",
   "disabled_agents": [],
   "todoContinuation": {
-    "maxContinuations": 50,
+    "maxContinuations": 15,
     "cooldownMs": 5000,
     "autoEnable": false,
     "autoEnableThreshold": 4

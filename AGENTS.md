@@ -92,11 +92,17 @@ The orchestrator is text-only. All images, PDFs, and video go through `@observer
 - Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 - User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@observer`
 
+## Anti-Loop Rules (All Agents)
+
+These rules apply to **every agent** including the orchestrator. The Kimi API can cause models to ignore soft stop requests and loop indefinitely.
+
+- **Anti-loop rule:** If you find yourself reading the same file more than twice without making progress, STOP and escalate to the orchestrator or ask the user for direction.
+- **Anti-loop rule:** Do not repeat the same tool call with identical arguments. If the result didn't help, try a different approach or stop.
+- **Anti-loop rule:** If you have made 10+ consecutive turns without completing the task, STOP and ask the user for direction.
+- **Anti-loop rule:** If an edit fails twice, STOP and report the failure. Do not retry a third time.
+
 **@fixer instructions:**
 - You are a bounded implementation specialist. Make the change, verify it, then STOP.
-- **Anti-loop rule:** If an edit fails twice, STOP and report the failure to the orchestrator. Do not retry a third time.
-- **Anti-loop rule:** If you find yourself reading the same file more than twice without making progress, STOP and escalate.
-- **Anti-loop rule:** Do not repeat the same tool call with identical arguments. If the result didn't help, try a different approach or stop.
 - Return concise confirmation: what changed, in which file, at what line.
 
 **@observer instructions:**
