@@ -1,13 +1,13 @@
 ---
-summary: "Non-text content handling: images, PDFs via @designer MCP tools. Per-preset models, tested delivery paths, future re-evaluation plan."
+summary: "Non-text content routing: @observer for fact extraction, @designer for creative UI/UX work. Native Read + zai_vision MCP fallback."
 type: concept
-tags: [vision, designer, multimodal, mcp, zai, gemini]
+tags: [vision, observer, designer, multimodal, mcp, zai, gemini, kimi]
 sources: []
 related:
   - agent-roles-and-models
   - occams-code-setup
 created: 2026-04-21
-updated: 2026-04-22
+updated: 2026-04-23
 confidence: high
 ---
 
@@ -15,47 +15,75 @@ confidence: high
 
 ## Content type support
 
-| Content | Orchestrator (text-only) | @designer via MCP tools | Read tool |
-|---------|-------------------------|----------------------|-----------|
-| Images (png, jpg, gif, webp, svg, bmp, ico, tiff, avif) | ❌ | ✅ MCP reads from disk | ❌ Returns text error (`// TODO: handle images`) |
-| PDFs | ❌ | ✅ MCP reads from disk | ❌ Same as images |
-| Video | ❌ | ⚠️ `video_analysis` tool | ❌ |
-| Audio | ❌ | ❌ No MCP tool available | ❌ |
+| Content | Read tool | Vision MCP tools | Webfetch |
+|---------|-----------|-----------------|----------|
+| Images | ✅ base64 attachment (model-dependent delivery) | ✅ All image tools | ✅ Returns attachment |
+| PDF | ✅ base64 attachment (model-dependent delivery) | ✅ image_analysis, extract_text | ❌ Garbles binary |
+| SVG | ✅ Text (XML) | ✅ image_analysis for visual | ✅ Returns text |
+| Video | ❌ Binary error | ✅ video_analysis ≤8MB | ❌ |
+| Audio | ❌ Binary error | ❌ No tool | ❌ |
 
-Same routing applies to all: **file on disk → delegate path to @designer.** Do NOT attempt to Read non-text files yourself.
+**Routing:** Orchestrator is text-only. Images, PDFs, video → `@observer` (fact extraction). Design work → `@designer` (creative, works from observer's text output).
 
-## Architecture reality (tested 2026-04-22)
+**@observer tool priority:**
+- Images/PDFs → Read first (native multimodal). `zai_vision` MCP as fallback.
+- Video → `zai_vision` MCP → `video_analysis` (opt-in per-project, not enabled by default)
+- Audio → not supported (no tool available)
 
-**The Read tool cannot deliver images to models.** The Go server's `view.go` has `// TODO: handle images` — it returns a text error for image files. Images only flow in User messages (inline paste), never in tool results (`ToolResult.Content` is `string` only).
+## Architecture
 
-This means @designer's native multimodal capability is unused for file-on-disk scenarios. All vision analysis goes through `zai_vision` MCP tools, which send images to Z.ai's API (glm-4.6v with thinking) independently.
+OpenCode is TypeScript. The Read tool (`read.ts`) base64-encodes images and returns them as attachments. **Whether the model actually receives them depends on provider integration.**
 
-**Implication:** @designer does not need to be a multimodal model when using MCP tools. Any model that can call MCP tools and reason about text results works. However, keeping a multimodal model is recommended for future-proofing — if OpenCode implements image Read support, native multimodal will be faster than MCP roundtrips.
+The `@ai-sdk/openai-compatible` provider (used by OpenRouter) strips media from tool results and re-injects them as synthetic user messages. This re-injection is model-dependent:
+- **Gemini models**: ✅ process re-injected media correctly
+- **GLM-5V-Turbo**: ❌ returns "Cannot read image" error — model-specific failure
 
-## Delivery paths (tested 2026-04-22)
+**User message images are NOT affected** by `supportsMediaInToolResults`. Inline-pasted images flow directly to multimodal models without the tool-result stripping issue.
+
+## Delivery paths
 
 | Method | Works? | Notes |
 |--------|--------|-------|
-| File on disk → delegate to @designer | ✅ | Orchestrator routing validated. @designer analyzes via `zai_vision` MCP tools. |
-| URL to image/PDF → webfetch → delegate | ✅ | `webfetch save_binary=true` downloads to disk → delegate path → MCP tool |
-| Inline paste → DB extract → delegate | ✅ (extraction) | AGENTS.md has extraction commands for images and PDFs. MCP tool reads extracted file. |
-| Inline paste → forward to subagent | ❌ | Platform limitation — binary not forwarded |
-| Video/audio file on disk | ⚠️ | `video_analysis` MCP tool for video. No audio tool available. |
-| zai_vision MCP tools | ✅ | Connectivity confirmed. Timeout fixed (300000ms). 1 tool tested with data (`image_analysis`). |
+| File on disk → delegate to @observer | ✅ | Read tool delivers base64. Kimi K2.6 / Gemini process it. |
+| URL → `curl` to disk → delegate | ✅ | Use `curl -sL "URL" -o /tmp/file.ext"`, not webfetch for binary. |
+| Inline paste → DB extract → delegate | ✅ | AGENTS.md has extraction commands. |
+| Inline paste → multimodal orchestrator | ✅ | Works with Gemini. GLM-5V-Turbo fails. |
+| Read tool → text-only model | ❌ | Model can't process visual content. |
+| Video/audio → MCP | ⚠️ | `video_analysis` for video ≤8MB. No audio tool. |
 
-## Per-preset designer models
+## Per-preset models
 
-| Preset | Designer model | Multimodal? | Vision via |
-|--------|---------------|-------------|------------|
-| `cheap` | `openrouter/google/gemini-3-flash-preview` | Yes | MCP tools (native multimodal when Read supports images) |
-| `balanced` | `openrouter/google/gemini-3-flash-preview` | Yes | MCP tools (native multimodal when Read supports images) |
-| `premium` | `openrouter/google/gemini-3.1-pro-preview` | Yes | MCP tools (native multimodal when Read supports images) |
+| Preset | @observer | @designer |
+|--------|-----------|-----------|
+| `cheap` | `gemini-3-flash-preview` | `gemini-3-flash-preview` |
+| `balanced` | `kimi-k2.6` | `gemini-3-flash-preview` |
+| `premium` | `kimi-k2.6` | `kimi-k2.6` |
 
-Model choice doesn't affect vision capability today — MCP tools handle all image analysis independently. A multimodal model is recommended for future-proofing.
+Observer: temp 0.1 (deterministic). Designer: temp 0.5 (creative). Both multimodal. Observer uses Read tool first, `zai_vision` MCP as fallback.
 
-## Z.ai Vision MCP (opt-in)
+## Inline paste extraction (from OpenCode DB)
 
-8 tools, needs API key (`opencode.json` → `mcp.zai_vision`):
+When a user pastes an image/PDF inline (no file on disk), extract from the session database:
+
+**Image:**
+```bash
+mime=$(sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.mime') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's|image/||') && sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') LIKE 'image%' ORDER BY id DESC LIMIT 1" | sed 's/^data:image\/[^;]*;base64,//' | base64 -d > /tmp/opencode-inline.$mime && echo "/tmp/opencode-inline.$mime"
+```
+
+**PDF:**
+```bash
+sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') FROM part WHERE json_extract(data, '$.mime') = 'application/pdf' ORDER BY id DESC LIMIT 1" | sed 's/^data:application\/pdf;base64,//' | base64 -d > /tmp/opencode-inline.pdf && echo "/tmp/opencode-inline.pdf"
+```
+
+Caveat: `ORDER BY id DESC LIMIT 1` may extract from a different session if multiple sessions run concurrently.
+
+## Z.ai Vision MCP
+
+**Status varies by config:**
+- **Live (all presets):** `enabled: true` in opencode.json, assigned to observer mcps (all presets). Observer uses Read for images/PDFs; MCP for video and Read fallback. Designer retains MCP on premium/custom for direct delegation.
+- **Repo (all presets):** `enabled: false` in opencode.json. Opt-in per-project: set `enabled: true` in opencode.json AND add `"zai_vision"` to observer's `mcps` array.
+
+8 tools, needs API key:
 
 | Tool | Purpose | Tested? |
 |------|---------|---------|
@@ -65,31 +93,18 @@ Model choice doesn't affect vision capability today — MCP tools handle all ima
 | `understand_technical_diagram` | Architecture, flow, UML, ER diagrams | No |
 | `analyze_data_visualization` | Charts and dashboards → insights | No |
 | `ui_diff_check` | Compare two UI screenshots for drift | No |
-| `image_analysis` | General-purpose image understanding | Reachable, no image data tested |
+| `image_analysis` | General-purpose image understanding | No |
 | `video_analysis` | Video inspection (≤8 MB, MP4/MOV/M4V) | No |
 
-MCP connectivity confirmed (tool invocation succeeded). Output quality unvalidated.
+MCP connectivity confirmed. Timeout: 300000ms (5min).
 
 ## Known limitations
 
-- OpenCode loads AGENTS.md into ALL agents (not just orchestrator). Previously, @designer followed orchestrator rules ("NEVER Read images") and bypassed native multimodal in favor of MCP tools. **Fixed:** AGENTS.md now scopes instructions per agent role.
-- zai_vision MCP had timeout issues at default 30s. Vision analysis via Z.ai API (glm-4.6v with thinking) can take >30s. **Fixed:** added `"timeout": 300000` (5min) to MCP config in opencode.json.
-- Video/audio cannot be ingested via Read tool — needs MCP or external tools.
-- DB extraction uses `ORDER BY id DESC LIMIT 1` — in concurrent sessions, may extract from wrong session. Low risk in typical single-session use.
-
-## ⚠️ FUTURE RE-EVALUATION — HIGH IMPORTANCE
-
-**When OpenCode's Read tool adds image delivery support** (the Go source has `// TODO: handle images` in `view.go`), the architecture should be re-evaluated:
-
-1. **Switch @designer to a multimodal model** — native multimodal is faster (no MCP roundtrip) and cheaper (no separate API call). All shipped presets already have multimodal designers (Gemini).
-2. **Update AGENTS.md** — change @designer instructions from "use MCP tools" back to "use Read tool first, MCP for structured analysis only."
-3. **Keep MCP tools as enhancement** — for structured tasks (OCR, UI-to-code, diagram parsing) where specialized prompts outperform general multimodal.
-4. **If using a text-only designer model (e.g., for cost savings), switch back to multimodal.**
-
-**Why this matters:** MCP tools add latency (~30s+ per call even with timeout fix) and depend on Z.ai API availability. Native multimodal via Read would be near-instant and work offline (for local models). The entire MCP-first architecture is a workaround for the Read tool's incomplete implementation.
-
-**Detection:** Check the OpenCode changelog or source for the `// TODO: handle images` being resolved. Also test: delegate an image path to @designer — if Read returns visual content (not a text error), the TODO is implemented.
+- Video/audio cannot be ingested via Read tool — video needs `video_analysis` MCP, audio has no tool
+- `webfetch` garbles PDFs and other binary — use `curl` instead
+- DB extraction `ORDER BY id DESC LIMIT 1` may extract from wrong session if concurrent (low risk)
+- OpenCode loads AGENTS.md into ALL agents. Per-role scoping in the "Non-text Content" section ensures observer reads, designer creates.
 
 ## Related
-- [[agent-roles-and-models]] — Designer agent role and model selection
+- [[agent-roles-and-models]] — Observer + designer agent roles and model selection
 - [[occams-code-setup]] — Two-config system, per-project overrides

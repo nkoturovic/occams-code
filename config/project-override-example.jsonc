@@ -26,7 +26,7 @@
     // }
 
     // Enable video analysis (also set zai_vision enabled: true in opencode.json):
-    // "designer": {
+    // "observer": {
     //   "model": "openrouter/moonshotai/kimi-k2.6",
     //   "mcps": ["websearch", "context7", "zai_vision"]
     // }

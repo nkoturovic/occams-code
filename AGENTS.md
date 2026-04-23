@@ -56,7 +56,8 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 | **@fixer** | Bounded implementation, test writing | 2x faster edits |
 | **@librarian** | Library docs, API references | 10x better at current APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
-| **@designer** | Visual analysis (images, PDFs, video), UI/UX, layouts | 10x better UI/UX |
+| **@observer** | Read images/PDFs/video — extract facts | Deterministic visual analysis |
+| **@designer** | UI/UX, layouts, CSS, visual creation | 10x better UI/UX |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
 **Don't delegate when:**
@@ -67,7 +68,8 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 - You're debugging a single issue through a call chain
 
 **Do delegate when:**
-- Visual content (images, PDFs, video) → @designer (architecturally enforced — orchestrator cannot perceive)
+- Visual content (images, PDFs, video) → @observer (extracts facts as text)
+- UI/UX creation, CSS, layouts → @designer (often chains after @observer for mockup→code)
 - Multiple independent files need simultaneous changes → parallel @fixer
 - Codebase exploration before implementation → @explorer
 - Library API behavior uncertain → @librarian
@@ -75,23 +77,29 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ## Non-text Content
 
-The orchestrator is text-only and cannot perceive non-text content. All images, PDFs, video, and audio must go through `@designer`.
+The orchestrator is text-only. All images, PDFs, and video go through `@observer`. `@designer` handles creative UI/UX work.
 
 **Flow:**
-1. User provides image/PDF/video/audio → locate file (Glob) → delegate to `@designer` with file path and the user's question
-2. `@designer` reads the file and returns text analysis to the orchestrator
+1. User provides image/PDF/video → locate file (Glob) → delegate to `@observer` with file path
+2. `@observer` reads the file and returns text analysis to the orchestrator
+3. If design/creative work follows → delegate to `@designer` with observer's text output
 
 **Orchestrator rules:**
-- Do NOT Read image/PDF/video/audio files yourself — you cannot perceive them
-- SVG is text (XML) — you CAN Read it directly. Delegate to `@designer` only for visual appearance questions
-- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@designer`. Do NOT use webfetch for PDFs
-- User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@designer`
+- Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
+- SVG is text (XML) — you CAN Read it directly
+- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
+- User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@observer`
+
+**@observer instructions:**
+- Your model natively supports text, image, and video input. ALWAYS try Read first for any file.
+- If Read fails (binary error, empty result), fall back to `zai_vision` MCP tools.
+- Return factual descriptions: components, text content, layout, colors, structure. No design opinions.
+- Audio: not supported — inform the user
 
 **@designer instructions:**
-- **Images and PDFs:** ALWAYS Read first — your model sees content directly
-- **Video:** Requires `zai_vision` MCP (opt-in per-project). If available → use `video_analysis`. If unavailable → inform the user they can enable it per-project
-- **Audio:** Not supported — no available tool can process audio. Inform the user
-- Always return your analysis as text output — the orchestrator depends on your result
+- Your model is multimodal — you CAN Read images directly if given a file path (though normally images come through @observer's text output)
+- Creative decisions: UI/UX, CSS, layouts, responsive design
+- Return design decisions with rationale
 
 **Inline paste extraction:**
 ```bash

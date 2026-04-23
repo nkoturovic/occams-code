@@ -12,11 +12,11 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **3 presets** — `balanced` (default), `cheap`, `premium`
 - **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
 - **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions` (plus `/auto-continue` from oh-my-opencode-slim)
-- **oh-my-opencode-slim** config — 6 agent roles with curated models, fallback chains, and council multi-LLM consensus
+- **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **3 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in). Plus websearch (Exa) built-in to plugin
 - **9 skills** — agent-browser, code-review, defuddle, obsidian-cli, obsidian-markdown, obsidian-bases, json-canvas, simplify, pr-integration
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
-- **AGENTS.md** — 7 workflow principles for AI agents, ordered by criticality
+- **AGENTS.md** — 6 workflow principles for AI agents, ordered by criticality
 
 ## Quick Start
 
@@ -109,13 +109,13 @@ The `oc` launcher creates `.opencode/oh-my-opencode-slim.json` in your project r
 }
 ```
 
-Vision-enabled designer (needs Z.ai API key + enable `zai_vision` in opencode.json):
+Vision-enabled observer (needs multimodal model + `zai_vision` MCP for video fallback):
 
 ```json
 {
   "presets": {
     "balanced": {
-      "designer": { "model": "openrouter/z-ai/glm-5v-turbo" }
+      "observer": { "model": "openrouter/moonshotai/kimi-k2.6" }
     }
   }
 }
@@ -134,13 +134,14 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 ### Agents
 
-6 specialist agents, each with curated models per preset:
+7 specialist agents, each with curated models per preset:
 
 | Agent | Role | Delegation trigger |
 |-------|------|--------------------|
 | **orchestrator** | Main agent, delegates to specialists | — (this is you) |
 | **@oracle** | Architecture, code review, complex debugging | High-stakes decisions, persistent bugs |
 | **@fixer** | Fast implementation, test writing | Bounded tasks, multi-file changes |
+| **@observer** | Visual analysis: images, PDFs, video → text facts | File-on-disk visual content |
 | **@designer** | UI/UX, responsive layouts, visual polish | User-facing interfaces |
 | **@explorer** | Parallel codebase search | Finding files before reading them |
 | **@librarian** | Library docs, API references | Version-specific behavior, unfamiliar APIs |

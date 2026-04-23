@@ -7,19 +7,20 @@ related:
   - occams-code-setup
   - troubleshooting
 created: 2026-04-10
-updated: 2026-04-10
+updated: 2026-04-23
 confidence: high
 ---
 
 # Agent Roles and Model Selection
 
-## The 7 Roles
+## The 8 Roles
 
 | Role | Purpose | Call frequency | Cost sensitivity |
 |------|---------|---------------|-----------------|
 | **Orchestrator** | Master delegator, strategic coordinator | Every message | Low — best available justified |
 | **Oracle** | Deep reasoning, architecture, code review | Infrequent, high-stakes | Low — quality over cost |
-| **Designer** | UI/UX, visual polish, responsive layouts | Moderate | Medium — needs multimodal |
+| **Observer** | Read-only visual analysis: images, PDFs, video | Moderate | Medium — needs multimodal |
+| **Designer** | UI/UX, visual polish, responsive layouts | Moderate | Medium — creative reasoning |
 | **Explorer** | Fast parallel codebase search | High (3+ parallel calls) | High — cost × parallelism |
 | **Librarian** | Documentation lookup, API references | Moderate | High — broad knowledge > depth |
 | **Fixer** | Fast bounded implementation (<20 lines) | High | High — speed matters |
@@ -32,7 +33,8 @@ confidence: high
 - Implementation work → `@fixer` (bounded execution)
 - Library docs/API refs → `@librarian` (external knowledge)
 - Architecture decisions → `@oracle` (deep reasoning)
-- UI/UX polish → `@designer` (visual intent)
+- Visual analysis (images, PDFs, video) → `@observer` (fact extraction)
+- UI/UX polish → `@designer` (creative intent, often after @observer)
 - Critical decisions → `@council` (multi-perspective)
 
 **Don't delegate when:**
@@ -51,6 +53,12 @@ Needs: complex delegation decisions, multi-step planning, understanding when to 
 Needs: architecture decisions, complex debugging, code review. Infrequent but high-stakes — quality justifies cost.
 - Best: Claude Opus 4, Claude Sonnet 4, Gemini 3.1 Pro
 - Acceptable: GLM-5.1 (strong reasoning, open-source)
+
+### Observer — Vision + deterministic reporting
+Needs: accurate image/PDF/video reading, structured text output, low variance. Must support vision.
+- Best: Kimi K2.6 (262K context), Gemini 3.1 Pro
+- Acceptable: Gemini 3 Flash (cheap preset), Claude Sonnet 4 (fallback)
+- Temperature: 0.1 (deterministic — same image should yield same observation)
 
 ### Designer — Multimodal capability + creativity
 Needs: screenshot analysis, CSS/layout reasoning, responsive design, accessibility. Must support vision input.
@@ -79,6 +87,7 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 |------|-----------|-----|
 | Orchestrator | 0.3 | Balanced reasoning — creative enough to find solutions, precise enough to delegate correctly |
 | Oracle | 0.2 | Precise analysis — minimize hallucination in high-stakes decisions |
+| Observer | 0.1 | Deterministic reporting — same image should yield same observation |
 | Designer | 0.5 | Creative exploration — UI/UX benefits from more varied suggestions |
 | Explorer | 0.1 | Deterministic search — same query should find same files |
 | Librarian | 0.2 | Accurate synthesis — docs require precision, not creativity |
@@ -91,9 +100,9 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 | `websearch` | Everyone | General-purpose web lookup |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
-| `zai_vision` | Designer | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai key) |
+| `zai_vision` | Observer, Designer (premium/custom) | Observer: primary vision agent, Read-first with MCP fallback. Designer: retained on premium/custom for direct delegation. |
 
-**Notable:** Orchestrator only gets `websearch` — it delegates specialized research to other agents.
+**Notable:** Orchestrator gets `websearch` only — it delegates specialized research to other agents. Visual content is routed to `@observer` (fact extraction), then optionally to `@designer` (creative work). Observer owns `zai_vision` MCP for video and Read fallback.
 
 ## Council Diversity Rules
 
