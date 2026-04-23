@@ -97,6 +97,24 @@
         }
       }
     },
+    "zai-coding-plan": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Z.AI Coding Plan",
+      "options": {
+        "baseURL": "https://api.z.ai/coding/v1",
+        "compatibility": "compatible",
+        "includeUsage": true
+      },
+      "models": {
+        "glm-5.1": {
+          "name": "GLM 5.1 (Z.AI)",
+          "limit": {
+            "context": 202000,
+            "output": 32768
+          }
+        }
+      }
+    },
     "anthropic": {
       "options": {
         "baseURL": "https://api.anthropic.com/v1"
