@@ -9,7 +9,7 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **3 presets** — `balanced` (default), `cheap`, `premium`
+- **4 presets** — `balanced` (default), `cheap`, `premium`, `custom` (subscription-based)
 - **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
 - **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
@@ -90,6 +90,17 @@ The wiki at `~/wiki/` follows Karpathy's LLM Wiki pattern:
 - **`AGENTS.md`** — Schema that tells the LLM how to maintain the wiki
 
 Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The LLM maintains all content — you provide sources and curate.
+
+### Presets
+
+| Preset | Use case | Cost model |
+|--------|----------|------------|
+| `cheap` | Quick tasks, exploration | Free/cheap models only |
+| `balanced` | Daily development | Mix of quality and cost |
+| `premium` | Complex architecture, debugging | Best models regardless of cost |
+| `custom` | **Subscription-based** — mirrors the live setup's Kimi+GLM allocation | Requires Kimi for Coding ($39/mo) and Z.AI Coding Plan ($30/mo) |
+
+**Note:** The `custom` preset uses `kimi-for-coding/` and `zai-coding-plan/` providers that require active subscriptions. If you don't have these, use `balanced` or `premium` instead.
 
 ### Per-Project Config
 
