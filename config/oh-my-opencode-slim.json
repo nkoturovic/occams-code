@@ -331,10 +331,10 @@
         "openrouter/deepseek/deepseek-v3.2"
       ],
       "oracle": [
+        "zai-coding-plan/glm-5.1",
+        "kimi-for-coding/kimi-for-coding",
         "anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/z-ai/glm-5.1",
-        "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "designer": [
@@ -353,17 +353,17 @@
         "anthropic/claude-sonnet-4-6"
       ],
       "explorer": [
+        "zai-coding-plan/glm-5.1",
+        "kimi-for-coding/kimi-for-coding",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/qwen/qwen3.6-plus",
-        "openrouter/google/gemini-3-flash-preview",
-        "openrouter/qwen/qwen3-coder",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "librarian": [
+        "zai-coding-plan/glm-5.1",
+        "kimi-for-coding/kimi-for-coding",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/google/gemini-3-flash-preview",
-        "openrouter/qwen/qwen3-coder",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
