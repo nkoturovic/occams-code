@@ -72,9 +72,9 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 - Visual content (images, PDFs, video) → @observer (extracts facts as text)
 - UI/UX creation, CSS, layouts → @designer (often chains after @observer for mockup→code)
 - Multiple independent files need simultaneous changes → parallel @fixer
-- Codebase exploration before implementation → @explorer
+- Codebase exploration → @explorer
 - Library API behavior uncertain → @librarian
-- Architecture decision with trade-offs → @oracle or @council
+- Architecture decision with trade-offs → @oracle (default) or @council (high-stakes)
 
 ## Non-text Content
 
@@ -88,7 +88,7 @@ The orchestrator is text-only. All images, PDFs, and video go through `@observer
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
 - SVG is text (XML) — you CAN Read it directly
-- Image/PDF URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
+- Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 - User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@observer`
 
 **@observer instructions:**
