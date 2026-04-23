@@ -87,6 +87,7 @@ The orchestrator is text-only. All images, PDFs, and video go through `@observer
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
+- When delegating to `@observer`, always say: "Read the file at `<path>` using the Read tool — you can see images directly."
 - SVG is text (XML) — you CAN Read it directly
 - Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 - User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@observer`
