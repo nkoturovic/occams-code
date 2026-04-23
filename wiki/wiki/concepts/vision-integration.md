@@ -57,7 +57,8 @@ The `@ai-sdk/openai-compatible` provider (used by OpenRouter) strips media from 
 |--------|-----------|-----------|
 | `cheap` | `gemini-3-flash-preview` | `gemini-3-flash-preview` |
 | `balanced` | `kimi-k2.6` | `gemini-3-flash-preview` |
-| `premium` | `kimi-k2.6` | `kimi-k2.6` |
+| `premium` | `kimi-k2.6` | `gemini-3.1-pro-preview` |
+| `custom` | `kimi-for-coding` | `kimi-for-coding` |
 
 Observer: temp 0.1 (deterministic). Designer: temp 0.5 (creative). Both multimodal. Observer uses Read tool first, `zai_vision` MCP as fallback.
 
