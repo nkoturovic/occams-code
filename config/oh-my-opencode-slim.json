@@ -244,7 +244,6 @@
       "orchestrator": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "maxTokens": 65536,
         "skills": [
           "*"
         ],
@@ -265,7 +264,6 @@
       "designer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "maxTokens": 65536,
         "skills": [
           "agent-browser"
         ],
@@ -300,7 +298,6 @@
       "fixer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "maxTokens": 65536,
         "skills": [],
         "mcps": [
           "context7",
@@ -310,7 +307,6 @@
       "observer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "maxTokens": 65536,
         "skills": [],
         "mcps": [
           "zai_vision",
