@@ -8,7 +8,7 @@ related:
   - oc-launcher
   - troubleshooting
 created: 2026-04-10
-updated: 2026-04-10
+updated: 2026-04-23
 confidence: high
 ---
 
@@ -28,13 +28,14 @@ Occam's Code uses two config files with separate responsibilities:
 
 ## Presets
 
-Three presets, ordered by cost:
+Four presets, ordered by cost:
 
 | Preset | Use case | Key models |
 |--------|----------|------------|
 | **cheap** | Exploration, bulk tasks | Qwen Coder, DeepSeek, Nemotron (free), Gemini Flash |
 | **balanced** | Default — best cost/quality trade-off | GLM-5.1, Claude Sonnet, DeepSeek, Qwen, Gemini Flash |
 | **premium** | Critical work — best available | Claude Opus, Claude Sonnet, Gemini Pro |
+| **custom** | Subscription-based — mirrors live setup's Kimi+GLM allocation | Kimi K2.6 (4 agents), GLM-5.1 (3 agents) |
 
 Active preset is set in `oh-my-opencode-slim.json` → `"preset"` field.
 
