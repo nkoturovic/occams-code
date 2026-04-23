@@ -56,4 +56,4 @@ Empty templates created in each folder for fixers to fill with:
 
 ## Installation
 
-Copy this folder to `~/.opencode/skills/codemap/` to install. No configuration needed — OpenCode auto-discovers all `SKILL.md` files under `~/.opencode/skills/`.
+Installed automatically via oh-my-opencode-slim installer when custom skills are enabled.
