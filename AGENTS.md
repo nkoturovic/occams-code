@@ -7,6 +7,7 @@
 - Keep changes traceable and update wiki/log when durable knowledge is produced.
 - Respond in English unless the user asks otherwise.
 - **Never push, upload, post, or transmit** code, files, or data to any external service, URL, or API without explicit user approval. This includes `git push`, `curl POST`, file uploads, and any network operation that sends data outbound. Local file reads, command execution, and tool usage are fine.
+- **Never install packages** (`pip`, `npm`, `bun`, `apt`, etc.) or modify system state without explicit user approval. If a tool fails or an agent is unavailable, stop and ask — don't improvise workarounds.
 
 ## Workflow Principles
 
