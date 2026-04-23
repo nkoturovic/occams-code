@@ -425,6 +425,9 @@
         }
       },
       "custom": {
+        "master": {
+          "model": "zai-coding-plan/glm-5.1"
+        },
         "reviewer-1": {
           "model": "zai-coding-plan/glm-5.1"
         },
@@ -432,7 +435,7 @@
           "model": "kimi-for-coding/kimi-for-coding"
         },
         "reviewer-3": {
-          "model": "openrouter/deepseek/deepseek-v3.2"
+          "model": "kimi-for-coding/kimi-for-coding"
         }
       }
     }
