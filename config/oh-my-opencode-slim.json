@@ -1,5 +1,5 @@
 {
-  "preset": "custom",
+  "preset": "balanced",
   "disabled_agents": [],
   "todoContinuation": {
     "maxContinuations": 15,
@@ -239,80 +239,6 @@
           "websearch"
         ]
       }
-    },
-    "custom": {
-      "orchestrator": {
-        "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "high",
-        "skills": [
-          "*"
-        ],
-        "mcps": [
-          "websearch"
-        ]
-      },
-      "oracle": {
-        "model": "zai-coding-plan/glm-5.1",
-        "variant": "high",
-        "temperature": 0.2,
-        "skills": [],
-        "mcps": [
-          "context7",
-          "websearch"
-        ]
-      },
-      "designer": {
-        "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "high",
-        "skills": [
-          "agent-browser"
-        ],
-        "mcps": [
-          "websearch",
-          "context7",
-          "zai_vision"
-        ]
-      },
-      "explorer": {
-        "model": "zai-coding-plan/glm-5.1",
-        "variant": "high",
-        "temperature": 0.1,
-        "skills": [],
-        "mcps": [
-          "grep_app",
-          "context7",
-          "websearch"
-        ]
-      },
-      "librarian": {
-        "model": "zai-coding-plan/glm-5.1",
-        "variant": "high",
-        "temperature": 0.2,
-        "skills": [],
-        "mcps": [
-          "websearch",
-          "context7",
-          "grep_app"
-        ]
-      },
-      "fixer": {
-        "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "high",
-        "skills": [],
-        "mcps": [
-          "context7",
-          "websearch"
-        ]
-      },
-      "observer": {
-        "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "high",
-        "skills": [],
-        "mcps": [
-          "zai_vision",
-          "websearch"
-        ]
-      }
     }
   },
   "fallback": {
@@ -320,8 +246,8 @@
     "timeoutMs": 60000,
     "chains": {
       "orchestrator": [
-        "kimi-for-coding/kimi-for-coding",
-        "zai-coding-plan/glm-5.1",
+        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/z-ai/glm-5.1",
         "openrouter/z-ai/glm-5.1",
         "anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2"
@@ -334,7 +260,7 @@
         "openrouter/qwen/qwen3-coder:free"
       ],
       "designer": [
-        "kimi-for-coding/kimi-for-coding",
+        "openrouter/moonshotai/kimi-k2.6",
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
@@ -342,7 +268,7 @@
         "openrouter/qwen/qwen3-coder:free"
       ],
       "observer": [
-        "kimi-for-coding/kimi-for-coding",
+        "openrouter/moonshotai/kimi-k2.6",
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
@@ -363,8 +289,8 @@
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
-        "kimi-for-coding/kimi-for-coding",
-        "zai-coding-plan/glm-5.1",
+        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/z-ai/glm-5.1",
         "openrouter/deepseek/deepseek-v3.2",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
@@ -375,7 +301,7 @@
     "master": {
       "model": "zai-coding-plan/glm-5.1"
     },
-    "default_preset": "custom",
+    "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
       "balanced": {
