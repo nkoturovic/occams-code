@@ -40,7 +40,7 @@ If neither file exists: Continue to Step 2 (Initialize).
 3. **Run codemap.mjs init**:
 
 ```bash
-node ~/.config/opencode/skills/codemap/scripts/codemap.mjs init \
+node ~/.opencode/skills/codemap/scripts/codemap.mjs init \
   --root ./ \
   --include "src/**/*.ts" \
   --exclude "**/*.test.ts" --exclude "dist/**" --exclude "node_modules/**"
@@ -57,7 +57,7 @@ This creates:
 1. **Run codemap.mjs changes** to see what changed:
 
 ```bash
-node ~/.config/opencode/skills/codemap/scripts/codemap.mjs changes \
+node ~/.opencode/skills/codemap/scripts/codemap.mjs changes \
   --root ./
 ```
 
@@ -71,7 +71,7 @@ node ~/.config/opencode/skills/codemap/scripts/codemap.mjs changes \
 4. **Run update** to save new state:
 
 ```bash
-node ~/.config/opencode/skills/codemap/scripts/codemap.mjs update \
+node ~/.opencode/skills/codemap/scripts/codemap.mjs update \
   --root ./
 ```
 
