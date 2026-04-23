@@ -63,19 +63,24 @@ def get_all_pages() -> list[Path]:
     return sorted(pages)
 
 
-def get_frontmatter(text: str) -> dict[str, str]:
+def get_frontmatter(text: str) -> dict:
     if not text.startswith("---\n"):
         return {}
     end = text.find("\n---\n", 4)
     if end == -1:
         return {}
     fm = text[4:end]
-    data: dict[str, str] = {}
-    for line in fm.splitlines():
-        if ":" in line:
-            k, v = line.split(":", 1)
-            data[k.strip()] = v.strip().strip('"')
-    return data
+    try:
+        import yaml
+        return yaml.safe_load(fm) or {}
+    except ImportError:
+        # Fallback to simple parsing if yaml not available
+        data: dict[str, str] = {}
+        for line in fm.splitlines():
+            if ":" in line and not line.strip().startswith("-"):
+                k, v = line.split(":", 1)
+                data[k.strip()] = v.strip().strip('"')
+        return data
 
 
 def git_last_commit_date(path: Path) -> str:
@@ -167,7 +172,11 @@ def lint() -> list[Finding]:
                 )
             )
         # Traceability: sources frontmatter, Related, References, or inline [ref:]
-        has_sources_fm = bool(fm.get("sources", "").strip("[] "))
+        sources_raw = fm.get("sources", "")
+        if isinstance(sources_raw, list):
+            has_sources_fm = bool(sources_raw)
+        else:
+            has_sources_fm = bool(str(sources_raw).strip("[] "))
         has_related = "## Related" in txt
         has_references = "## References" in txt
         has_inline_refs = "[ref:" in txt
@@ -203,7 +212,7 @@ def lint() -> list[Finding]:
                 )
                 continue
             last_commit = git_last_commit_date(proj)
-            if updated and last_commit and last_commit > updated:
+            if updated and last_commit and str(last_commit) > str(updated):
                 findings.append(
                     Finding(
                         "warning",
