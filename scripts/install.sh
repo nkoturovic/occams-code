@@ -177,11 +177,35 @@ fi
 # .gitkeep files (portable: avoids {}/.gitkeep which needs GNU find)
 find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null || true
 
-# --- Install obsidian-skills ---
+# --- Install local skills ---
 echo ""
-echo -e "${BOLD}Installing obsidian-skills...${RESET}"
+echo -e "${BOLD}Installing local skills...${RESET}"
 SKILLS_DIR="$HOME/.opencode/skills"
 mkdir -p "$SKILLS_DIR"
+
+# Codemap skill
+if [[ -d "$REPO_ROOT/skills/codemap" ]]; then
+  if [[ ! -d "$SKILLS_DIR/codemap" ]]; then
+    cp -r "$REPO_ROOT/skills/codemap" "$SKILLS_DIR/codemap"
+    echo -e "  ${GREEN}✓${RESET} codemap skill installed"
+  else
+    echo -e "  ${DIM}codemap already installed (skipped)${RESET}"
+  fi
+fi
+
+# Simplify skill
+if [[ -d "$REPO_ROOT/skills/simplify" ]]; then
+  if [[ ! -d "$SKILLS_DIR/simplify" ]]; then
+    cp -r "$REPO_ROOT/skills/simplify" "$SKILLS_DIR/simplify"
+    echo -e "  ${GREEN}✓${RESET} simplify skill installed"
+  else
+    echo -e "  ${DIM}simplify already installed (skipped)${RESET}"
+  fi
+fi
+
+# --- Install obsidian-skills plugin ---
+echo ""
+echo -e "${BOLD}Installing obsidian-skills plugin...${RESET}"
 if [[ ! -d "$SKILLS_DIR/obsidian-skills" ]]; then
   if command -v git &>/dev/null; then
     git clone https://github.com/kepano/obsidian-skills "$SKILLS_DIR/obsidian-skills"
