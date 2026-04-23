@@ -1,0 +1,400 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "opencode": {
+      "name": "OpenCode",
+      "models": {
+        "glm-5.1": {
+          "name": "GLM 5.1",
+          "limit": {
+            "context": 202000,
+            "output": 32768
+          }
+        },
+        "claude-opus-4-6": {
+          "name": "Claude Opus 4.6",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "claude-sonnet-4-6": {
+          "name": "Claude Sonnet 4.6",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "gpt-5.4": {
+          "name": "GPT 5.4",
+          "limit": {
+            "context": 272000,
+            "output": 128000
+          }
+        },
+        "gpt-5.4-mini": {
+          "name": "GPT 5.4 Mini",
+          "limit": {
+            "context": 272000,
+            "output": 32768
+          }
+        },
+        "kimi-k2.6": {
+          "name": "Kimi K2.6",
+          "limit": {
+            "context": 262144,
+            "output": 262144
+          }
+        }
+      },
+      "options": {}
+    },
+    "deepseek": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "DeepSeek API",
+      "options": {
+        "baseURL": "https://api.deepseek.com",
+        "compatibility": "flexible",
+        "includeUsage": true
+      },
+      "models": {
+        "deepseek-v3.2": {
+          "name": "DeepSeek V3.2",
+          "limit": {
+            "context": 128000,
+            "output": 32768
+          }
+        },
+        "deepseek-v4": {
+          "name": "DeepSeek V4",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        }
+      }
+    },
+    "kimi-for-coding": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "Kimi for Coding",
+      "options": {
+        "baseURL": "https://api.kimi.com/coding/v1",
+        "compatibility": "compatible",
+        "includeUsage": true
+      },
+      "models": {
+        "kimi-for-coding": {
+          "name": "Kimi for Coding (K2.6)",
+          "limit": {
+            "context": 262144,
+            "output": 262144
+          },
+          "modalities": {
+            "input": ["text", "image", "video"],
+            "output": ["text"]
+          },
+          "attachment": true
+        }
+      }
+    },
+    "anthropic": {
+      "options": {
+        "baseURL": "https://api.anthropic.com/v1"
+      }
+    },
+    "openai": {
+      "options": {
+        "baseURL": "https://api.openai.com/v1"
+      }
+    },
+    "openrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OpenRouter",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "compatibility": "compatible",
+        "includeUsage": true
+      },
+      "models": {
+        "z-ai/glm-5.1": {
+          "name": "GLM 5.1 (via OpenRouter)",
+          "limit": {
+            "context": 202000,
+            "output": 32768
+          }
+        },
+        "z-ai/glm-5v-turbo": {
+          "name": "GLM 5V Turbo (via OpenRouter)",
+          "limit": {
+            "context": 202000,
+            "output": 131072
+          }
+        },
+        "anthropic/claude-opus-4.6": {
+          "name": "Claude Opus 4.6 (via OpenRouter)",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "anthropic/claude-sonnet-4.6": {
+          "name": "Claude Sonnet 4.6 (via OpenRouter)",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "openai/gpt-5.4": {
+          "name": "GPT 5.4 (via OpenRouter)",
+          "limit": {
+            "context": 272000,
+            "output": 128000
+          }
+        },
+        "google/gemini-3.1-pro-preview": {
+          "name": "Gemini 3.1 Pro Preview (via OpenRouter)",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "deepseek/deepseek-v3.2": {
+          "name": "DeepSeek V3.2 (via OpenRouter)",
+          "limit": {
+            "context": 128000,
+            "output": 32768
+          }
+        },
+        "qwen/qwen3.6-plus": {
+          "name": "Qwen 3.6 Plus (via OpenRouter)",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "qwen/qwen3-coder:free": {
+          "name": "Qwen3 Coder Free (via OpenRouter)",
+          "limit": {
+            "context": 40000,
+            "output": 16384
+          }
+        },
+        "nvidia/nemotron-3-super-120b-a12b:free": {
+          "name": "Nemotron 3 Super Free (via OpenRouter)",
+          "limit": {
+            "context": 32000,
+            "output": 16384
+          }
+        },
+        "google/gemini-3-flash-preview": {
+          "name": "Gemini 3 Flash Preview (via OpenRouter)",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "qwen/qwen3-coder": {
+          "name": "Qwen3 Coder (via OpenRouter)",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "moonshotai/kimi-k2.6": {
+          "name": "Kimi K2.6 (via OpenRouter)",
+          "limit": {
+            "context": 262144,
+            "output": 262144
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "attachment": true
+        }
+      }
+    }
+  },
+  "plugin": [
+    "oh-my-opencode-slim"
+  ],
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    },
+    "grep_app": {
+      "type": "remote",
+      "url": "https://mcp.grep.app",
+      "enabled": true
+    },
+    "zai_vision": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@z_ai/mcp-server"
+      ],
+      "environment": {
+        "Z_AI_API_KEY": "",
+        "Z_AI_MODE": "ZAI"
+      },
+      "enabled": true,
+      "timeout": 600000
+    }
+  },
+  "agent": {
+    "explore": {
+      "disable": true
+    },
+    "general": {
+      "disable": true
+    }
+  },
+  "lsp": {
+    "clangd": {
+      "command": [
+        "clangd",
+        "--background-index",
+        "--clang-tidy"
+      ],
+      "extensions": [
+        "c",
+        "cpp",
+        "h",
+        "hpp",
+        "cc",
+        "cxx"
+      ]
+    },
+    "typescript-language-server": {
+      "command": [
+        "typescript-language-server",
+        "--stdio"
+      ],
+      "languages": [
+        "typescript",
+        "typescriptreact",
+        "javascript",
+        "javascriptreact"
+      ],
+      "extensions": [
+        "ts",
+        "tsx",
+        "js",
+        "jsx"
+      ]
+    },
+    "pyright": {
+      "command": [
+        "pyright-langserver",
+        "--stdio"
+      ],
+      "languages": [
+        "python"
+      ],
+      "extensions": [
+        "py",
+        "pyi"
+      ],
+      "settings": {
+        "python": {
+          "analysis": {
+            "autoSearchPaths": true,
+            "useLibraryCodeForTypes": true,
+            "diagnosticMode": "openFilesOnly",
+            "typeCheckingMode": "standard"
+          }
+        }
+      }
+    },
+    "rust-analyzer": {
+      "command": [
+        "rust-analyzer"
+      ],
+      "languages": [
+        "rust"
+      ],
+      "extensions": [
+        "rs"
+      ],
+      "settings": {
+        "rust-analyzer": {
+          "checkOnSave": {
+            "command": "clippy"
+          },
+          "cargo": {
+            "allFeatures": true
+          },
+          "procMacro": {
+            "enable": true
+          }
+        }
+      }
+    },
+    "gopls": {
+      "command": [
+        "gopls",
+        "serve"
+      ],
+      "languages": [
+        "go",
+        "gomod"
+      ],
+      "extensions": [
+        "go",
+        "mod"
+      ],
+      "settings": {
+        "gopls": {
+          "staticcheck": true,
+          "gofumpt": true,
+          "analyses": {
+            "unusedparams": true,
+            "shadow": true
+          }
+        }
+      }
+    },
+    "kotlin-language-server": {
+      "command": [
+        "kotlin-language-server-wrapper"
+      ],
+      "languages": [
+        "kotlin"
+      ],
+      "extensions": [
+        "kt",
+        "kts"
+      ],
+      "settings": {
+        "kotlin": {
+          "compiler": {
+            "jvm": {
+              "target": "17"
+            }
+          },
+          "indexing": {
+            "enabled": true
+          },
+          "completion": {
+            "snippets": {
+              "enabled": true
+            }
+          },
+          "diagnostics": {
+            "enabled": true
+          }
+        }
+      }
+    }
+  },
+  "permission": "allow"
+}
