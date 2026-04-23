@@ -8,7 +8,6 @@
 - Respond in English unless the user asks otherwise.
 - **Never push, upload, post, or transmit** code, files, or data to any external service, URL, or API without explicit user approval. This includes `git push`, `curl POST`, file uploads, and any network operation that sends data outbound. Local file reads, command execution, and tool usage are fine.
 - **Never install packages** (`pip`, `npm`, `bun`, `apt`, etc.) or modify system state without explicit user approval. If a tool fails or an agent is unavailable, stop and ask — don't improvise workarounds.
-- **Never commit secrets** — API keys, tokens, passwords must never be committed to git. Before committing config files (opencode.json, auth.json), verify no real credentials are present. Use `""` or env var references for sensitive values in repo configs.
 
 ## Workflow Principles
 
@@ -92,6 +91,13 @@ The orchestrator is text-only. All images, PDFs, and video go through `@observer
 - SVG is text (XML) — you CAN Read it directly
 - Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 - User pastes image inline (no file path) → extract to disk (command below) → delegate file path to `@observer`
+
+**@fixer instructions:**
+- You are a bounded implementation specialist. Make the change, verify it, then STOP.
+- **Anti-loop rule:** If an edit fails twice, STOP and report the failure to the orchestrator. Do not retry a third time.
+- **Anti-loop rule:** If you find yourself reading the same file more than twice without making progress, STOP and escalate.
+- **Anti-loop rule:** Do not repeat the same tool call with identical arguments. If the result didn't help, try a different approach or stop.
+- Return concise confirmation: what changed, in which file, at what line.
 
 **@observer instructions:**
 - Your model natively supports text, image, and video input. ALWAYS try Read first for any file.

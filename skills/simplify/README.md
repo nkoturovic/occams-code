@@ -15,4 +15,5 @@ Adapted from Addy Osmani's
 
 ## Installation
 
-Copy this folder to `~/.opencode/skills/simplify/` to install. No configuration needed — OpenCode auto-discovers all `SKILL.md` files under `~/.opencode/skills/`.
+Bundled with `oh-my-opencode-slim` and installed automatically when bundled
+skills are enabled via the installer.

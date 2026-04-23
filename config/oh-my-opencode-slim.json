@@ -1,5 +1,5 @@
 {
-  "preset": "balanced",
+  "preset": "custom",
   "disabled_agents": [],
   "todoContinuation": {
     "maxContinuations": 50,
@@ -244,7 +244,7 @@
       "orchestrator": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.3,
+        "maxTokens": 65536,
         "skills": [
           "*"
         ],
@@ -265,7 +265,7 @@
       "designer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.5,
+        "maxTokens": 65536,
         "skills": [
           "agent-browser"
         ],
@@ -300,7 +300,7 @@
       "fixer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.1,
+        "maxTokens": 65536,
         "skills": [],
         "mcps": [
           "context7",
@@ -310,7 +310,7 @@
       "observer": {
         "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.1,
+        "maxTokens": 65536,
         "skills": [],
         "mcps": [
           "zai_vision",
@@ -331,10 +331,10 @@
         "openrouter/deepseek/deepseek-v3.2"
       ],
       "oracle": [
-        "zai-coding-plan/glm-5.1",
-        "kimi-for-coding/kimi-for-coding",
         "anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5.1",
+        "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "designer": [
@@ -353,17 +353,17 @@
         "anthropic/claude-sonnet-4-6"
       ],
       "explorer": [
-        "zai-coding-plan/glm-5.1",
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/qwen/qwen3.6-plus",
+        "openrouter/google/gemini-3-flash-preview",
+        "openrouter/qwen/qwen3-coder",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "librarian": [
-        "zai-coding-plan/glm-5.1",
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/google/gemini-3-flash-preview",
+        "openrouter/qwen/qwen3-coder",
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
@@ -425,9 +425,6 @@
         }
       },
       "custom": {
-        "master": {
-          "model": "zai-coding-plan/glm-5.1"
-        },
         "reviewer-1": {
           "model": "zai-coding-plan/glm-5.1"
         },
