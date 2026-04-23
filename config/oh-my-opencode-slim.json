@@ -1,5 +1,5 @@
 {
-  "preset": "custom",
+  "preset": "balanced",
   "disabled_agents": [],
   "todoContinuation": {
     "maxContinuations": 50,
