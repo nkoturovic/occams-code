@@ -116,8 +116,25 @@
       }
     },
     "anthropic": {
+      "name": "Anthropic (built-in)",
       "options": {
         "baseURL": "https://api.anthropic.com/v1"
+      },
+      "models": {
+        "claude-sonnet-4-6": {
+          "name": "Claude Sonnet 4.6",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "claude-opus-4-6": {
+          "name": "Claude Opus 4.6",
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        }
       }
     },
     "openai": {

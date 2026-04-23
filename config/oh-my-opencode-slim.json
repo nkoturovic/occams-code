@@ -429,10 +429,10 @@
           "model": "zai-coding-plan/glm-5.1"
         },
         "reviewer-2": {
-          "model": "zai-coding-plan/glm-5.1"
+          "model": "kimi-for-coding/kimi-for-coding"
         },
         "reviewer-3": {
-          "model": "zai-coding-plan/glm-5.1"
+          "model": "openrouter/deepseek/deepseek-v3.2"
         }
       }
     }
