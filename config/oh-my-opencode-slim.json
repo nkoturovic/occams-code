@@ -1,5 +1,5 @@
 {
-  "preset": "custom",
+  "preset": "balanced",
   "disabled_agents": [],
   "todoContinuation": {
     "maxContinuations": 15,
@@ -98,7 +98,7 @@
         ]
       },
       "oracle": {
-        "model": "anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -164,7 +164,7 @@
     },
     "premium": {
       "orchestrator": {
-        "model": "anthropic/claude-opus-4-6",
+        "model": "openrouter/anthropic/claude-opus-4-6",
         "variant": "max",
         "temperature": 0.3,
         "skills": [
@@ -175,7 +175,7 @@
         ]
       },
       "oracle": {
-        "model": "anthropic/claude-opus-4-6",
+        "model": "openrouter/anthropic/claude-opus-4-6",
         "variant": "max",
         "temperature": 0.2,
         "skills": [],
@@ -198,7 +198,7 @@
         ]
       },
       "explorer": {
-        "model": "anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -209,7 +209,7 @@
         ]
       },
       "librarian": {
-        "model": "anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -220,7 +220,7 @@
         ]
       },
       "fixer": {
-        "model": "anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -344,34 +344,32 @@
     "timeoutMs": 60000,
     "chains": {
       "orchestrator": [
-        "zai-coding-plan/glm-5.1",
+        "openrouter/moonshotai/kimi-k2.6",
         "openrouter/z-ai/glm-5.1",
-        "anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "oracle": [
-        "zai-coding-plan/glm-5.1",
-        "anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/z-ai/glm-5.1",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "designer": [
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "observer": [
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/z-ai/glm-5v-turbo",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "explorer": [
@@ -389,24 +387,24 @@
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
       ],
       "fixer": [
-        "kimi-for-coding/kimi-for-coding",
-        "zai-coding-plan/glm-5.1",
+        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/z-ai/glm-5.1",
         "openrouter/deepseek/deepseek-v3.2",
-        "anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ]
     }
   },
   "council": {
     "master": {
-      "model": "zai-coding-plan/glm-5.1"
+      "model": "openrouter/z-ai/glm-5.1"
     },
-    "default_preset": "custom",
+    "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
       "balanced": {
         "master": {
-          "model": "anthropic/claude-sonnet-4-6"
+          "model": "openrouter/anthropic/claude-sonnet-4-6"
         },
         "reviewer-1": {
           "model": "openrouter/z-ai/glm-5.1"
@@ -434,10 +432,10 @@
       },
       "premium": {
         "master": {
-          "model": "anthropic/claude-opus-4-6"
+          "model": "openrouter/anthropic/claude-opus-4-6"
         },
         "reviewer-1": {
-          "model": "anthropic/claude-sonnet-4-6"
+          "model": "openrouter/anthropic/claude-sonnet-4-6"
         },
         "reviewer-2": {
           "model": "openrouter/z-ai/glm-5.1"
