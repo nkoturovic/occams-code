@@ -24,7 +24,13 @@ set -euo pipefail
 
 CONFIG="$HOME/.config/opencode/oh-my-opencode-slim.json"
 CORE_CONFIG="$HOME/.config/opencode/opencode.json"
-PROJECT_CONFIG=".opencode/oh-my-opencode-slim.json"
+# Resolve project config: prefer .jsonc, fall back to .json (matches omo-slim behavior)
+PROJECT_CONFIG=""
+for _pc in ".opencode/oh-my-opencode-slim.jsonc" ".opencode/oh-my-opencode-slim.json"; do
+  if [[ -f "$_pc" ]]; then PROJECT_CONFIG="$_pc"; break; fi
+done
+# Default path for new file creation (use .jsonc)
+PROJECT_CONFIG_NEW=".opencode/oh-my-opencode-slim.jsonc"
 
 BOLD='\033[1m'; DIM='\033[2m'; CYAN='\033[36m'; GREEN='\033[32m'
 YELLOW='\033[33m'; RED='\033[31m'; RESET='\033[0m'
@@ -81,9 +87,9 @@ has_sessions() {
 
 show_config() {
   local preset model_count source="global"
-  if [[ -f "$PROJECT_CONFIG" ]]; then
+  if [[ -n "$PROJECT_CONFIG" ]]; then
     local oc_p
-    oc_p=$(jq -r '.preset // empty' "$PROJECT_CONFIG" 2>/dev/null) || true
+    oc_p=$(jq -r '.preset // empty' <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") 2>/dev/null) || true
     if [[ -n "$oc_p" ]]; then
       preset="$oc_p"
       source="project"
@@ -100,8 +106,8 @@ show_config() {
   fi
   model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
   echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
-  if [[ -f "$PROJECT_CONFIG" ]] && jq -e '.agents' "$PROJECT_CONFIG" >/dev/null 2>&1; then
-    jq -r --slurpfile proj "$PROJECT_CONFIG" --arg p "$preset" '
+  if [[ -n "$PROJECT_CONFIG" ]] && jq -e '.agents' <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") >/dev/null 2>&1; then
+    jq -r --slurpfile proj <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") --arg p "$preset" '
       .presets[$p] | to_entries | map(
         .key as $k | .value.model as $default |
         (($proj[0].agents[$k].model // $default)) as $model |
@@ -125,12 +131,13 @@ set_preset() {
   fi
   mkdir -p .opencode
   # Merge: preserve existing fields, only set/overwrite preset
-  if [[ -f "$PROJECT_CONFIG" ]]; then
+  if [[ -n "$PROJECT_CONFIG" ]]; then
     local merged
-    merged=$(jq --arg p "$preset" '.preset = $p' "$PROJECT_CONFIG")
+    merged=$(jq --arg p "$preset" '.preset = $p' <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG"))
     printf '%s\n' "$merged" > "$PROJECT_CONFIG"
   else
-    printf '{"preset":"%s"}\n' "$preset" > "$PROJECT_CONFIG"
+    printf '{"preset":"%s"}\n' "$preset" > "$PROJECT_CONFIG_NEW"
+    PROJECT_CONFIG="$PROJECT_CONFIG_NEW"
   fi
   echo -e "${GREEN}Set preset: $preset${RESET}"
 }
@@ -138,7 +145,7 @@ set_preset() {
 # --- First-run: create project config if missing ---
 first_run_setup() {
   is_interactive || return 0
-  [[ -f "$PROJECT_CONFIG" ]] && return 0
+  [[ -n "$PROJECT_CONFIG" ]] && return 0
 
   local current_preset presets
   current_preset=$(jq -r '.preset' "$CONFIG")
@@ -169,7 +176,8 @@ first_run_setup() {
   done
 
   mkdir -p .opencode
-  jq -n --arg p "$selected" '{"preset":$p}' > "$PROJECT_CONFIG"
+  jq -n --arg p "$selected" '{"preset":$p}' > "$PROJECT_CONFIG_NEW"
+  PROJECT_CONFIG="$PROJECT_CONFIG_NEW"
   echo -e "${GREEN}Created $PROJECT_CONFIG (preset: $selected)${RESET}"
 }
 
@@ -202,10 +210,10 @@ run_doctor() {
   fi
 
   # Project config
-  if [[ -f "$PROJECT_CONFIG" ]]; then
+  if [[ -n "$PROJECT_CONFIG" ]]; then
     local oc_p
-    oc_p=$(jq -r '.preset // "—"' "$PROJECT_CONFIG" 2>/dev/null)
-    echo -e "  ${GREEN}✓${RESET} Project config (preset: $oc_p)"
+    oc_p=$(jq -r '.preset // "—"' <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") 2>/dev/null)
+    echo -e "  ${GREEN}✓${RESET} Project config: $PROJECT_CONFIG (preset: $oc_p)"
   else
     echo -e "  ${DIM}  No project config (using global)${RESET}"
   fi
