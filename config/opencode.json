@@ -163,6 +163,10 @@
           "limit": {
             "context": 202000,
             "output": 131072
+          },
+          "modalities": {
+            "input": ["text", "image", "video"],
+            "output": ["text"]
           }
         },
         "anthropic/claude-opus-4.6": {
