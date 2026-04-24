@@ -242,9 +242,8 @@
     },
     "custom": {
       "orchestrator": {
-        "model": "zai-coding-plan/glm-5.1",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.3,
         "skills": [
           "*"
         ],
