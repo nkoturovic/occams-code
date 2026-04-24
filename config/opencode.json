@@ -101,7 +101,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Z.AI Coding Plan",
       "options": {
-        "baseURL": "https://api.z.ai/coding/v1",
+        "baseURL": "https://api.z.ai/api/coding/paas/v4",
         "compatibility": "compatible",
         "includeUsage": true
       },
