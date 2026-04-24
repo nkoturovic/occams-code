@@ -89,7 +89,7 @@
       "orchestrator": {
         "model": "openrouter/z-ai/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
+        "temperature": 0.6,
         "skills": [
           "*"
         ],
@@ -260,7 +260,7 @@
       "oracle": {
         "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
+        "temperature": 0.5,
         "skills": [],
         "mcps": [
           "context7",
@@ -288,7 +288,7 @@
       "explorer": {
         "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
+        "temperature": 0.3,
         "skills": [],
         "mcps": [
           "grep_app",
@@ -299,7 +299,7 @@
       "librarian": {
         "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
+        "temperature": 0.6,
         "skills": [],
         "mcps": [
           "websearch",
@@ -455,7 +455,7 @@
       "custom": {
         "master": {
           "model": "zai-coding-plan/glm-5.1",
-          "temperature": 1.0
+          "temperature": 0.6
         },
         "reviewer-1": {
           "model": "kimi-for-coding/kimi-for-coding",
