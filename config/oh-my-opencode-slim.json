@@ -404,55 +404,70 @@
     "presets": {
       "balanced": {
         "master": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6"
+          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "temperature": 0.3
         },
         "reviewer-1": {
-          "model": "openrouter/z-ai/glm-5.1"
+          "model": "openrouter/z-ai/glm-5.1",
+          "temperature": 1.0
         },
-"reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus"
+        "reviewer-2": {
+          "model": "openrouter/qwen/qwen3.6-plus",
+          "temperature": 0.6
         }
       },
       "cheap": {
         "master": {
-          "model": "openrouter/deepseek/deepseek-v3.2"
+          "model": "openrouter/deepseek/deepseek-v3.2",
+          "temperature": 0.3
         },
         "reviewer-1": {
-          "model": "openrouter/qwen/qwen3-coder"
+          "model": "openrouter/qwen/qwen3-coder",
+          "temperature": 1.0
         },
         "reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus"
+          "model": "openrouter/qwen/qwen3.6-plus",
+          "temperature": 0.6
         },
         "reviewer-3": {
-          "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+          "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+          "temperature": 1.0
         }
       },
       "premium": {
         "master": {
-          "model": "openrouter/anthropic/claude-opus-4-6"
+          "model": "openrouter/anthropic/claude-opus-4-6",
+          "temperature": 0.3
         },
         "reviewer-1": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6"
+          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "temperature": 0.6
         },
         "reviewer-2": {
-          "model": "openrouter/z-ai/glm-5.1"
+          "model": "openrouter/z-ai/glm-5.1",
+          "temperature": 1.0
         },
         "reviewer-3": {
-          "model": "openrouter/google/gemini-3.1-pro-preview"
+          "model": "openrouter/google/gemini-3.1-pro-preview",
+          "temperature": 1.0
         }
       },
       "custom": {
         "master": {
-          "model": "zai-coding-plan/glm-5.1"
+          "model": "zai-coding-plan/glm-5.1",
+          "temperature": 1.0
         },
         "reviewer-1": {
-          "model": "kimi-for-coding/kimi-for-coding"
+          "model": "kimi-for-coding/kimi-for-coding",
+          "temperature": 1.0
         },
         "reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus"
+          "model": "openrouter/qwen/qwen3.6-plus",
+          "temperature": 0.6
         },
         "reviewer-3": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6"
+          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "temperature": 0.3
         }
       }
     }
