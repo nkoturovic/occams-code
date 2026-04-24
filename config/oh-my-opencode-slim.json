@@ -346,12 +346,12 @@
       "orchestrator": [
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/z-ai/glm-5.1",
-        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4.6",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "oracle": [
-        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4.6",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/z-ai/glm-5.1",
         "openrouter/qwen/qwen3.6-plus",
@@ -361,7 +361,7 @@
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4.6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "observer": [
@@ -369,7 +369,7 @@
         "openrouter/z-ai/glm-5v-turbo",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
-        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4.6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "explorer": [
@@ -390,7 +390,7 @@
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/z-ai/glm-5.1",
         "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-sonnet-4.6",
         "openrouter/qwen/qwen3-coder:free"
       ]
     }
