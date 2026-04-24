@@ -8,7 +8,9 @@ python3 -c "
 import json
 from pathlib import Path
 
-proj = Path('.opencode/oh-my-opencode-slim.json')
+proj = Path('.opencode/oh-my-opencode-slim.jsonc')
+if not proj.exists():
+    proj = Path('.opencode/oh-my-opencode-slim.json')
 cfg = json.loads(Path.home().joinpath('.config/opencode/oh-my-opencode-slim.json').read_text())
 source, preset = 'global', cfg['preset']
 if proj.exists():
