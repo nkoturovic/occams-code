@@ -288,7 +288,7 @@
       "explorer": {
         "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 0.1,
+        "temperature": 1.0,
         "skills": [],
         "mcps": [
           "grep_app",
@@ -299,7 +299,7 @@
       "librarian": {
         "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 0.2,
+        "temperature": 1.0,
         "skills": [],
         "mcps": [
           "websearch",
