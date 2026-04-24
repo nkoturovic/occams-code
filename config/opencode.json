@@ -6,6 +6,7 @@
       "models": {
         "glm-5.1": {
           "name": "GLM 5.1",
+          "reasoning": true,
           "limit": {
             "context": 202000,
             "output": 32768
@@ -13,6 +14,7 @@
         },
         "claude-opus-4-6": {
           "name": "Claude Opus 4.6",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -20,6 +22,7 @@
         },
         "claude-sonnet-4-6": {
           "name": "Claude Sonnet 4.6",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -65,11 +68,18 @@
             "output": 32768
           }
         },
-        "deepseek-v4": {
-          "name": "DeepSeek V4",
+        "deepseek-v4-pro": {
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
           "limit": {
-            "context": 1000000,
-            "output": 32768
+            "context": 1048576,
+            "output": 262144
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled"
+            },
+            "reasoningEffort": "max"
           }
         }
       }
@@ -85,6 +95,7 @@
       "models": {
         "kimi-for-coding": {
           "name": "Kimi for Coding (K2.6)",
+          "reasoning": true,
           "limit": {
             "context": 262144,
             "output": 262144
@@ -108,6 +119,7 @@
       "models": {
         "glm-5.1": {
           "name": "GLM 5.1 (Z.AI)",
+          "reasoning": true,
           "limit": {
             "context": 202000,
             "output": 32768
@@ -123,6 +135,7 @@
       "models": {
         "claude-sonnet-4-6": {
           "name": "Claude Sonnet 4.6",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -130,6 +143,7 @@
         },
         "claude-opus-4-6": {
           "name": "Claude Opus 4.6",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -258,6 +272,33 @@
           "attachment": true
         }
       }
+    },
+    "openrouter-anthropic": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "OpenRouter (Anthropic Protocol)",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "compatibility": "compatible",
+        "includeUsage": true
+      },
+      "models": {
+        "anthropic/claude-opus-4.6": {
+          "name": "Claude Opus 4.6 (OR Anthropic)",
+          "reasoning": true,
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        },
+        "anthropic/claude-sonnet-4.6": {
+          "name": "Claude Sonnet 4.6 (OR Anthropic)",
+          "reasoning": true,
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          }
+        }
+      }
     }
   },
   "plugin": [
@@ -282,7 +323,7 @@
         "@z_ai/mcp-server"
       ],
       "environment": {
-        "Z_AI_API_KEY": "",
+        "Z_AI_API_KEY": "${Z_AI_API_KEY}",
         "Z_AI_MODE": "ZAI"
       },
       "enabled": true,
