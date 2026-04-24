@@ -60,7 +60,7 @@ These differences are **deliberate** — do not "fix" them:
 | Providers table order | Your primary first | openrouter first |
 | Auth paths | May have personal paths (e.g., `~/.local/share/opencode/auth.json`) | Generic `auth.json` |
 | Presets | 4 (including your live preset) | 4 (balanced, cheap, premium, custom) — default remains `balanced` |
-| Per-project config | `.opencode/oh-my-opencode-slim.json` with personal overrides | Same file, plugin reads natively, deep-merges |
+| Per-project config | `.opencode/oh-my-opencode-slim.jsonc` (preferred) or `.json` with personal overrides | Same file, plugin reads natively, deep-merges |
 | Direct provider routing | e.g., `anthropic/claude-sonnet-4-6` (no OpenRouter markup) | OpenRouter for general presets/chains; `custom` may keep subscription providers |
 
 ## Scrubbing Checklist
@@ -84,7 +84,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] General preset/fallback chains should use OpenRouter equivalents (custom may keep subscription models)
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Custom model table in AGENTS.md → replace with pointer to oh-my-opencode-slim.json
-- [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.json` → strip personal models
+- [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.jsonc` → strip personal models
 - [ ] Z.ai Vision MCP `Z_AI_API_KEY` value → must be empty string `""` (never share API keys)
 
 ### Verification

@@ -104,7 +104,7 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 
 ### Per-Project Config
 
-The `oc` launcher creates `.opencode/oh-my-opencode-slim.json` in your project root on first run. Override preset or individual agent models:
+The `oc` launcher creates `.opencode/oh-my-opencode-slim.jsonc` (preferred, supports comments) or `.json` in your project root on first run. Override preset or individual agent models:
 
 ```json
 { "preset": "cheap" }

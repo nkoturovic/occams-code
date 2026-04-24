@@ -60,7 +60,7 @@ Backup filename is `/tmp/oc-perm-backup-UID-PID` — the PID suffix prevents con
 
 ## Per-Project Config
 
-On first `oc` in a new project, the launcher offers to create `.opencode/oh-my-opencode-slim.json` with a preset choice. The plugin reads this file natively and deep-merges it with the global config.
+On first `oc` in a new project, the launcher offers to create `.opencode/oh-my-opencode-slim.jsonc` (preferred, supports comments) with a preset choice. The plugin reads this file natively and deep-merges it with the global config.
 
 Edit the file directly to override preset or individual agent models. No wizard needed.
 
