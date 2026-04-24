@@ -98,7 +98,7 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4.6",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -164,7 +164,7 @@
     },
     "premium": {
       "orchestrator": {
-        "model": "openrouter/anthropic/claude-opus-4-6",
+        "model": "openrouter/anthropic/claude-opus-4.6",
         "variant": "max",
         "temperature": 0.3,
         "skills": [
@@ -175,7 +175,7 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/anthropic/claude-opus-4-6",
+        "model": "openrouter/anthropic/claude-opus-4.6",
         "variant": "max",
         "temperature": 0.2,
         "skills": [],
@@ -198,7 +198,7 @@
         ]
       },
       "explorer": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4.6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -209,7 +209,7 @@
         ]
       },
       "librarian": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4.6",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -220,7 +220,7 @@
         ]
       },
       "fixer": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "openrouter/anthropic/claude-sonnet-4.6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -404,7 +404,7 @@
     "presets": {
       "balanced": {
         "master": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "model": "openrouter/anthropic/claude-sonnet-4.6",
           "temperature": 0.3
         },
         "reviewer-1": {
@@ -436,11 +436,11 @@
       },
       "premium": {
         "master": {
-          "model": "openrouter/anthropic/claude-opus-4-6",
+          "model": "openrouter/anthropic/claude-opus-4.6",
           "temperature": 0.3
         },
         "reviewer-1": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "model": "openrouter/anthropic/claude-sonnet-4.6",
           "temperature": 0.6
         },
         "reviewer-2": {
@@ -466,7 +466,7 @@
           "temperature": 0.6
         },
         "reviewer-3": {
-          "model": "openrouter/anthropic/claude-sonnet-4-6",
+          "model": "openrouter/anthropic/claude-sonnet-4.6",
           "temperature": 0.3
         }
       }
