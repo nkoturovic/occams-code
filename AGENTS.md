@@ -14,9 +14,6 @@
 
 ## Anti-Loop Rules (All Agents)
 
-- **Anti-loop rule:** If you find yourself reading the same file more than twice without making progress, STOP and escalate to the orchestrator or ask the user for direction.
-- **Anti-loop rule:** Do not repeat the same tool call with identical arguments. If the result didn't help, try a different approach or stop.
-- **Anti-loop rule:** If you have made 10+ consecutive turns without completing the task, STOP and ask the user for direction.
 - **Anti-loop rule:** If an edit fails twice, STOP and report the failure. Do not retry a third time.
 
 **@fixer instructions:**
