@@ -305,7 +305,8 @@
       "headers": {
         "Authorization": "Bearer your_Z_AI_API_key"
       },
-      "enabled": true
+      "enabled": true,
+      "timeout": 60000
     }
   },
   "agent": {
