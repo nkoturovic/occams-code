@@ -3,13 +3,14 @@
 # oc - OpenCode launcher
 #
 # Usage:
-#   oc                  # Interactive: pick preset (first run), session, launch
-#   oc --quick          # Skip prompts, use project/global config directly
-#   oc --preset cheap   # Set preset (writes project config), launch
-#   oc --doctor         # Run diagnostics (config, wiki, lint)
-#   oc --init-project   # Create project wiki page + AGENTS.md
+#   oc                    Interactive: pick preset (first run), session, launch
+#   oc --quick            Skip prompts, use project/global config directly
+#   oc --preset cheap     Set preset (writes project config), launch
+#   oc --doctor           Run diagnostics (config, wiki, lint)
+#   oc --sync-profile     Regenerate config from model-profile.jsonc
+#   oc --init-project     Create project wiki page + AGENTS.md
 #   oc --ingest-repo URL  Snapshot GitHub repo into wiki
-#   oc -c               # Continue last session
+#   oc -c                 Continue last session
 #
 
 # --- Bash version gate (requires 4.0+) ---
@@ -45,12 +46,13 @@ fi
 
 # --- Parse arguments ---
 QUICK=false; PRESET_ARG=""; INIT_PROJECT=false; DOCTOR=false
-INGEST_REPO=""; SAFE=false; UNSAFE=false; OPENCODE_ARGS=()
+INGEST_REPO=""; SAFE=false; UNSAFE=false; SYNC_PROFILE=false; OPENCODE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --quick|-q)    QUICK=true; shift ;;
     --preset|-p)   PRESET_ARG="$2"; shift 2 ;;
+    --sync-profile) SYNC_PROFILE=true; shift ;;
     --safe)        SAFE=true; shift ;;
     --unsafe)      UNSAFE=true; shift ;;
     --init-project) INIT_PROJECT=true; shift ;;
@@ -64,6 +66,7 @@ while [[ $# -gt 0 ]]; do
       echo "  oc --quick            Skip prompts, use project/global config"
       echo "  oc --preset <name>    Set preset, create project config, launch"
       echo "  oc --doctor           Run diagnostics (config, wiki, lint)"
+      echo "  oc --sync-profile     Regenerate config from model-profile.jsonc"
       echo "  oc --init-project     Create project wiki page + AGENTS.md"
       echo "  oc --ingest-repo URL  Snapshot GitHub repo into wiki"
       echo "  oc --safe             Permission prompts for this session"
@@ -254,6 +257,18 @@ run_project_init() {
   python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"
 }
 
+# --- Standalone: sync models from model-profile ---
+run_sync_profile() {
+  local map_file="$HOME/.config/opencode/model-profile.jsonc"
+  if [[ ! -f "$map_file" ]]; then
+    echo -e "${YELLOW}~/.config/opencode/model-profile.jsonc not found. Create it first.${RESET}"
+    echo "  See: ~/wiki/wiki/concepts/model-profile-guide.md"
+    return 1
+  fi
+  python3 "$HOME/.config/opencode/scripts/model-profile.py" "$map_file" "$CONFIG"
+  echo -e "${GREEN}✓ Config regenerated from model-profile.jsonc${RESET}"
+}
+
 # --- Permission management ---
 launch_with_permissions() {
   local mode="$1" perm_backup="/tmp/oc-perm-backup-$(id -u)-$$"
@@ -301,6 +316,7 @@ main() {
     exit 0
   fi
   [[ "$DOCTOR" == true ]] && { run_doctor; exit $?; }
+  [[ "$SYNC_PROFILE" == true ]] && { run_sync_profile; exit $?; }
   [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
   # Crash recovery (before any output)
