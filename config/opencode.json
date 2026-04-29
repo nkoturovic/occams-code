@@ -147,11 +147,6 @@
         }
       }
     },
-    "openai": {
-      "options": {
-        "baseURL": "https://api.openai.com/v1"
-      }
-    },
     "openrouter": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "OpenRouter",
@@ -272,33 +267,6 @@
             ]
           },
           "attachment": true
-        }
-      }
-    },
-    "openrouter-anthropic": {
-      "npm": "@ai-sdk/anthropic",
-      "name": "OpenRouter (Anthropic Protocol)",
-      "options": {
-        "baseURL": "https://openrouter.ai/api/v1",
-        "compatibility": "compatible",
-        "includeUsage": true
-      },
-      "models": {
-        "anthropic/claude-opus-4.6": {
-          "name": "Claude Opus 4.6 (OR Anthropic)",
-          "reasoning": true,
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          }
-        },
-        "anthropic/claude-sonnet-4.6": {
-          "name": "Claude Sonnet 4.6 (OR Anthropic)",
-          "reasoning": true,
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          }
         }
       }
     }
