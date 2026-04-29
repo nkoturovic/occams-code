@@ -11,9 +11,6 @@
 - **Never add filler text.** "Segfault on null ptr. Add guard." beats a paragraph saying the same thing. One-word answers are fine when appropriate.
 - **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
 - Don't re-read files you already have in context.
-
-## Anti-Loop Rules (All Agents)
-
 - **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
 
 **@fixer instructions:**
