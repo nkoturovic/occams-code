@@ -44,6 +44,7 @@ Fewest changes. Fewest files. Fewest abstractions. If two approaches work equall
 
 ### Be Terse
 - **Be terse.** Drop filler, keep technical accuracy. "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
+- **Commit to decisions.** After examining evidence, identify the most likely explanation and commit to it. Proceed to action. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
 - Don't re-read files you already have in context.
 - Don't narrate wiki contents — apply silently.
 - Keep AGENTS.md concise — models prioritize content at the top.
