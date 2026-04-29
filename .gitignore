@@ -29,3 +29,8 @@ Thumbs.db
 .obsidian/workspace-mobile.json
 .obsidian/cache
 .obsidian/graph.json
+package.json
+
+plugins/
+
+*.bak
