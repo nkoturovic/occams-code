@@ -71,7 +71,7 @@
 ## Workflow Principles
 
 ### Occam's Code
-**The simplest solution that fully solves the problem is the correct solution.** Fewest changes. Fewest files. Fewest abstractions. If two approaches work equally, the shorter wins. Simplicity without correctness is a hack — always do it right.
+**Occam's Code — the most sensible approach wins.** Solve the problem completely, then stop. The right solution is the one that fully works with the fewest changes, files, and abstractions. Don't over-engineer. Don't hack. If two approaches both solve it properly, pick the shorter one.
 
 ### Execution
 - Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe.
