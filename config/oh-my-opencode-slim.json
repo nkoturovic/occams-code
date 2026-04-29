@@ -239,9 +239,8 @@
     },
     "custom": {
       "orchestrator": {
-        "model": "zai-coding-plan/glm-5.1",
+        "model": "deepseek/deepseek-v4-pro",
         "variant": "high",
-        "temperature": 0.3,
         "skills": [
           "*"
         ],
@@ -335,6 +334,7 @@
     "timeoutMs": 60000,
     "chains": {
       "orchestrator": [
+        "deepseek/deepseek-v4-pro",
         "openrouter/moonshotai/kimi-k2.6",
         "openrouter/z-ai/glm-5.1",
         "openrouter/anthropic/claude-sonnet-4.6",
