@@ -68,6 +68,7 @@ chmod +x ~/.config/opencode/bin/oc
 
 # 3. Copy preset config
 cp config/oh-my-opencode-slim.json ~/.config/opencode/oh-my-opencode-slim.json
+cp model-profile.jsonc ~/.config/opencode/model-profile.jsonc
 
 # 4. Copy AGENTS.md
 cp AGENTS.md ~/.config/opencode/AGENTS.md
@@ -170,6 +171,7 @@ rm -rf ~/.config/opencode/scripts/
 rm -rf ~/.config/opencode/commands/
 rm ~/.config/opencode/AGENTS.md
 rm ~/.config/opencode/oh-my-opencode-slim.json
+rm ~/.config/opencode/model-profile.jsonc
 
 # Optionally remove wiki (YOUR KNOWLEDGE BASE — back up first!)
 # rm -rf ~/wiki/
