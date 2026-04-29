@@ -100,9 +100,9 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 | `cheap` | Quick tasks, exploration | Free/cheap models only |
 | `balanced` | Daily development | Mix of quality and cost |
 | `premium` | Complex architecture, debugging | Best models regardless of cost |
-| `custom` | **Subscription-based** — mirrors the live setup's Kimi+GLM allocation | Requires Kimi for Coding ($39/mo) and Z.AI Coding Plan ($30/mo) |
+| `custom` | **Subscription-based** — live setup: DeepSeek V4 Pro (orchestrator, oracle), plus Kimi + Z.AI GLM | Requires DeepSeek API, Kimi for Coding ($39/mo), and Z.AI Coding Plan ($30/mo) |
 
-**Note:** The `custom` preset uses `kimi-for-coding/` and `zai-coding-plan/` providers that require active subscriptions. If you don't have these, use `balanced` or `premium` instead.
+**Note:** The `custom` preset uses `deepseek/`, `kimi-for-coding/`, and `zai-coding-plan/` providers that require active subscriptions or API keys. If you don't have these, use `balanced` or `premium` instead.
 
 ### Per-Project Config
 
@@ -140,6 +140,7 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 | Script | Purpose |
 |--------|---------|
+| `model-profile.py` | **Config generator** — generates oh-my-opencode-slim.json from model-profile.jsonc |
 | `wiki-lint.py` | Wiki health check (dead links, orphans, stale pages) |
 | `project-init.py` | Creates wiki page + project AGENTS.md |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki |
@@ -170,7 +171,6 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | **context7** | Remote library documentation lookup |
 | **grep_app** | Search code across open-source repos |
 | **zai_vision** | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai API key) |
-
 | **web-search-prime** | Z.AI web search (included in GLM Coding Plan) |
 
 ## Workflow Principles
@@ -209,8 +209,8 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── opencode.json                  # Core config
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── bin/oc                         # Launcher script
-├── scripts/                       # Python utilities (4 scripts)
-└── commands/                      # Slash command definitions (4 commands)
+├── scripts/                       # Python utilities (5 scripts)
+├── commands/                      # Slash command definitions (6 commands)
 
 ~/wiki/
 ├── AGENTS.md                      # Wiki schema (LLM follows these rules)
