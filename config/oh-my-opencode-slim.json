@@ -21,7 +21,7 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/deepseek/deepseek-v3.2",
+        "model": "deepseek/deepseek-v4-pro",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -98,7 +98,7 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/anthropic/claude-sonnet-4.6",
+        "model": "deepseek/deepseek-v4-pro",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -175,7 +175,7 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/anthropic/claude-opus-4.6",
+        "model": "deepseek/deepseek-v4-pro",
         "variant": "max",
         "temperature": 0.2,
         "skills": [],
@@ -242,14 +242,9 @@
     },
     "custom": {
       "orchestrator": {
-        "model": "kimi-for-coding/kimi-for-coding",
+        "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 16000
-          }
-        },
+        "temperature": 0.3,
         "skills": [
           "*"
         ],
@@ -258,7 +253,7 @@
         ]
       },
       "oracle": {
-        "model": "zai-coding-plan/glm-5.1",
+        "model": "deepseek/deepseek-v4-pro",
         "variant": "high",
         "temperature": 0.5,
         "skills": [],
@@ -351,9 +346,9 @@
         "openrouter/qwen/qwen3-coder:free"
       ],
       "oracle": [
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v3.2",
         "openrouter/anthropic/claude-sonnet-4.6",
-        "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/z-ai/glm-5.1",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free"
       ],

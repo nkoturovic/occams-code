@@ -53,13 +53,9 @@
       "options": {}
     },
     "deepseek": {
-      "npm": "@ai-sdk/openai-compatible",
+      "npm": "@ai-sdk/deepseek",
       "name": "DeepSeek API",
-      "options": {
-        "baseURL": "https://api.deepseek.com",
-        "compatibility": "flexible",
-        "includeUsage": true
-      },
+      "options": {},
       "models": {
         "deepseek-v3.2": {
           "name": "DeepSeek V3.2",
@@ -74,12 +70,6 @@
           "limit": {
             "context": 1048576,
             "output": 262144
-          },
-          "options": {
-            "thinking": {
-              "type": "enabled"
-            },
-            "reasoningEffort": "max"
           }
         }
       }
@@ -101,8 +91,14 @@
             "output": 262144
           },
           "modalities": {
-            "input": ["text", "image", "video"],
-            "output": ["text"]
+            "input": [
+              "text",
+              "image",
+              "video"
+            ],
+            "output": [
+              "text"
+            ]
           },
           "attachment": true
         }
@@ -179,8 +175,14 @@
             "output": 131072
           },
           "modalities": {
-            "input": ["text", "image", "video"],
-            "output": ["text"]
+            "input": [
+              "text",
+              "image",
+              "video"
+            ],
+            "output": [
+              "text"
+            ]
           }
         },
         "anthropic/claude-opus-4.6": {
