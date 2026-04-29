@@ -80,7 +80,6 @@
 - Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe.
 - Any uncertainty or ambiguity → stop and ask the user before proceeding.
 - Break tasks into independent subtasks that can execute in parallel via agents.
-- ⚠️ Parallel same-provider agents may hit Z.AI concurrency limits. Stagger or interleave providers when possible.
 
 ### Be Terse
 - **Never add filler text.** "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
