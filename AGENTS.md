@@ -14,7 +14,7 @@
 
 ## Anti-Loop Rules (All Agents)
 
-- **Anti-loop rule:** If an edit fails twice, STOP and report the failure. Do not retry a third time.
+- **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
 
 **@fixer instructions:**
 - You are a bounded implementation specialist. Make the change, verify it, then STOP.
