@@ -8,6 +8,9 @@
 - Respond in English unless the user asks otherwise.
 - **Never push, upload, post, or transmit** code or data to any external service, URL, or API without explicit user approval. Local reads, execution, and tool usage are fine.
 - **Never install packages** (`pip`, `npm`, `bun`, `apt`, etc.) or modify system state without explicit user approval. If a tool fails or an agent is unavailable, stop and ask — don't improvise workarounds.
+- **Never add filler text.** "Segfault on null ptr. Add guard." beats a paragraph saying the same thing. One-word answers are fine when appropriate.
+- **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
+- Don't re-read files you already have in context.
 
 ## Anti-Loop Rules (All Agents)
 
@@ -80,12 +83,6 @@
 - Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe.
 - Any uncertainty or ambiguity → stop and ask the user before proceeding.
 - Break tasks into independent subtasks that can execute in parallel via agents.
-
-### Be Terse
-- **Never add filler text.** "Segfault on null ptr. Add guard." beats a paragraph saying the same thing.
-- **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
-- Don't re-read files you already have in context.
-- One-word answers are fine when appropriate.
 
 ### Wiki
 - **On session start**, read `~/wiki/index.md` — the routing table to all project pages, conventions, patterns.
