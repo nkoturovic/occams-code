@@ -6,11 +6,16 @@ description: Switch which model runs which agent role (global or per-project)
 
 ## Finding the Right Model ID & Temperature
 
-Before editing, find the correct values:
+Both come from one file: `~/.config/opencode/model-profile.jsonc`.
 
-1. **Model IDs** — Read `~/.config/opencode/model-profile.jsonc`. Copy the exact `"model"` string from the same agent in another preset (e.g., if user wants Claude Sonnet for oracle, check `model-profile.jsonc` — it's already there for `balanced.oracle`).
-2. **Temperatures** — Read `~/wiki/wiki/concepts/agent-roles-and-models.md` (temperature table near line 96). For Kimi: no temp, set `"thinking": 16000`. For DeepSeek V4 Pro: no temp. For others: use the table value.
-3. **Provider models** — `~/.config/opencode/opencode.json` lists all valid model IDs per provider. Use exact IDs from here.
+Every model in your config already has a temperature example in at least one preset. To find the right value for a model:
+1. Search for that model string across all presets in `model-profile.jsonc`
+2. Copy its `"temperature"` or `"thinking"` field — same model, same temp regardless of role
+
+Rules (for models not yet in config):
+- Kimi models → no temperature, set `"thinking"`: 16000
+- DeepSeek V4 Pro → no temperature, no thinking (provider handles it)
+- All other models → 1.0 unless you have a specific reason to lower it
 
 ## Global model switch (applies everywhere)
 
