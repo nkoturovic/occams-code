@@ -71,7 +71,7 @@
 ## Workflow Principles
 
 ### Occam's Code
-**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering. Find the right balance. If two approaches both fully work, the shorter one wins — at every level of abstraction.
+**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering. Find the right balance. If two approaches both fully work, the shorter one wins — at the right level of abstraction for the job.
 
 ### Execution
 - Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe.
