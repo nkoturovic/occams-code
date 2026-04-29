@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Generate oh-my-opencode-slim.json from a concise model-map.jsonc.
+"""Generate oh-my-opencode-slim.json from a concise model-profile.jsonc.
 
 Usage:
-  python3 model-transition.py model-map.jsonc > oh-my-opencode-slim.json
+  python3 model-profile.py model-profile.jsonc > oh-my-opencode-slim.json
 
-The model-map.jsonc specifies only the variable parts (model, temperature,
+The model-profile.jsonc specifies only the variable parts (model, temperature,
 variant, thinking options). Everything else (skills, MCPs, fallback chains,
 council config, infrastructure keys) is templated from constants.
+
+Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
+(the plugin already reads this and deep-merges at startup).
 
 Why this exists:
   - 61% of the 457-line config is repetitive boilerplate
@@ -15,7 +18,7 @@ Why this exists:
 
 Design (Occam's Code):
   - Zero dependencies (Python stdlib only)
-  - JSONC input with comments (copy-paste strip_jsonc regex from ouroboros)
+  - JSONC input with comments
   - Agent role defaults embedded as constants
   - Single-file script, single-file input → single-file output
 """
@@ -301,8 +304,8 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print("Usage: python3 model-transition.py model-map.jsonc [output.json]", file=sys.stderr)
-        print("  Reads model-map.jsonc, writes oh-my-opencode-slim.json", file=sys.stderr)
+        print("Usage: python3 model-profile.py model-profile.jsonc [output.json]", file=sys.stderr)
+        print("  Reads model-profile.jsonc, writes oh-my-opencode-slim.json", file=sys.stderr)
         return 1
 
     map_path = Path(sys.argv[1])
