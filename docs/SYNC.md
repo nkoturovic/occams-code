@@ -17,9 +17,9 @@ There are two directions:
 
 | File | Live location | Repo location | Notes |
 |------|--------------|---------------|-------|
-| Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~363 lines. No model tweaker, no startup health checks |
-| Scripts | `~/.config/opencode/scripts/*.py` | `scripts/*.py` | 4 files: wiki-lint.py, project-init.py, repo-ingest.py, detect-project-state.py |
-| Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 5 files: permissions, preset, remember, wiki, wiki-lint |
+| Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~387 lines |
+| Scripts | `~/.config/opencode/scripts/*.py` | `scripts/*.py` | 5 files: model-profile.py, wiki-lint.py, project-init.py, repo-ingest.py, detect-project-state.py |
+| Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 6 files: model-switch.md, permissions.md, preset.md, remember.md, wiki.md, wiki-lint.md |
 
 ### Files that SYNC with SCRUBBING (live → repo only)
 
@@ -130,7 +130,7 @@ python3 -c "import json; json.load(open('config/oh-my-opencode-slim.json'))"
 
 # Line count reasonable
 wc -l AGENTS.md  # Should be ~100 lines
-wc -l bin/oc     # Should be ~363 lines
+wc -l bin/oc     # Should be ~387 lines
 ```
 
 ### 5. Commit and push

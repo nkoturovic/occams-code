@@ -22,13 +22,13 @@
     // },
 
     // "oracle": {
-    //   "model": "openrouter/anthropic/claude-sonnet-4-6"
+    //   "model": "openrouter/anthropic/claude-sonnet-4.6"
     // }
 
     // Enable video analysis (also set zai_vision enabled: true in opencode.json):
     // "observer": {
     //   "model": "openrouter/moonshotai/kimi-k2.6",
-    //   "mcps": ["websearch", "context7", "zai_vision"]
+    //   "mcps": ["web-search-prime", "context7", "zai_vision"]
     // }
   }
 }

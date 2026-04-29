@@ -10,10 +10,11 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **4 presets** — `balanced` (default), `cheap`, `premium`, `custom` (subscription-based)
-- **4 Python scripts** — Wiki lint, project init, repo ingestion, project state detection
-- **4 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions` (plus `/auto-continue` from oh-my-opencode-slim)
+- **5 Python scripts** — Config generator, wiki lint, project init, repo ingestion, project state detection
+- **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
-- **3 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in). Plus websearch (Exa) built-in to plugin
+- **model-profile.jsonc** — Single source of truth for model assignments. Edit this file, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
+- **4 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis), web-search-prime (Z.AI web search)
 - **2 local skills** — codemap, simplify (plus 5 from obsidian-skills plugin if installed: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 6 workflow principles for AI agents, ordered by criticality
@@ -58,7 +59,7 @@ See [INSTALL.md](INSTALL.md) for detailed per-platform instructions.
 ```bash
 oc                  # Interactive: pick preset, launch
 oc --preset cheap   # Skip prompts, use cheap preset
-oc --doctor         # Check everything is set up correctly
+oc --sync-profile   # Regenerate oh-my-opencode-slim.json from model-profile.jsonc
 ```
 
 ## Usage
@@ -70,6 +71,7 @@ oc                  Interactive launch (first run picks preset)
 oc --quick          Skip prompts, use project/global config directly
 oc --preset <name>  Set preset, create project config, launch
 oc --doctor         Run diagnostics (config, wiki, lint)
+oc --sync-profile    Regenerate config from model-profile.jsonc
 oc --init-project   Create project wiki page + AGENTS.md
 oc --ingest-repo URL  Snapshot GitHub repo into wiki
 oc -c               Continue last session
@@ -169,7 +171,7 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | **grep_app** | Search code across open-source repos |
 | **zai_vision** | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai API key) |
 
-**Built-in:** websearch (Exa) — provided by oh-my-opencode-slim plugin, no config needed.
+| **web-search-prime** | Z.AI web search (included in GLM Coding Plan) |
 
 ## Workflow Principles
 
