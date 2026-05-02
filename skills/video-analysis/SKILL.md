@@ -1,6 +1,6 @@
 ---
 name: video-analysis
-description: Analyze video files using Kimi K2.6 native video_url support. Use when the user asks to analyze a video, describe video content, extract information from video, or understand what happens in a video file.
+description: Analyze video files using multimodal LLMs (Kimi K2.6 for visual, Gemini via OpenRouter for audio+visual). Use when the user asks to analyze a video, describe video content, extract information from video, or understand what happens in a video file.
 ---
 
 # Video Analysis Skill
@@ -10,42 +10,45 @@ description: Analyze video files using Kimi K2.6 native video_url support. Use w
 - User asks to analyze a video file (mp4, mov, avi, webm, etc.)
 - User wants a description of what happens in a video
 - User needs text/video content extracted from a recording
-- Video is at a known file path
+- User wants video analysis with audio track understanding (lectures, talks, etc.)
 
 ## How to Analyze Video
 
-Use the `kimi-video.py` script, which sends the video directly to Kimi K2.6's native video analysis:
+Use the `analyze-video.py` script. Zero dependencies — stdlib only.
 
 ```bash
-python3 ~/.config/opencode/scripts/kimi-video.py <video_path> [prompt]
+# Default: Kimi K2.6 (visual keyframes, no audio)
+python3 ~/.config/opencode/scripts/analyze-video.py /tmp/video.mp4
+
+# With audio track analysis (Gemini via OpenRouter)
+python3 ~/.config/opencode/scripts/analyze-video.py --provider openrouter /tmp/video.mp4
+
+# Specific prompt
+python3 ~/.config/opencode/scripts/analyze-video.py /tmp/video.mp4 "What happens after 0:30?"
+
+# Specific model
+python3 ~/.config/opencode/scripts/analyze-video.py --provider openrouter --model google/gemini-3-pro-preview /tmp/video.mp4
 ```
 
-The script:
-- Reads the video file from disk
-- Base64-encodes it and sends it as `video_url` content to Kimi K2.6 API
-- Kimi K2.6 processes the video natively (keyframe extraction)
-- Returns a plain-text analysis
+## Provider Comparison
 
-**Limitations:**
-- Max video size: 100MB (inline base64 limit)
-- Supported formats: mp4, mpeg, mov, avi, flv, mpg, webm, wmv, 3gpp
-- No audio analysis — video is visual-only (keyframes). For audio, extract with ffmpeg first.
+| Provider | Flag | Model | Audio? | Limit | Best for |
+|---|---|---|---|---|---|
+| Kimi K2.6 (default) | `--provider kimi` or omit | `kimi-k2.6` | No | 100MB | UI flows, code recordings, visual-only |
+| OpenRouter → Gemini | `--provider openrouter` | `google/gemini-3-flash-preview` | Yes | 20MB | Lectures, talks, audio-dependent content |
 
 ## Environment
 
-The script requires `KIMI_API_KEY` environment variable — already set in the session.
-It uses the `openai` Python package (already installed via `uv pip`).
+- `KIMI_API_KEY` (default provider) — already set in the session
+- `OPENROUTER_API_KEY` (for `--provider openrouter`) — already set in the session
 
-## Examples
+## Limitations
 
-```
-# Basic analysis
-python3 ~/.config/opencode/scripts/kimi-video.py /tmp/demo.mp4
+- Max file sizes: Kimi 100MB, OpenRouter 20MB (inline base64)
+- Supported formats: mp4, mpeg, mov, avi, flv, mpg, webm, wmv, 3gpp
+- Kimi: visual only (keyframe extraction)
+- Gemini (via OpenRouter): audio+visual, 1fps sampling, supports timestamps
 
-# Specific question
-python3 ~/.config/opencode/scripts/kimi-video.py /tmp/demo.mp4 "What UI elements appear after clicking the button?"
+## Fallback
 
-# Compare two videos
-python3 ~/.config/opencode/scripts/kimi-video.py /tmp/before.mp4 "Describe the layout"
-python3 ~/.config/opencode/scripts/kimi-video.py /tmp/after.mp4 "Describe the layout"
-```
+For small clips (≤8MB), `zai_vision` MCP `video_analysis` is available but lower quality (server-side pipeline, not model-native).
