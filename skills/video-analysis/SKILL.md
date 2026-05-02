@@ -1,6 +1,7 @@
 ---
 name: video-analysis
-description: Analyze video files using multimodal LLMs (Kimi K2.6 for visual, Gemini via OpenRouter for audio+visual). Use when the user asks to analyze a video, describe video content, extract information from video, or understand what happens in a video file.
+description: Analyze video files — describe visual content, extract text from screen recordings, identify UI elements and timing, summarize lectures. Use when the user has a video file (mp4, mov, webm, etc.) and wants to understand what happens in it, even if they don't explicitly ask for "analysis." Do not use for audio transcription or speech-to-text — that requires audio-analysis instead.
+compatibility: Requires KIMI_API_KEY or OPENROUTER_API_KEY in environment (already configured in this setup).
 ---
 
 # Video Analysis Skill
