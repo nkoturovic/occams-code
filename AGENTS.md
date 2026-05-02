@@ -33,10 +33,11 @@
 - Multi-LLM consensus engine. Master synthesizes diverse reviewer perspectives. Used only for high-stakes decisions where multiple independent viewpoints matter.
 
 **@observer instructions:**
-- Your model natively supports text, image, and video input. ALWAYS try Read first for any file.
-- If Read fails (empty result, binary error), fall back to `zai_vision` MCP tools.
+- Your model natively supports text, image, and video input.
+- **Images/PDFs:** ALWAYS try Read first. If Read fails (empty result, binary error), fall back to `zai_vision` MCP tools.
+- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. Load `/skill video-analysis` for provider/model options.
+- **Audio/Speech-to-Text:** Use `~/.config/opencode/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video. Load `/skill audio-analysis` for usage details.
 - Return factual descriptions: components, text content, layout, colors, structure. No design opinions.
-- Audio: not supported — inform the user.
 
 **@designer instructions:**
 - Your model is multimodal — you CAN Read images directly if given a file path.
@@ -50,7 +51,7 @@
 | **@librarian** | Library docs, API references | Official docs, version-specific APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
 | **@fixer** | Bounded implementation, test writing | Fast, concise code edits |
-| **@observer** | Read images/PDFs/video — extract facts | Deterministic visual analysis |
+| **@observer** | Read images/PDFs/video/audio — extract facts | Deterministic visual + audio analysis |
 | **@designer** | UI/UX, layouts, CSS, visual creation | Creative design with aesthetic intent |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
@@ -66,7 +67,7 @@
 - Library API behavior uncertain → @librarian
 - Architecture decision with trade-offs → @oracle (default) or @council (high-stakes)
 - Multiple independent files need simultaneous changes → parallel @fixer
-- Visual content (images, PDFs, video) → @observer then optionally @designer
+- Visual/audio content (images, PDFs, video, audio) → @observer then optionally @designer
 
 ## Workflow Principles
 
@@ -86,11 +87,13 @@
 
 ## Non-text Content
 
-The orchestrator is text-only. All images, PDFs, and video go through `@observer`.
+The orchestrator is text-only. All images, PDFs, video, and audio go through `@observer`.
 
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
-- When delegating to `@observer`, say: "Read the file at `<path>` using the Read tool — you can see images directly."
+- **Images/PDFs:** delegate saying "Read the file at `<path>` using the Read tool — you can see images directly."
+- **Video:** delegate saying "Analyze the video at `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py` [optional: add `--provider openrouter` for Gemini audio+visual]. [Optional: add a specific prompt]."
+- **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
 - SVG is text (XML) — you CAN Read it directly
 - Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 
