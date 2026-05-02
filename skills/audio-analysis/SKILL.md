@@ -1,6 +1,7 @@
 ---
 name: audio-analysis
-description: Transcribe speech to text from audio/video files using whisper.cpp (local, Vulkan GPU). Use when the user asks to transcribe audio, extract text from a lecture/talk, convert speech to text, or generate subtitles.
+description: Transcribe speech to text from audio or video files — generate subtitles, extract lecture notes, convert podcasts or meetings to text. Use when the user has an audio/video file and wants a transcript, subtitles, or text version of spoken content, even if they don't say "transcribe." Do not use for visual video analysis — that requires video-analysis instead.
+compatibility: Requires nix and ffmpeg. Model auto-downloaded on first use.
 ---
 
 # Audio Analysis Skill
