@@ -94,10 +94,11 @@ The orchestrator is text-only. All images, PDFs, video, and audio go through `@o
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
 - **Images/PDFs:** delegate saying "Read the file at `<path>` using the Read tool — you can see images directly."
-- **Video with audio spoken content (lectures, talks):** delegate both: "1. Transcribe the audio using `~/.config/opencode/scripts/transcribe <path> --language sr`. 2. Analyze the visuals using `python3 ~/.config/opencode/scripts/analyze-video.py <path>`." For short clips (≤20MB), `--provider openrouter` on analyze-video.py handles audio+visual in one call.
+- **Video (visual only):** delegate saying "Analyze the video at `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py` [optional: add a specific prompt]."
 - **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
+- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py`." For short clips (≤20MB), `--provider openrouter` on analyze-video.py handles both in one call.
 - SVG is text (XML) — you CAN Read it directly
-- Image/PDF/video URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
+- Image/PDF/video/audio URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 
 ## Current Config
 
