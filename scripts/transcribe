@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# transcribe — speech-to-text using whisper.cpp with Vulkan GPU (local)
+#
+# Converts speech in audio/video files to text with timestamps.
+# Videos are auto-extracted to 16kHz mono WAV before transcription.
+# Outputs SRT by default; pass whisper-cli flags for other formats.
+#
+# whisper.cpp is built via nix from kotur-nixpkgs (local clone or GitHub).
+# Model: ggml-large-v3-turbo (1.6 GB, auto-downloaded if missing, cached in ~/.local/share/opencode/models/whisper/).
+#
+# Usage:
+#   transcribe lecture.mp4                                    # auto lang, SRT
+#   transcribe lecture.mp4 --language sr                      # Serbian
+#   transcribe audio.wav -otxt -of /tmp/notes                 # plain text
+#   transcribe podcast.mp3 --language en --no-timestamps      # no timestamps
+#   transcribe video.mp4 --output-srt --output-file ./out     # named output
+
+set -euo pipefail
+
+MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/opencode/models/whisper"
+MODEL="${MODEL_DIR}/ggml-large-v3-turbo.bin"
+FLAKE_LOCAL="$HOME/personal/repos/kotur-nixpkgs"
+FLAKE_REMOTE="github:nkoturovic/kotur-nixpkgs"
+
+# ─── helpers ──────────────────────────────────────────────────────────────
+
+die()  { echo "ERROR: $*" >&2; exit 1; }
+
+is_video() {
+    case "${1##*.}" in
+        wav|mp3|flac|ogg|aac|m4a|opus) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+# ─── prerequisites ────────────────────────────────────────────────────────
+
+command -v nix    &>/dev/null || die "nix not found — required to build whisper.cpp"
+command -v ffmpeg &>/dev/null || die "ffmpeg not found — required for audio extraction"
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: transcribe <input> [whisper-cli flags...]" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  $0 lecture.mp4                     # auto language, SRT" >&2
+    echo "  $0 lecture.mp4 --language sr       # Serbian" >&2
+    echo "  $0 audio.wav -otxt -of /tmp/out    # plain text" >&2
+    exit 1
+fi
+
+INPUT="$1"; shift
+[[ -f "$INPUT" ]] || die "file not found: $INPUT"
+
+# ─── model ────────────────────────────────────────────────────────────────
+
+if [[ ! -f "$MODEL" ]]; then
+    echo "Downloading whisper model to ${MODEL_DIR} ..." >&2
+    mkdir -p "$MODEL_DIR"
+    wget -q --show-progress \
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin" \
+        -O "$MODEL"
+    echo "Downloaded: $(du -h "$MODEL" | cut -f1)" >&2
+fi
+
+# ─── flake resolution ─────────────────────────────────────────────────────
+
+if [[ -d "$FLAKE_LOCAL/.git" ]]; then
+    FLAKE="$FLAKE_LOCAL"
+else
+    FLAKE="$FLAKE_REMOTE"
+fi
+
+# ─── audio extraction (if video) ──────────────────────────────────────────
+
+if is_video "$INPUT"; then
+    TMP_WAV="$(mktemp /tmp/opencode-transcribe-XXXXXX.wav)"
+    trap 'rm -f "$TMP_WAV"' EXIT
+    echo "Extracting audio from: ${INPUT} ..." >&2
+    ffmpeg -v error -i "$INPUT" -vn -acodec pcm_s16le -ar 16000 -ac 1 "$TMP_WAV"
+    INPUT="$TMP_WAV"
+fi
+
+# ─── GPU env (RADV Vulkan) ────────────────────────────────────────────────
+
+export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-/usr/share/vulkan/icd.d/radeon_icd.x86_64.json}"
+export LD_LIBRARY_PATH="/run/opengl-driver/lib:/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# ─── transcribe ───────────────────────────────────────────────────────────
+
+echo "Transcribing with whisper.cpp (Vulkan/CPU) ..." >&2
+
+exec nix run "${FLAKE}#whisper-cpp-vulkan" -- \
+    -m "$MODEL" \
+    -f "$INPUT" \
+    --output-srt \
+    --print-progress \
+    "$@"
