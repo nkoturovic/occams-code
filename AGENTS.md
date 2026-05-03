@@ -35,7 +35,7 @@
 **@observer instructions:**
 - Your model natively supports text, image, and video input.
 - **Images/PDFs:** ALWAYS try Read first. If Read fails (empty result, binary error), fall back to `zai_vision` MCP tools.
-- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. For short clips (≤20MB), `--provider openrouter` on analyze-video.py handles audio+visual in one call.
+- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. Gemini via OpenRouter handles audio+visual in one call (≤20MB).
 - **Audio/Speech-to-Text:** Use `~/.config/opencode/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
 - **Combined (lectures/talks with slides):** Run both — transcribe for speech, analyze-video for visuals. Merge by timestamp.
 - Load `/skill video-analysis` or `/skill audio-analysis` for provider/model options and usage details.
@@ -96,7 +96,7 @@ The orchestrator is text-only. All images, PDFs, video, and audio go through `@o
 - **Images/PDFs:** delegate saying "Read the file at `<path>` using the Read tool — you can see images directly."
 - **Video (visual only):** delegate saying "Analyze the video at `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py` [optional: add a specific prompt]."
 - **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
-- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py`." For short clips (≤20MB), `--provider openrouter` on analyze-video.py handles both in one call.
+- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py`." For short clips (≤20MB), analyze-video.py handles both in one call (Gemini audio+visual).
 - SVG is text (XML) — you CAN Read it directly
 - Image/PDF/video/audio URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 

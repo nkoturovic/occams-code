@@ -1,7 +1,7 @@
 ---
 name: video-analysis
 description: Analyze video files — describe visual content, extract text from screen recordings, identify UI elements and timing, summarize lectures. Use when the user has a video file (mp4, mov, webm, etc.) and wants to understand what happens in it, even if they don't explicitly ask for "analysis." Do not use for audio transcription or speech-to-text — that requires audio-analysis instead.
-compatibility: Requires KIMI_API_KEY or OPENROUTER_API_KEY in environment (already configured in this setup).
+compatibility: Requires OPENROUTER_API_KEY (already set in session).
 ---
 
 # Video Analysis Skill
@@ -15,41 +15,65 @@ compatibility: Requires KIMI_API_KEY or OPENROUTER_API_KEY in environment (alrea
 
 ## How to Analyze Video
 
-Use the `analyze-video.py` script. Zero dependencies — stdlib only.
+Use the `analyze-video.py` script. Single provider: **OpenRouter → Gemini**.
+Gemini processes both audio and visual streams (1fps sampling + 1Kbps audio).
+Zero dependencies — stdlib only.
 
 ```bash
-# Default: Kimi K2.6 (visual keyframes, no audio)
+# Default: Gemini via OpenRouter (audio+visual, best for lectures/talks)
 python3 ~/.config/opencode/scripts/analyze-video.py /tmp/video.mp4
 
-# With audio track analysis (Gemini via OpenRouter)
-python3 ~/.config/opencode/scripts/analyze-video.py --provider openrouter /tmp/video.mp4
-
-# Specific prompt
-python3 ~/.config/opencode/scripts/analyze-video.py /tmp/video.mp4 "What happens after 0:30?"
+# Specific prompt (Serbian lecture, math content)
+python3 ~/.config/opencode/scripts/analyze-video.py /tmp/video.mp4 \
+  "Describe all visible content: slide titles, text, math formulas (LaTeX), diagrams. Language: Serbian."
 
 # Specific model
-python3 ~/.config/opencode/scripts/analyze-video.py --provider openrouter --model google/gemini-3-pro-preview /tmp/video.mp4
+python3 ~/.config/opencode/scripts/analyze-video.py -m google/gemini-3.1-pro-preview /tmp/video.mp4
 ```
 
-## Provider Comparison
+## Model
 
-| Provider | Flag | Model | Audio? | Limit | Best for |
-|---|---|---|---|---|---|
-| Kimi K2.6 (default) | `--provider kimi` or omit | `kimi-k2.6` | No | 100MB | UI flows, code recordings, visual-only |
-| OpenRouter → Gemini | `--provider openrouter` | `google/gemini-3-flash-preview` | Yes | 20MB | Lectures, talks, audio-dependent content |
+Default: `~google/gemini-pro-latest` — auto-upgrades to latest Gemini Pro (currently 3.1 Pro Preview). Override with `-m`.
+
+Supported formats: mp4, mpeg, mov, avi, flv, mpg, webm, wmv, 3gpp. Max 20MB inline.
 
 ## Environment
 
-- `KIMI_API_KEY` (default provider) — already set in the session
-- `OPENROUTER_API_KEY` (for `--provider openrouter`) — already set in the session
+- `OPENROUTER_API_KEY` — already set in the session
 
 ## Limitations
 
-- Max file sizes: Kimi 100MB, OpenRouter 20MB (inline base64)
-- Supported formats: mp4, mpeg, mov, avi, flv, mpg, webm, wmv, 3gpp
-- Kimi: visual only (keyframe extraction)
-- Gemini (via OpenRouter): audio+visual, 1fps sampling, supports timestamps
+- Max file size: 20MB (inline base64)
+- Gemini: audio+visual, 1fps sampling, supports timestamps
 
 ## Fallback
 
 For small clips (≤8MB), `zai_vision` MCP `video_analysis` is available but lower quality (server-side pipeline, not model-native).
+
+## Combined Audio+Video Pipeline
+
+### Short clips (≤20MB)
+
+Gemini via OpenRouter handles audio+visual in one call:
+
+```bash
+python3 ~/.config/opencode/scripts/analyze-video.py slide_chunk.mp4 \
+  "Describe all visible content and what the speaker says. Language: Serbian."
+```
+
+### Long lectures (>20MB)
+
+Two-pass approach — minimizes paid API calls:
+
+```bash
+# Pass 1: Audio transcription (free, local)
+transcribe lecture.mp4 --language sr
+
+# Pass 2: Scout with Gemini on sparse keyframes (one cheap call)
+mkdir -p keyframes
+ffmpeg -i lecture.mp4 -vf "fps=1/30" -q:v 5 keyframes/frame_%04d.jpg
+# → @observer reads every Nth keyframe, reports slide boundaries + topics
+
+# Pass 3: Detailed OCR on slide frames (free, via @observer Read tool)
+# @observer reads keyframes at identified boundaries, extracts text + LaTeX math
+```

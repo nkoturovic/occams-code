@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""Analyze a video file using a multimodal LLM that supports native video input.
+"""Analyze a video file using OpenRouter → Gemini.
 
-Supported providers:
-  kimi       Kimi K2.6 (KIMI_API_KEY) — visual keyframes, no audio track
-  openrouter OpenRouter (OPENROUTER_API_KEY) — proxies to Gemini etc,
-             which process both audio AND visual streams
+Gemini processes both audio and visual streams from video (1fps sampling +
+1Kbps audio). Default model: ~google/gemini-pro-latest (auto-upgrades to
+latest Gemini Pro — currently 3.1 Pro Preview). ≤20MB inline.
 
 Usage:
   analyze-video.py <video_path> [prompt]
-  analyze-video.py --provider openrouter <video_path> [prompt]
-  analyze-video.py --provider openrouter --model google/gemini-2.5-pro <video_path> [prompt]
+  analyze-video.py -m google/gemini-3.1-pro-preview <video_path> [prompt]
 
 Zero dependencies — stdlib only. No openai SDK, no requests.
 """
@@ -23,25 +21,13 @@ import urllib.request
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Provider config
+# Config
 # ---------------------------------------------------------------------------
 
-PROVIDERS = {
-    "kimi": {
-        "env_key": "KIMI_API_KEY",
-        "endpoint": "https://api.moonshot.cn/v1/chat/completions",
-        "model": "kimi-k2.6",
-        "max_inline_mb": 100,
-        "audio_track": False,
-    },
-    "openrouter": {
-        "env_key": "OPENROUTER_API_KEY",
-        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
-        "model": "google/gemini-3-flash-preview",
-        "max_inline_mb": 20,   # OpenRouter recommends <20MB for inline
-        "audio_track": True,   # Gemini processes both audio+visual from video
-    },
-}
+ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+DEFAULT_MODEL = "~google/gemini-pro-latest"
+MAX_INLINE_MB = 20
+ENV_KEY = "OPENROUTER_API_KEY"
 
 MIME_MAP = {
     ".mp4":  "mp4",
@@ -65,19 +51,18 @@ def detect_media_type(path: Path) -> str:
 # API call
 # ---------------------------------------------------------------------------
 
-def analyze(provider: str, model: str, video_path: Path, prompt: str) -> str:
-    cfg = PROVIDERS[provider]
-    api_key = os.environ.get(cfg["env_key"])
+def analyze(model: str, video_path: Path, prompt: str) -> str:
+    api_key = os.environ.get(ENV_KEY)
     if not api_key:
-        sys.exit(f"Error: {cfg['env_key']} environment variable not set")
+        sys.exit(f"Error: {ENV_KEY} environment variable not set")
 
     file_size = video_path.stat().st_size
-    max_bytes = cfg["max_inline_mb"] * 1024 * 1024
+    max_bytes = MAX_INLINE_MB * 1024 * 1024
     if file_size > max_bytes:
         mb = file_size / 1024 / 1024
         sys.exit(
             f"Error: video too large ({mb:.1f} MB). "
-            f"{provider} inline limit is {cfg['max_inline_mb']} MB. "
+            f"OpenRouter inline limit is {MAX_INLINE_MB} MB. "
             "Trim or compress the video first."
         )
 
@@ -104,16 +89,15 @@ def analyze(provider: str, model: str, video_path: Path, prompt: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/nkoturovic/occams-code",
+        "X-Title": "occams-code video analysis",
     }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://github.com/nkoturovic/occams-code"
-        headers["X-Title"] = "occams-code video analysis"
 
-    req = urllib.request.Request(cfg["endpoint"], data=body, headers=headers)
+    req = urllib.request.Request(ENDPOINT, data=body, headers=headers)
 
     print(
         f"Analyzing: {video_path.name} ({file_size / 1024 / 1024:.1f} MB) "
-        f"with {model}{' (audio+visual)' if cfg['audio_track'] else ' (visual only)'}...",
+        f"with {model} (audio+visual)...",
         file=sys.stderr,
     )
 
@@ -129,18 +113,12 @@ def analyze(provider: str, model: str, video_path: Path, prompt: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Analyze video using a multimodal LLM",
-    )
-    parser.add_argument(
-        "-p", "--provider",
-        choices=list(PROVIDERS),
-        default="kimi",
-        help="Provider to use (default: kimi)",
+        description="Analyze video using OpenRouter → Gemini (audio+visual)",
     )
     parser.add_argument(
         "-m", "--model",
-        default=None,
-        help="Model ID override (provider-specific)",
+        default=DEFAULT_MODEL,
+        help=f"Model ID (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
         "video",
@@ -158,11 +136,8 @@ def main() -> None:
     if not video_path.exists():
         sys.exit(f"Error: file not found: {args.video}")
 
-    provider = args.provider
-    model = args.model or PROVIDERS[provider]["model"]
-
     try:
-        response = analyze(provider, model, video_path, args.prompt)
+        response = analyze(args.model, video_path, args.prompt)
         print(response)
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
