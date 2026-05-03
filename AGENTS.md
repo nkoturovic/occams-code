@@ -15,6 +15,7 @@
 
 **@fixer instructions:**
 - You are a bounded implementation specialist. Make the change, verify it, then STOP.
+- Touch only what you must. Don't "improve" adjacent code, comments, or formatting. Don't refactor things that aren't broken. Match existing style, even if you'd do it differently. If you notice unrelated dead code, mention it — don't delete it. Clean up only orphans YOUR changes created.
 - Return concise confirmation: what changed, in which file, at what line.
 
 **@oracle instructions:**
@@ -75,11 +76,11 @@
 ## Workflow Principles
 
 ### Occam's Code
-**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering. Find the right balance. If two approaches both fully work, the shorter one wins — at the right level of abstraction for the job.
+**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering. Find the right balance. If two approaches both fully work, the shorter one wins — at the right level of abstraction for the job. Self-test: "Would a senior engineer say this is overcomplicated?" If yes, simplify. "Does every changed line trace to the request?" If not, revert the excess.
 
 ### Execution
-- Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe.
-- Any uncertainty or ambiguity → stop and ask the user before proceeding.
+- Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe. State assumptions explicitly — if multiple interpretations exist, present them rather than picking silently.
+- Plans follow: `1. [Step] → verify: [check]`. Every step has a pass/fail criterion. Vague goals ("review the code") harden into verifiable checks ("all tests pass, no new lint warnings").
 - Break tasks into independent subtasks that can execute in parallel via agents.
 
 ### Wiki
