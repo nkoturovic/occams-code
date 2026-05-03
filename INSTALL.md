@@ -60,11 +60,13 @@ chmod +x scripts/install.sh
 git clone https://github.com/nkoturovic/occams-code.git
 cd occams-code
 
-# 2. Copy scripts and commands
+# 2. Copy scripts, commands, and skills
 cp -r bin/ ~/.config/opencode/bin/
 cp -r scripts/ ~/.config/opencode/scripts/
 cp -r commands/ ~/.config/opencode/commands/
+cp -r skills/ ~/.opencode/skills/
 chmod +x ~/.config/opencode/bin/oc
+chmod +x ~/.config/opencode/scripts/transcribe
 
 # 3. Copy preset config
 cp config/oh-my-opencode-slim.json ~/.config/opencode/oh-my-opencode-slim.json

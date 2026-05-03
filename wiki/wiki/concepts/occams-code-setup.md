@@ -119,11 +119,18 @@ Built into oh-my-opencode-slim. Config:
 
 ## Skills
 
+Skills are **on-demand procedural expertise** for agents. They differ from AGENTS.md (always loaded) and MCP tools (live connections).
+
 ### Bundled with OpenCode (no installation needed)
 - **agent-browser** — Browser automation, screenshots, web scraping
 - **code-review** — Structured code review, security audit
 - **simplify** — Code cleanup after writing
 - **pr-integration** — GitHub PR create/review
+
+### Bundled with occams-code
+- **video-analysis** — Video understanding via OpenRouter→Gemini (observer)
+- **audio-analysis** — Speech-to-text via whisper.cpp local (observer, reference only)
+- **lecture-notes** — 8-phase pipeline: lecture video → structured Obsidian note (orchestrator + observer)
 
 ### From obsidian-skills repo (installed by `install.sh`)
 - **defuddle** — Clean markdown from web pages
@@ -135,6 +142,7 @@ Built into oh-my-opencode-slim. Config:
 ### Per-agent skill assignments
 - **orchestrator:** `"*"` (all skills)
 - **designer:** `["agent-browser"]` (needs browser for visual verification)
+- **observer (all presets):** `["video-analysis", "lecture-notes"]` (vision + pipeline awareness)
 - **all others:** `[]` (no skills — they operate through tools and MCPs)
 
 ## Scripts
@@ -147,6 +155,11 @@ All scripts live in `~/.config/opencode/scripts/`:
 | `project-init.py` | Creates wiki page + project AGENTS.md |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki raw/repos/ with code insights |
 | `wiki-lint.py` | Checks dead links, orphans, stale pages, missing frontmatter. `--json` |
+| `model-profile.py` | **Config generator** — reads `model-profile.jsonc`, generates full `oh-my-opencode-slim.json` |
+| `analyze-video.py` | Video analysis via OpenRouter→Gemini (audio+visual, ≤20MB) |
+| `transcribe` | Local speech-to-text via whisper.cpp Vulkan GPU (Serbian/English) |
+| `lecture-scenes.py` | Lecture scene detection + keyframe extraction → scenes.json |
+| `lecture-fusion.py` | Fuse transcript sections + video scenes → segments.json (per-section frames) |
 
 ## Permissions
 
