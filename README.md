@@ -10,15 +10,15 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **4 presets** — `balanced` (default), `cheap`, `premium`, `custom` (subscription-based)
-- **5 Python scripts** — Config generator, wiki lint, project init, repo ingestion, project state detection
+- **8 Python scripts + transcribe** — Config generator, wiki lint, project init, repo ingestion, project state detection, video analysis, lecture scene detection, lecture audio-visual fusion, local speech-to-text (whisper.cpp)
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit this file, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **4 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in), web-search-prime (Z.AI, opt-in)
 - **Plugin-built websearch** — Exa fallback (free tier, higher quotas with `EXA_API_KEY`)
-- **2 local skills** — codemap, simplify (plus 5 from obsidian-skills plugin if installed: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
+- **5 local skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify (plus 5 from obsidian-skills plugin if installed: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
-- **AGENTS.md** — 6 workflow principles for AI agents, ordered by criticality
+- **AGENTS.md** — 7 agent roles with specialist instructions, pipeline workflows, and multi-agent delegation rules
 
 ## Quick Start
 
@@ -146,6 +146,10 @@ The plugin deep-merges project config with global config. Edit the file directly
 | `project-init.py` | Creates wiki page + project AGENTS.md |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki |
 | `detect-project-state.py` | Project state detection (used by --doctor) |
+| `analyze-video.py` | Video analysis via OpenRouter (Gemini, multi-provider) |
+| `lecture-scenes.py` | Scene detection + keyframe extraction (ffmpeg) |
+| `lecture-fusion.py` | Audio-visual fusion for lecture notes pipeline |
+| `transcribe` | Local speech-to-text via whisper.cpp (Vulkan GPU) |
 
 ### Agents
 
@@ -187,12 +191,7 @@ Web search will continue via `websearch` (Exa, plugin-built). Vision analysis fa
 
 ## Workflow Principles
 
-1. **Occam's Code** — Simplest solution that fully solves the problem wins
-2. **Ask Questions** — Uncertainty → ask before proceeding; present plans for review
-3. **Divide and Conquer** — Break into independent parallel subtasks
-4. **Parallelize** — Delegate to specialist agents, run concurrently
-5. **Wiki** — Check wiki before starting, update it continuously
-6. **Be Terse** — No filler, caveman-style communication
+See [AGENTS.md](AGENTS.md) for the complete agent rules, delegation table, pipeline workflows, and specialist instructions.
 
 ## Autonomous Mode
 
@@ -221,7 +220,7 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── opencode.json                  # Core config
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── bin/oc                         # Launcher script
-├── scripts/                       # Python utilities (5 scripts)
+├── scripts/                       # Python utilities (8 .py + transcribe)
 ├── commands/                      # Slash command definitions (6 commands)
 
 ~/wiki/
