@@ -48,7 +48,7 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
 | **5** | Every segment has `speaker_added`. `needs_ocr` flags set for text/formula slides. |
-| **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. |
+| **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. Cross-frame formula comparison done for whiteboard variant frames. |
 | **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. |
 | **8** | AI review: zero critical, zero major issues. |
 
@@ -257,6 +257,20 @@ for self-containment — no separate file join needed at Phase 7.
 
 **Verify:** Greek letters correct, subscripts/superscripts placed, fractions formatted,
 multi-line equations preserved, tables complete.
+
+### Cross-Frame Comparison
+
+When whiteboard archetype has variant frames (≥2 OCR results from same scene):
+
+1. Group OCR results by base scene number.
+2. Compare `## Formulas (LaTeX)` sections within each group.
+3. If formula content differs between frames, write `ocr_results/_cross_frame.md`.
+   Flag as `correction` (same concept, changed expression) or `addition` (new formula
+   absent from earlier frames). One section per comparison pair.
+4. Skip if only one OCR frame per scene.
+
+Phase 7 reads `_cross_frame.md` alongside individual OCR results — uses it to add
+`> [!important] Correction` callouts where formulas were later corrected.
 
 ---
 
