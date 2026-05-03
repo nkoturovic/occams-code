@@ -72,11 +72,14 @@ fi
 
 # ─── audio extraction (if video) ──────────────────────────────────────────
 
+ORIGINAL_NAME="${INPUT##*/}"
+ORIGINAL_NAME="${ORIGINAL_NAME%.*}"
+
 if is_video "$INPUT"; then
     TMP_WAV="$(mktemp /tmp/opencode-transcribe-XXXXXX.wav)"
     trap 'rm -f "$TMP_WAV"' EXIT
     echo "Extracting audio from: ${INPUT} ..." >&2
-    ffmpeg -v error -i "$INPUT" -vn -acodec pcm_s16le -ar 16000 -ac 1 "$TMP_WAV"
+    ffmpeg -y -v error -i "$INPUT" -vn -acodec pcm_s16le -ar 16000 -ac 1 "$TMP_WAV"
     INPUT="$TMP_WAV"
 fi
 
@@ -89,9 +92,10 @@ export LD_LIBRARY_PATH="/run/opengl-driver/lib:/usr/lib64${LD_LIBRARY_PATH:+:$LD
 
 echo "Transcribing with whisper.cpp (Vulkan/CPU) ..." >&2
 
-exec nix run "${FLAKE}#whisper-cpp-vulkan" -- \
-    -m "$MODEL" \
-    -f "$INPUT" \
-    --output-srt \
-    --print-progress \
-    "$@"
+# Build whisper.cpp args.  Default output: original filename in cwd if not set by user.
+WHISPER_ARGS=(-m "$MODEL" -f "$INPUT" --output-srt --print-progress)
+if [[ ! " $* " =~ \ (-of|--output-file)\  ]]; then
+    WHISPER_ARGS+=(-of "$ORIGINAL_NAME")
+fi
+
+exec nix run "${FLAKE}#whisper-cpp-vulkan" -- "${WHISPER_ARGS[@]}" "$@"

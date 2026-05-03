@@ -19,20 +19,22 @@ Use the `transcribe` script — local whisper.cpp with Vulkan GPU:
 
 ```bash
 # Basic — auto language detection, SRT output
-~/.config/opencode/scripts/transcribe /path/to/audio.mp3
+transcribe /path/to/audio.mp3
 
-# Video — auto-extracts audio first
-~/.config/opencode/scripts/transcribe /path/to/lecture.mp4
+# Video — auto-extracts audio first, SRT named after original file in CWD
+transcribe /path/to/lecture.mp4
 
-# Specific language
-~/.config/opencode/scripts/transcribe /path/to/audio.wav --language sr
+# Specific language (SRT output: ./lecture.srt)
+transcribe /path/to/lecture.mp4 --language sr
 
-# Plain text output (no timestamps)
-~/.config/opencode/scripts/transcribe /path/to/audio.mp3 -otxt -of /tmp/notes
+# Plain text output (no timestamps), custom name
+transcribe /path/to/audio.mp3 -otxt -of my-notes
 
-# Custom output location
-~/.config/opencode/scripts/transcribe /path/to/audio.mp3 --output-file /home/user/transcript
+# Custom output path
+transcribe /path/to/audio.mp3 -of /home/user/transcript
 ```
+
+**Default output behavior:** SRT file is written to the current working directory using the original filename (e.g. `lecture.mp4` → `./lecture.srt`). The `-of` flag (or `--output-file`) overrides this if passed explicitly. Additional whisper.cpp flags (e.g. `-otxt`, `-lrc`, `--language`, `--max-len`) are forwarded as-is.
 
 ## What It Does
 
@@ -50,8 +52,7 @@ Use the `transcribe` script — local whisper.cpp with Vulkan GPU:
 ## Performance
 
 - CPU only (Zen 4 AVX-512): ~0.5x realtime (64 min audio → ~32 min)
-- Vulkan GPU: ~3-5x realtime (64 min audio → ~6-13 min)
-- GPU not yet available in nix sandbox — falls back to CPU automatically
+- Vulkan GPU (AMD Radeon 860M, RADV): **~8x realtime** (64 min audio → ~8 min) — confirmed working via `VK_ICD_FILENAMES` and `LD_LIBRARY_PATH` env vars in the script
 
 ## Formats Supported
 
