@@ -1,13 +1,13 @@
 ---
-summary: "Non-text content routing: @observer for fact extraction, @designer for creative UI/UX work. Native Read + zai_vision MCP fallback."
+summary: "Non-text content routing: @observer for video/audio/image analysis. OpenRouter→Gemini video, whisper.cpp local transcription, 8-phase lecture pipeline."
 type: concept
-tags: [vision, observer, designer, multimodal, mcp, zai, gemini, kimi]
+tags: [vision, observer, video, audio, transcription, multimodal, lecture-notes]
 sources: []
 related:
   - agent-roles-and-models
   - occams-code-setup
 created: 2026-04-21
-updated: 2026-04-23
+updated: 2026-05-03
 confidence: high
 ---
 
@@ -15,20 +15,22 @@ confidence: high
 
 ## Content type support
 
-| Content | Read tool | Vision MCP tools | Webfetch |
-|---------|-----------|-----------------|----------|
-| Images | ✅ base64 attachment (model-dependent delivery) | ✅ All image tools | ✅ Returns attachment |
-| PDF | ✅ base64 attachment (model-dependent delivery) | ✅ image_analysis, extract_text | ❌ Garbles binary |
-| SVG | ✅ Text (XML) | ✅ image_analysis for visual | ✅ Returns text |
-| Video | ❌ Binary error | ✅ video_analysis ≤8MB | ❌ |
-| Audio | ❌ Binary error | ❌ No tool | ❌ |
+| Content | Primary tool | Fallback | Notes |
+|---------|-------------|----------|-------|
+| Images | Read (native multimodal) | `zai_vision` MCP | Observer first, @designer for creative |
+| PDF | Read (native multimodal) | `zai_vision` MCP | Model-dependent delivery |
+| SVG | Read (native XML) | — | Text, no MCP needed |
+| Video | `analyze-video.py` (OpenRouter→Gemini) | `zai_vision` MCP | Audio+visual in one call (≤20MB) |
+| Audio | `transcribe` (whisper.cpp Vulkan GPU) | — | Local, free, ~8x realtime |
+| Lectures | Full 8-phase pipeline | — | Load `/skill lecture-notes` |
 
-**Routing:** Orchestrator is text-only. Images, PDFs, video → `@observer` (fact extraction). Design work → `@designer` (creative, works from observer's text output).
+**Routing:** Orchestrator is text-only. Images, PDFs, video, audio → `@observer` (fact extraction). Design work → `@designer` (creative, works from observer's text output).
 
-**@observer tool priority:**
-- Images/PDFs → Read first (native multimodal). `zai_vision` MCP as fallback.
-- Video → `zai_vision` MCP → `video_analysis` (opt-in per-project, not enabled by default)
-- Audio → not supported (no tool available)
+### Observer skills
+All presets: `["video-analysis", "lecture-notes"]`. These skills tell observer how to use `analyze-video.py`, `transcribe`, and the lecture notes pipeline.
+
+### Observer MCPs
+All presets: `["zai_vision"]`. Observer uses Read tool first for images/PDFs, `zai_vision` MCP as fallback and for video.
 
 ## Architecture
 

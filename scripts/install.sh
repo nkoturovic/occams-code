@@ -62,10 +62,19 @@ fi
 # Scripts
 if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
   cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
-  echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
+  echo -e "  ${GREEN}✓${RESET} scripts/ ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) .py files)"
 else
   echo -e "  ${YELLOW}⚠${RESET} No Python scripts found in source"
 fi
+# Non-.py scripts (transcribe)
+for _s in "$REPO_ROOT"/scripts/*; do
+  [[ -f "$_s" ]] || continue
+  [[ "$_s" == *.py ]] && continue
+  _sname="$(basename "$_s")"
+  cp "$_s" "$OPENCODE_DIR/scripts/$_sname"
+  chmod +x "$OPENCODE_DIR/scripts/$_sname"
+  echo -e "  ${GREEN}✓${RESET} scripts/$_sname"
+done
 
 # Commands
 if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then
@@ -202,6 +211,18 @@ if [[ -d "$REPO_ROOT/skills/simplify" ]]; then
     echo -e "  ${DIM}simplify already installed (skipped)${RESET}"
   fi
 fi
+
+# Audio/video/lecture-notes skills (non-text content pipeline)
+for _skill in audio-analysis video-analysis lecture-notes; do
+  if [[ -d "$REPO_ROOT/skills/$_skill" ]]; then
+    if [[ ! -d "$SKILLS_DIR/$_skill" ]]; then
+      cp -r "$REPO_ROOT/skills/$_skill" "$SKILLS_DIR/$_skill"
+      echo -e "  ${GREEN}✓${RESET} $_skill skill installed"
+    else
+      echo -e "  ${DIM}$_skill already installed (skipped)${RESET}"
+    fi
+  fi
+done
 
 # --- Install obsidian-skills plugin ---
 echo ""

@@ -7,7 +7,7 @@ related:
   - occams-code-setup
   - troubleshooting
 created: 2026-04-10
-updated: 2026-04-23
+updated: 2026-05-03
 confidence: high
 ---
 
@@ -97,12 +97,13 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 
 | MCP | Who gets it | Why |
 |-----|------------|-----|
-| `websearch` | Everyone | General-purpose web lookup |
+| `web-search-prime` | Orchestrator, oracle, designer, librarian | Z.AI — primary web search (opt-in, needs GLM Coding Plan key) |
+| `websearch` | Orchestrator, oracle, designer, librarian | Exa — fallback web search (plugin-built; `EXA_API_KEY` for higher quotas) |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
-| `zai_vision` | Observer, Designer (premium/custom) | Observer: primary vision agent, Read-first with MCP fallback. Designer: retained on premium/custom for direct delegation. |
+| `zai_vision` | Observer, designer (all presets) | Observer: primary vision agent, Read-first with MCP fallback. Designer: retained for direct delegation. |
 
-**Notable:** Orchestrator gets `websearch` only — it delegates specialized research to other agents. Visual content is routed to `@observer` (fact extraction), then optionally to `@designer` (creative work). Observer owns `zai_vision` MCP for video and Read fallback.
+**Notable:** Orchestrator gets both web search tools — it delegates specialized research to other agents, but has its own for discovery/decision-making. Explorer, fixer, observer get no web search (codebase-only, implementation-only, visual-only). Observer owns `zai_vision` MCP for video and Read fallback.
 
 ## Council Diversity Rules
 
