@@ -12,6 +12,7 @@ Output: scenes.json + keyframes/frame_NNN.jpg (3-digit zero-padded).
 """
 
 import argparse, json, re, statistics, subprocess, sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 MIN_DEDUP_GAP = 3.0  # seconds — prevents presentation-switch transients
@@ -28,6 +29,8 @@ def probe(video):
 def detect(video, thresh):
     r = subprocess.run(["ffmpeg","-i",video,"-vf",f"select='gt(scene,{thresh})',showinfo",
                         "-f","null","-"], capture_output=True, text=True)
+    if r.returncode:
+        panic(f"ffmpeg scene detect failed (rc={r.returncode}): {r.stderr.strip()[:200]}")
     ts = [float(m.group(1)) for line in r.stderr.split("\n")
           if (m := re.search(r"pts_time:([0-9.]+)", line))]
     if not ts or ts[0] > 1.0: ts.insert(0, 0.0)
@@ -50,10 +53,6 @@ def gate_ok(scenes, total):
 def periodic(total, interval=10):
     n = max(6, int(total/interval)); return scenes_from_ts([i*interval for i in range(n)], total)
 
-def keyframe(video, t, out):
-    subprocess.run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",video,
-                    "-frames:v","1","-q:v","2",out], check=True)
-
 def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
 
 # --- main ---
@@ -68,32 +67,74 @@ def main():
     meta = probe(str(vp)); dur = meta["dur"]
     print(f"Video: {vp.name} ({dur/60:.1f}min)", file=sys.stderr)
 
-    thresh = a.threshold; best = None; retries = 0
+    thresh = a.threshold; best = None; best_thresh = thresh; retries = 0; passed = False
     for attempt in range(4):
         sc = scenes_from_ts(detect(str(vp), thresh), dur)
         gk = gate_ok(sc, dur)
         durs = [s["end_seconds"]-s["start_seconds"] for s in sc]
         print(f"  threshold={thresh:.2f}: {len(sc)} scenes max={max(durs or[0]):.0f}s"
               f" median={statistics.median(durs or[0]):.0f}s → {'PASS' if gk else 'FAIL'}", file=sys.stderr)
-        if gk: best = sc; break
-        if not best or max(durs) < max([s["end_seconds"]-s["start_seconds"] for s in best] or [0]): best = sc
-        retries = attempt
-        if attempt < 3 and thresh - 0.05 >= 0.05: thresh = round(thresh-0.05, 2)
+        if gk:
+            best = sc; best_thresh = thresh; retries = attempt; passed = True; break
+        if not best or max(durs) < max([s["end_seconds"]-s["start_seconds"] for s in best] or [0]):
+            best = sc; best_thresh = thresh
+        retries = attempt + 1
+        if attempt < 3:
+            if len(sc) > 40:
+                if thresh + 0.05 <= 0.50:
+                    thresh = round(thresh+0.05, 2)    # too many false boundaries → raise
+                else: break                           # capped at 0.50, accept best-so-far
+            elif thresh - 0.05 >= 0.05:
+                thresh = round(thresh-0.05, 2)         # too few or long scenes → lower
+            else: break
         else: break
 
     if not best or len(best) < 6:
         print(f"  → fallback periodic sampling", file=sys.stderr); best = periodic(dur)
-    elif retries: print(f"  → accepted at {thresh:.2f} after {retries} retries", file=sys.stderr)
+        best_thresh = "fallback"; retries = 0; passed = False
+    elif passed:
+        rs = "retry" if retries == 1 else "retries"
+        print(f"  → accepted at {best_thresh:.2f}" + (f" after {retries} {rs}" if retries else ""), file=sys.stderr)
+    else:
+        print(f"  → best-effort at {best_thresh:.2f} (gate failed — {len(best)} scenes)", file=sys.stderr)
 
-    print(f"Extracting {len(best)} keyframes...", file=sys.stderr)
+    # Write scenes.json IMMEDIATELY — before extraction.
+    # If extraction times out, timestamps survive.
     for s in best:
-        fn = f"frame_{s['scene_id']:0{a.digits}d}.jpg"
-        keyframe(str(vp), s["midpoint_seconds"], str(kd/fn))
-        s["keyframe"] = str(kd/fn); s["start_time"] = hms(s["start_seconds"]); s["end_time"] = hms(s["end_seconds"])
-
+        s["start_time"] = hms(s["start_seconds"]); s["end_time"] = hms(s["end_seconds"])
+        s["keyframe"] = str(kd / f"frame_{s['scene_id']:0{a.digits}d}.jpg")
     manifest = {"video":str(vp.resolve()),"duration_seconds":round(dur,2),
-                "threshold_used":thresh,"threshold_initial":a.threshold,"retries":retries,"scenes":best}
+                "threshold_used":best_thresh,"threshold_initial":a.threshold,"retries":retries,
+                "scenes":best}
     (od/"scenes.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
+    print(f"  scenes.json written ({len(best)} scenes)", file=sys.stderr)
+
+    # Parallel keyframe extraction
+    print(f"Extracting {len(best)} keyframes...", file=sys.stderr)
+    def _extract(s):
+        fn = f"frame_{s['scene_id']:0{a.digits}d}.jpg"
+        path = str(kd/fn); t = s["midpoint_seconds"]
+        subprocess.run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",str(vp),
+                        "-frames:v","1","-q:v","2",path], check=True)
+        return s["scene_id"]
+
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(_extract, s): s for s in best}
+        failed = []
+        for i, f in enumerate(as_completed(futs), 1):
+            try:
+                sid = f.result()
+                print(f"  keyframe {i}/{len(best)} (scene {sid})", file=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                sid = futs[f]["scene_id"]
+                failed.append(sid)
+                print(f"  keyframe {i}/{len(best)} (scene {sid}) FAILED: {e.stderr.strip()[:120] if e.stderr else e}"
+                      , file=sys.stderr)
+
+    if failed:
+        print(f"Warning: {len(failed)} keyframe extraction(s) failed: scenes {failed}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Done → {od/'scenes.json'}", file=sys.stderr)
 
 if __name__ == "__main__": main()
