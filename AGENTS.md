@@ -38,6 +38,7 @@
 - **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. Gemini via OpenRouter handles audio+visual in one call (≤20MB).
 - **Audio/Speech-to-Text:** Use `~/.config/opencode/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
 - **Combined (lectures/talks with slides):** Run both — transcribe for speech, analyze-video for visuals. Merge by timestamp.
+- For lecture note creation, load `/skill lecture-notes` for the complete pipeline spec and expected output fields.
 - Load `/skill video-analysis` or `/skill audio-analysis` for provider/model options and usage details.
 - Return factual descriptions: components, text content, layout, colors, structure. No design opinions.
 
@@ -53,7 +54,7 @@
 | **@librarian** | Library docs, API references | Official docs, version-specific APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
 | **@fixer** | Bounded implementation, test writing | Fast, concise code edits |
-| **@observer** | Read images/PDFs/video/audio — extract facts | Deterministic visual + audio analysis |
+| **@observer** | Read images/PDFs/video/audio — extract facts • Lecture note pipeline phases 5-6 | Deterministic visual + audio analysis |
 | **@designer** | UI/UX, layouts, CSS, visual creation | Creative design with aesthetic intent |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
@@ -86,6 +87,23 @@
 - Check wiki **before** starting any task. Stale wiki is worse than no wiki — update it continuously.
 - When discovering stable facts, proactively persist them to the wiki and append to `~/wiki/log.md`.
 - **Retrieval order:** Wiki → Code search → context7 → grep_app → web-search-prime
+
+## Workflows
+
+**Lecture Notes:** Full pipeline for transforming recorded lectures, talks, and presentations
+into comprehensive Obsidian notes. Load the `lecture-notes` skill for the complete 8-phase
+workflow. Triggered when user says "create notes from this video", "make lecture notes",
+"transcribe and analyze", or provides a video with intent to study/document it.
+
+- **Orchestrator drives all phases.** Phase 0-2: local tools (ffprobe, transcribe, lecture-scenes.py).
+  Phase 3: @oracle (semantic segmentation). Phase 5-6: @observer (vision + OCR). Phase 7:
+  composition (+ @fixer for parallel section drafting). Phase 8: @oracle (quality review).
+- **Before starting:** Ask user for output directory and video language. Check if output dir
+  is in an Obsidian vault — warn if Media Extended plugin is missing.
+- **Skill reference:** `/skill lecture-notes` — full pipeline spec with prompts, quality
+  gates, edge cases, output format, and delegation map.
+- **Deep reference:** `~/wiki/raw/user/docs/2026-05-03_lecture-notes-workflow.md` — 1,700-line
+  comprehensive document with comparison to other systems, NMO case study, and rationale.
 
 ## Non-text Content
 
