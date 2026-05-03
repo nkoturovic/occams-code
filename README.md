@@ -14,7 +14,8 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit this file, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
-- **4 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis), web-search-prime (Z.AI web search)
+- **4 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in), web-search-prime (Z.AI, opt-in)
+- **Plugin-built websearch** — Exa fallback (free tier, higher quotas with `EXA_API_KEY`)
 - **2 local skills** — codemap, simplify (plus 5 from obsidian-skills plugin if installed: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 6 workflow principles for AI agents, ordered by criticality
@@ -171,7 +172,18 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | **context7** | Remote library documentation lookup |
 | **grep_app** | Search code across open-source repos |
 | **zai_vision** | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai API key) |
-| **web-search-prime** | Z.AI web search (included in GLM Coding Plan) |
+| **web-search-prime** | Z.AI web search (primary, opt-in; needs GLM Coding Plan key) |
+| **websearch** | Exa web search (fallback, plugin-built; `EXA_API_KEY` for higher quotas) |
+
+### Removing Z.AI / GLM Coding Plan
+
+To go fully OpenRouter-only (no Z.AI subscription needed):
+
+1. **Remove from MCP arrays** in `config/oh-my-opencode-slim.json` — delete `"web-search-prime"` and `"zai_vision"` from all agent `mcps` entries
+2. **Remove from `config/opencode.json`** — delete the `"web-search-prime"` and `"zai_vision"` MCP server blocks
+3. **Remove from model assignments** — replace `zai-coding-plan/glm-5.1` and `openrouter/z-ai/glm-5.1` models with OpenRouter equivalents
+
+Web search will continue via `websearch` (Exa, plugin-built). Vision analysis falls back to the model's native multimodal support (Kimi K2.6, Gemini).
 
 ## Workflow Principles
 
