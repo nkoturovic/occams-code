@@ -1,211 +1,99 @@
 #!/usr/bin/env python3
-"""Scene detection and keyframe extraction for lecture videos.
-
-Detects scene boundaries using ffmpeg's select filter, extracts one keyframe
-per scene at midpoint, and outputs scenes.json manifest.
+"""Scene detection + keyframe extraction for lecture videos.
 
 Usage:
-  lecture-scenes.py <video_path> [-t THRESHOLD] [-o OUTPUT_DIR]
+  lecture-scenes.py <video> [-t THRESHOLD] [-o DIR] [--digits N]
 
-Threshold:
-  0.30  Slide-heavy presentations (default) — slide transitions are large changes
-  0.15  Whiteboard/chalkboard — gradual drawing changes
-  0.10  Screencast/code — subtle UI changes (more false positives)
-  >0.40 Animations with incremental builds — avoids false boundaries
+Threshold: 0.30 slides, 0.15 whiteboard, 0.10 screencast, >0.40 animations.
+Quality gate: count 6-40, max_duration < total/3, median < total/8.
+Fail → auto-retune (step 0.05, max 3 retries) → accept best + warn.
 
-Output: scenes.json + keyframes/ directory with frame_XX.jpg files.
+Output: scenes.json + keyframes/frame_NNN.jpg (3-digit zero-padded).
 """
 
-import argparse
-import json
-import os
-import re
-import subprocess
-import sys
+import argparse, json, re, statistics, subprocess, sys
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
+MIN_DEDUP_GAP = 3.0  # seconds — prevents presentation-switch transients
 
-DEFAULT_THRESHOLD = 0.30
-MIN_SCENES = 5
-MAX_SCENES = 40
-FALLBACK_INTERVAL = 10  # seconds, when scene detection produces too few scenes
+def panic(msg): print(f"Error: {msg}", file=sys.stderr); sys.exit(1)
 
+def probe(video):
+    r = subprocess.run(["ffprobe","-v","error","-show_entries","format=duration,format_name,size",
+                        "-of","json",video], capture_output=True, text=True)
+    if r.returncode: panic(f"ffprobe: {r.stderr.strip()}")
+    f = json.loads(r.stdout)["format"]
+    return {"dur": float(f["duration"]), "fmt": f["format_name"], "size": int(f["size"])}
 
-def panic(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    sys.exit(1)
+def detect(video, thresh):
+    r = subprocess.run(["ffmpeg","-i",video,"-vf",f"select='gt(scene,{thresh})',showinfo",
+                        "-f","null","-"], capture_output=True, text=True)
+    ts = [float(m.group(1)) for line in r.stderr.split("\n")
+          if (m := re.search(r"pts_time:([0-9.]+)", line))]
+    if not ts or ts[0] > 1.0: ts.insert(0, 0.0)
+    dedup = [ts[0]]
+    for t in ts[1:]:
+        if t - dedup[-1] >= MIN_DEDUP_GAP: dedup.append(t)
+    return dedup
 
+def scenes_from_ts(ts, total):
+    return [{"scene_id": i+1, "start_seconds": round(ts[i],2),
+             "end_seconds": round(ts[i+1] if i+1<len(ts) else total,2),
+             "midpoint_seconds": round((ts[i]+(ts[i+1] if i+1<len(ts) else total))/2,2)}
+            for i in range(len(ts))]
 
-def run_ffprobe(video_path: str) -> dict:
-    """Extract video metadata: duration, format, size."""
-    cmd = [
-        "ffprobe", "-v", "error",
-        "-show_entries", "format=duration,format_name,size",
-        "-of", "json", video_path,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        panic(f"ffprobe failed: {result.stderr.strip()}")
-    fmt = json.loads(result.stdout).get("format", {})
-    return {
-        "duration": float(fmt.get("duration", 0)),
-        "format": fmt.get("format_name", "unknown"),
-        "size_bytes": int(fmt.get("size", 0)),
-    }
+def gate_ok(scenes, total):
+    if not scenes: return False
+    d = [s["end_seconds"]-s["start_seconds"] for s in scenes]
+    return 6 <= len(scenes) <= 40 and max(d) < total/3 and statistics.median(d) < total/8
 
+def periodic(total, interval=10):
+    n = max(6, int(total/interval)); return scenes_from_ts([i*interval for i in range(n)], total)
 
-def detect_scenes(video_path: str, threshold: float) -> list[float]:
-    """Run ffmpeg scene detection and return list of scene-start timestamps
-    (in seconds), including 0.0 for the start."""
-    cmd = [
-        "ffmpeg", "-i", video_path,
-        "-vf", f"select='gt(scene,{threshold})',showinfo",
-        "-f", "null", "-",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    # showinfo writes to stderr
-    output = result.stderr
+def keyframe(video, t, out):
+    subprocess.run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",video,
+                    "-frames:v","1","-q:v","2",out], check=True)
 
-    timestamps = []
-    # showinfo lines look like:
-    # [Parsed_showinfo_0 @ 0x...] n:105 pts:105 pts_time:4.2 ...
-    for line in output.split("\n"):
-        m = re.search(r"pts_time:([0-9.]+)", line)
-        if m:
-            timestamps.append(float(m.group(1)))
+def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
 
-    # Ensure start is at 0.0
-    if not timestamps or timestamps[0] > 1.0:
-        timestamps.insert(0, 0.0)
+# --- main ---
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("video"); p.add_argument("-t","--threshold",type=float,default=0.30)
+    p.add_argument("-o","--output",default="."); p.add_argument("--digits",type=int,default=3)
+    a = p.parse_args()
+    vp = Path(a.video)
+    if not vp.exists(): panic(f"not found: {a.video}")
+    od = Path(a.output).resolve(); kd = od/"keyframes"; kd.mkdir(parents=True,exist_ok=True)
+    meta = probe(str(vp)); dur = meta["dur"]
+    print(f"Video: {vp.name} ({dur/60:.1f}min)", file=sys.stderr)
 
-    # Remove very close duplicates (within 0.5s)
-    deduped = [timestamps[0]]
-    for t in timestamps[1:]:
-        if t - deduped[-1] > 0.5:
-            deduped.append(t)
+    thresh = a.threshold; best = None; retries = 0
+    for attempt in range(4):
+        sc = scenes_from_ts(detect(str(vp), thresh), dur)
+        gk = gate_ok(sc, dur)
+        durs = [s["end_seconds"]-s["start_seconds"] for s in sc]
+        print(f"  threshold={thresh:.2f}: {len(sc)} scenes max={max(durs or[0]):.0f}s"
+              f" median={statistics.median(durs or[0]):.0f}s → {'PASS' if gk else 'FAIL'}", file=sys.stderr)
+        if gk: best = sc; break
+        if not best or max(durs) < max([s["end_seconds"]-s["start_seconds"] for s in best] or [0]): best = sc
+        retries = attempt
+        if attempt < 3 and thresh - 0.05 >= 0.05: thresh = round(thresh-0.05, 2)
+        else: break
 
-    return deduped
+    if not best or len(best) < 6:
+        print(f"  → fallback periodic sampling", file=sys.stderr); best = periodic(dur)
+    elif retries: print(f"  → accepted at {thresh:.2f} after {retries} retries", file=sys.stderr)
 
+    print(f"Extracting {len(best)} keyframes...", file=sys.stderr)
+    for s in best:
+        fn = f"frame_{s['scene_id']:0{a.digits}d}.jpg"
+        keyframe(str(vp), s["midpoint_seconds"], str(kd/fn))
+        s["keyframe"] = str(kd/fn); s["start_time"] = hms(s["start_seconds"]); s["end_time"] = hms(s["end_seconds"])
 
-def extract_keyframe(video_path: str, time_s: float, output_path: str) -> None:
-    """Extract a single frame at the given time."""
-    cmd = [
-        "ffmpeg", "-y", "-v", "error",
-        "-ss", str(time_s), "-i", video_path,
-        "-frames:v", "1", "-q:v", "2", output_path,
-    ]
-    subprocess.run(cmd, check=True)
+    manifest = {"video":str(vp.resolve()),"duration_seconds":round(dur,2),
+                "threshold_used":thresh,"threshold_initial":a.threshold,"retries":retries,"scenes":best}
+    (od/"scenes.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
+    print(f"Done → {od/'scenes.json'}", file=sys.stderr)
 
-
-def build_scenes(timestamps: list[float], duration: float) -> list[dict]:
-    """Convert timestamp list into structured scenes list."""
-    scenes = []
-    for i, ts in enumerate(timestamps):
-        end_ts = timestamps[i + 1] if i + 1 < len(timestamps) else duration
-        midpoint = (ts + end_ts) / 2
-        scenes.append({
-            "scene_id": i + 1,
-            "start_seconds": round(ts, 2),
-            "end_seconds": round(end_ts, 2),
-            "midpoint_seconds": round(midpoint, 2),
-        })
-    return scenes
-
-
-def fmt_time(seconds: float) -> str:
-    """Format seconds as HH:MM:SS."""
-    h = int(seconds // 3600)
-    m = int((seconds % 3600) // 60)
-    s = int(seconds % 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Scene detection and keyframe extraction for lecture videos"
-    )
-    parser.add_argument("video", help="Path to video file")
-    parser.add_argument(
-        "-t", "--threshold",
-        type=float,
-        default=DEFAULT_THRESHOLD,
-        help=f"Scene change threshold (default: {DEFAULT_THRESHOLD})",
-    )
-    parser.add_argument(
-        "-o", "--output",
-        default=".",
-        help="Output directory (default: current directory)",
-    )
-    args = parser.parse_args()
-
-    video_path = Path(args.video)
-    if not video_path.exists():
-        panic(f"file not found: {args.video}")
-
-    out_dir = Path(args.output).resolve()
-    keyframes_dir = out_dir / "keyframes"
-    keyframes_dir.mkdir(parents=True, exist_ok=True)
-
-    # ── Get metadata ──
-    meta = run_ffprobe(str(video_path))
-    duration = meta["duration"]
-    print(f"Video: {video_path.name} ({duration/60:.1f} min, "
-          f"{meta['size_bytes']/1024/1024:.0f} MB)", file=sys.stderr)
-
-    # ── Scene detection ──
-    timestamps = detect_scenes(str(video_path), args.threshold)
-    print(f"Scene detection (threshold={args.threshold}): "
-          f"{len(timestamps)} boundaries", file=sys.stderr)
-
-    # ── Fallback if too few scenes ──
-    scenes = build_scenes(timestamps, duration)
-    if len(scenes) < MIN_SCENES:
-        print(f"Too few scenes ({len(scenes)}). "
-              f"Falling back to periodic sampling (every {FALLBACK_INTERVAL}s).",
-              file=sys.stderr)
-        n = int(duration / FALLBACK_INTERVAL)
-        timestamps = [i * FALLBACK_INTERVAL for i in range(n)]
-        scenes = build_scenes(timestamps, duration)
-
-    # ── Cap if too many ──
-    if len(scenes) > MAX_SCENES:
-        print(f"Too many scenes ({len(scenes)}), capping to {MAX_SCENES}",
-              file=sys.stderr)
-        step = duration / MAX_SCENES
-        timestamps = [i * step for i in range(MAX_SCENES)]
-        scenes = build_scenes(timestamps, duration)
-
-    # ── Extract keyframes ──
-    print(f"Extracting {len(scenes)} keyframes...", file=sys.stderr)
-    for scene in scenes:
-        sid = scene["scene_id"]
-        fname = f"frame_{sid:02d}.jpg"
-        fpath = keyframes_dir / fname
-        extract_keyframe(str(video_path), scene["midpoint_seconds"], str(fpath))
-        scene["keyframe"] = str(fpath)
-        scene["start_time"] = fmt_time(scene["start_seconds"])
-        scene["end_time"] = fmt_time(scene["end_seconds"])
-
-    # ── Write manifest ──
-    manifest_path = out_dir / "scenes.json"
-    manifest = {
-        "video": str(video_path.resolve()),
-        "duration_seconds": round(duration, 2),
-        "threshold": args.threshold,
-        "total_scenes": len(scenes),
-        "scenes": scenes,
-    }
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
-    print(f"Done. {len(scenes)} scenes → {manifest_path}",
-          file=sys.stderr)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
