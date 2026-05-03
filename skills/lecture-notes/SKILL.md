@@ -3,7 +3,7 @@ name: lecture-notes
 description: >
   Transform recorded lectures, talks, and presentations into comprehensive, structured
   Obsidian notes. Multi-phase pipeline: transcription (local whisper.cpp), scene detection
-  (ffmpeg), AI semantic segmentation, audio-visual fusion, per-episode AI scouting (vision
+  (ffmpeg), AI semantic segmentation, audio-visual fusion, per-segment AI scouting (vision
   LLM), selective OCR, note composition, and quality review. Captures everything: slides,
   formulas (LaTeX), diagrams, speaker commentary, examples, emphasis, annotations, and
   interactive video timestamps. Use when the user has a video file and wants detailed
@@ -11,9 +11,9 @@ description: >
   or provides a video with intent to study/document it. Do not use for audio-only content
   — that requires audio-analysis instead.
 compatibility: >
-  Requires: transcribe (whisper.cpp local), ffmpeg, lecture-scenes.py, OPENROUTER_API_KEY
-  (vision LLM — Gemini Pro via OpenRouter). Output is Obsidian-flavored markdown using
-  wikilinks, callouts, LaTeX, Media Extended #t= timestamps.
+  Requires: transcribe (whisper.cpp local), ffmpeg, lecture-scenes.py, lecture-fusion.py,
+  OPENROUTER_API_KEY (vision LLM — Gemini Pro via OpenRouter). Output is Obsidian-flavored
+  markdown using wikilinks, callouts, LaTeX, Media Extended #t= timestamps.
 ---
 
 # Lecture Notes Pipeline
@@ -27,7 +27,7 @@ Phase 0: Assessment      (1-2 min, free)     → Orchestrator
 Phase 1: Transcription   (~8 min, free)      → transcribe
 Phase 2: Scene Detection (1-2 min, free)     → lecture-scenes.py
 Phase 3: Semantic Seg.   (30s, ~$0.001)      → @oracle
-Phase 4: Audio-Visual    (<1s, free)         → Orchestrator
+Phase 4: Audio-Visual    (<1s, free)         → lecture-fusion.py
 Phase 5: AI Scouting     (30-60s, ~$0.01)    → @observer (vision)
 Phase 6: Selective OCR   (2-3 min, ~$0.01)   → @observer (parallel)
 Phase 7: Composition     (10-15 min)          → Orchestrator + @fixer
@@ -47,7 +47,7 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | **2** | 10-30 scenes. `scenes.json` valid. All keyframes exist. |
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
-| **5** | Every episode has `speaker_added`. `needs_ocr` flags set for text/formula slides. |
+| **5** | Every segment has `speaker_added`. `needs_ocr` flags set for text/formula slides. |
 | **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. |
 | **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. |
 | **8** | AI review: zero critical, zero major issues. |
@@ -85,7 +85,7 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 | Whiteboard | 0.15 | Continuous frames, no scene boundaries |
 | Screencast | 0.10 | Code blocks, syntax preservation |
 | Talking head | Skip Phase 2 | Transcript-driven, no visuals |
-| Mixed | 0.30 | Per-episode classification handles it |
+| Mixed | 0.30 | Per-segment classification handles it |
 
 **Before proceeding:** Ask user: "Where should I save the output notes? Which language (sr/en/...)?"
 
@@ -177,37 +177,39 @@ Prompt:
 
 ## Phase 4: Audio-Visual Fusion
 
-Orchestrator performs (computation, no AI). For each section in `sections.json`,
-find the scene from `scenes.json` with the largest time-window overlap.
-Build `episodes.json`:
-
-```json
-[
-  {
-    "episode_id": 1,
-    "section": { /* section from sections.json */ },
-    "scene": { /* matched scene from scenes.json */ },
-    "keyframe": "keyframes/frame_03.jpg",
-    "transcript_excerpt": "[SRT lines within section time window, with timestamps]"
-  }
-]
+```bash
+python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json video.srt -o segments.json
 ```
 
+The script: for each section, finds the best-matching scene by overlap, extracts a
+**per-section frame** (at section start, not scene midpoint — critical for whiteboard
+lectures where one scene spans many sections), pads transcript excerpt 15s backward, and
+writes self-contained `segments.json`.
+
+`segments.json` carries all data needed by downstream phases — each segment includes:
+`segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
+and `transcript_excerpt`. **No separate file join needed at Phase 7.**
+
+**Frame naming:** `frame_NNN.jpg` for first use of a scene. Consecutive sections
+mapping to the same whiteboard scene get variants: `frame_NNNa.jpg`, `frame_NNNb.jpg`.
+
 **Misalignments:**
-- Speaker introduces topic before slide → extend excerpt backward (5-15s)
-- Slide changes mid-sentence → extend to next sentence boundary
-- No visual (talking head) → `"has_visual": false`
+- Speaker introduces topic before slide → excerpt padded 15s backward
+- Slide changes mid-sentence → padded 5s forward
+- No visual (talking head) → `"has_visual": false`, frame still extracted at midpoint as best-effort
 
 ---
 
-## Phase 5: Per-Episode AI Scouting
+## Phase 5: Per-Segment AI Scouting
 
-**Delegate to @observer. ONE batch call with all episodes.** Saves overhead, preserves context.
+**Delegate to @observer. ONE batch call.** Group segments by unique keyframe — send each
+image once with all associated transcript excerpts. Prevents sending the same image 5×
+when a whiteboard scene spans multiple sections.
 
-> You are analyzing a recorded lecture. I will give you episodes — each with a
+> You are analyzing a recorded lecture. I will give you segments — each with a
 > keyframe image and the transcript excerpt from that time window.
 >
-> For each episode:
+> For each segment:
 >
 > 1. `slide_content`: Everything visible on the image — text, formulas, diagrams,
 >    charts, annotations, layout, branding.
@@ -224,27 +226,16 @@ Build `episodes.json`:
 >
 > 5. `connections`: Continuation / builds on previous / new topic / complete shift?
 >
-> 6. `best_frame_advice`: Best keyframe, or N seconds earlier/later?
+> 6. `image_note`: Hints for the note composer. Is this the best frame for this
+>    section, or would a nearby frame be better? Are there visible annotations
+>    (handwritten marks, arrows, underlines) the speaker added? Content, position,
+>    color. Any completeness concerns — does this frame look partial?
 >
-> 7. `annotations`: Handwritten marks, arrows, underlines added by speaker.
->    Describe content, position, color.
->
-> 8. `completeness`: Episode feel complete? More on this topic next?
->
-> Return JSON array, one object per episode, preserving episode IDs.
->
-> EPISODE 1:
-> Image: [keyframe_01.jpg]
-> Transcript:
-> [00:05:23] ...
-> ...
->
-> EPISODE 2:
-> Image: [keyframe_02.jpg]
-> Transcript:
-> ...
+> Return JSON array, one object per segment, preserving segment IDs.
 
-**Output:** `episodes_analyzed.json`. Validate: every episode has `speaker_added`.
+**Output:** `segments_analyzed.json`. Validate: every segment has `speaker_added`.
+Output must include `segment_id`, `keyframe`, `has_visual`, and section time fields
+for self-containment — no separate file join needed at Phase 7.
 
 ---
 
@@ -402,7 +393,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | 1 | Orchestrator | Runs transcribe, verifies output |
 | 2 | Orchestrator | Runs lecture-scenes.py |
 | 3 | @oracle | Structured JSON from transcript |
-| 4 | Orchestrator | Computation only |
+| 4 | Orchestrator | Runs lecture-fusion.py |
 | 5 | @observer | Vision + text fusion (audio+visual together) |
 | 6 | @observer (parallel) | OCR, independently parallelizable |
 | 7 | Orchestrator + @fixer | Integration + per-section drafting |

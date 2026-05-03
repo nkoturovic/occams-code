@@ -96,8 +96,9 @@ workflow. Triggered when user says "create notes from this video", "make lecture
 "transcribe and analyze", or provides a video with intent to study/document it.
 
 - **Orchestrator drives all phases.** Phase 0-2: local tools (ffprobe, transcribe, lecture-scenes.py).
-  Phase 3: @oracle (semantic segmentation). Phase 5-6: @observer (vision + OCR). Phase 7:
-  composition (+ @fixer for parallel section drafting). Phase 8: @oracle (quality review).
+  Phase 3: @oracle (semantic segmentation). Phase 4: lecture-fusion.py (audio-visual fusion).
+  Phase 5-6: @observer (vision + OCR). Phase 7: composition (+ @fixer for parallel section
+  drafting). Phase 8: @oracle (quality review).
 - **Before starting:** Ask user for output directory and video language. Check if output dir
   is in an Obsidian vault — warn if Media Extended plugin is missing.
 - **Skill reference:** `/skill lecture-notes` — full pipeline spec with prompts, quality
