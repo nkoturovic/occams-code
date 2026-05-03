@@ -9,13 +9,13 @@ For each section: finds best-matching scene, extracts per-section frame,
 copies section metadata, extracts transcript excerpt. Output: segments.json.
 
 Key behaviors:
-- Per-section frames extracted at section midpoint (not scene midpoint).
+- Per-section frames extracted at max(section_start, scene_start) — within scene.
   Prevents all sections sharing one frame when a whiteboard scene spans many.
 - Transcript excerpt padded: 15s before, 5s after section boundaries.
 - Self-contained output: segment includes keyframe, has_visual, section fields
   — no separate file join needed at Phase 7.
-- Frame naming: frame_NNN.jpg for first use of a scene, frame_NNNa/b/c.jpg
-  for variant per-section extractions of the same scene.
+- Frame naming: always variant suffix (frame_NNNa/b/c.jpg). Never overwrites
+  Phase 2 scene-midpoint keyframes.
 """
 
 import argparse, json, re, subprocess, sys
@@ -90,9 +90,9 @@ def main():
         scid = ms["scene_id"]
         cnt = scene_use_count.get(scid, 0); scene_use_count[scid] = cnt + 1
 
-        # First use of this scene → frame at section start. Reuse → variant suffix.
-        fn = f"frame_{scid:0{d}}{chr(ord('a')+cnt) if cnt else ''}.jpg"
-        frame_at(video, t0, kd/fn)
+        # Never overwrite Phase 2 midpoint keyframe — always use variant suffix
+        fn = f"frame_{scid:0{d}}{chr(ord('a')+cnt)}.jpg"
+        frame_at(video, max(t0, ms["start_seconds"]), kd/fn)
         kf = str(kd/fn) if (kd/fn).exists() else None
 
         seg = {
