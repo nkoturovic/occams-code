@@ -19,6 +19,7 @@ Key behaviors:
 """
 
 import argparse, json, re, subprocess, sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 EXTEND_BACK = 15; EXTEND_FWD = 5
@@ -52,8 +53,11 @@ def best_scene(t0, t1, scenes):
 
 def frame_at(video, t, path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",video,
-                    "-frames:v","1","-q:v","2",str(path)], capture_output=True)
+    r = subprocess.run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",video,
+                        "-frames:v","1","-q:v","2",str(path)], capture_output=True)
+    if r.returncode:
+        print(f"  ffmpeg failed for {path.name}: {r.stderr.decode(errors='replace').strip()[:120]}",
+              file=sys.stderr)
     return path if path.exists() else None
 
 def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
@@ -75,34 +79,44 @@ def main():
 
     segments = []
     scene_use_count = {}
+    tasks = []  # (frame_fn, extract_time, section_info, scene_info)
     for sec in sections:
         sid = sec["section_id"]; t0 = sec["start_seconds"]; t1 = sec["end_seconds"]
         ms = best_scene(t0, t1, scenes)
         if not ms:
-            # no visual match — still extract frame at midpoint as best effort
             fn = f"frame_{sid:0{d}}.jpg"
-            frame_at(video, (t0+t1)/2, kd/fn)
-            seg = {"segment_id": sid, "section": {**sec, "start_time": hms(t0), "end_time": hms(t1)},
-                   "scene": None, "keyframe": str(kd/fn) if (kd/fn).exists() else None,
-                   "has_visual": False, "transcript_excerpt": excerpt(cues, t0, t1)}
-            segments.append(seg); continue
-
+            tasks.append((fn, (t0+t1)/2, sid, sec, None))
+            continue
         scid = ms["scene_id"]
         cnt = scene_use_count.get(scid, 0); scene_use_count[scid] = cnt + 1
-
-        # Never overwrite Phase 2 midpoint keyframe — always use variant suffix
         fn = f"frame_{scid:0{d}}{chr(ord('a')+cnt)}.jpg"
-        frame_at(video, max(t0, ms["start_seconds"]), kd/fn)
-        kf = str(kd/fn) if (kd/fn).exists() else None
+        tasks.append((fn, max(t0, ms["start_seconds"]), sid, sec, ms))
 
-        seg = {
-            "segment_id": sid,
-            "section": {**sec, "start_time": hms(t0), "end_time": hms(t1)},
-            "scene": ms,
-            "keyframe": kf,
-            "has_visual": kf is not None,
-            "transcript_excerpt": excerpt(cues, max(0,t0-EXTEND_BACK), min(dur,t1+EXTEND_FWD)),
-        }
+    # Parallel frame extraction
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(frame_at, video, t, kd/fn): (fn, sid) for fn, t, sid, *_ in tasks}
+        for i, f in enumerate(as_completed(futs), 1):
+            fn, sid = futs[f]
+            f.result()  # exceptions handled inside frame_at via returncode check
+            print(f"  frame {i}/{len(tasks)} (section {sid})", file=sys.stderr)
+
+    # Build segments (sequential — depends on completed frames)
+    for fn, t, sid, sec, ms in tasks:
+        t0 = sec["start_seconds"]; t1 = sec["end_seconds"]
+        kf_path = kd/fn
+        if ms is None:
+            seg = {"segment_id": sid, "section": {**sec, "start_time": hms(t0), "end_time": hms(t1)},
+                   "scene": None, "keyframe": str(kf_path) if kf_path.exists() else None,
+                   "has_visual": False, "transcript_excerpt": excerpt(cues, t0, t1)}
+        else:
+            seg = {
+                "segment_id": sid,
+                "section": {**sec, "start_time": hms(t0), "end_time": hms(t1)},
+                "scene": ms,
+                "keyframe": str(kf_path) if kf_path.exists() else None,
+                "has_visual": kf_path.exists(),
+                "transcript_excerpt": excerpt(cues, max(0,t0-EXTEND_BACK), min(dur,t1+EXTEND_FWD)),
+            }
         segments.append(seg)
 
     out.write_text(json.dumps({

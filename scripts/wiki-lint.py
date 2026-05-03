@@ -63,7 +63,7 @@ def get_all_pages() -> list[Path]:
     return sorted(pages)
 
 
-def get_frontmatter(text: str) -> dict:
+def get_frontmatter(text: str) -> dict[str, any]:
     if not text.startswith("---\n"):
         return {}
     end = text.find("\n---\n", 4)
