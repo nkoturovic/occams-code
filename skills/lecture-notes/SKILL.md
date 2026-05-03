@@ -43,7 +43,7 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | Phase | Gate |
 |-------|------|
 | **0** | Archetype identified. Output directory + language confirmed with user. |
-| **1** | Transcript coherent (check head/tail 40 lines). SRT copied alongside source video. |
+| **1** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
 | **2** | 10-30 scenes. `scenes.json` valid. All keyframes exist. |
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
@@ -97,11 +97,16 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 transcribe video.mp4 --language LANG
 # Verify:
 head -40 video.srt && tail -40 video.srt
-# Media Extended subtitle auto-detect:
-cp video.srt "/path/alongside/source/video.srt"
+# Sibling copy for Media Extended (auto-detected, manual toggle to show):
+cp video.srt "/path/alongside/source/video.srt" && test -f "/path/alongside/source/video.srt"
 ```
 
 Always use explicit `--language` for non-English. GPU (Vulkan): ~8x realtime.
+
+Media Extended detects sibling SRT files. Auto-display of subtitles is plugin-dependent
+(best-effort config: `playback.track.default-enabled: true` in plugin data.json,
+but known to not work reliably on all versions). User toggles subtitles manually
+in the player — one click.
 
 ---
 
