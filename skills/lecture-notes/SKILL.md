@@ -187,16 +187,18 @@ python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json v
 ```
 
 The script: for each section, finds the best-matching scene by overlap, extracts a
-**per-section frame** (at section start, not scene midpoint — critical for whiteboard
+**per-section frame** (at max(section_start, scene_start) — critical for whiteboard
 lectures where one scene spans many sections), pads transcript excerpt 15s backward, and
 writes self-contained `segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
 `segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
-and `transcript_excerpt`. **No separate file join needed at Phase 7.**
+`global_tags`, `references_mentioned`, and `transcript_excerpt`.
+**No separate file join needed at Phase 7.**
 
-**Frame naming:** `frame_NNN.jpg` for first use of a scene. Consecutive sections
-mapping to the same whiteboard scene get variants: `frame_NNNa.jpg`, `frame_NNNb.jpg`.
+**Frame naming:** always variant suffix — `frame_NNNa.jpg` on first use of a scene,
+`frame_NNNb.jpg`, `frame_NNNc.jpg` for subsequent sections. Phase 2 scene-midpoint
+keyframes (`frame_NNN.jpg`) are never overwritten.
 
 **Misalignments:**
 - Speaker introduces topic before slide → excerpt padded 15s backward
@@ -236,11 +238,22 @@ when a whiteboard scene spans multiple sections.
 >    (handwritten marks, arrows, underlines) the speaker added? Content, position,
 >    color. Any completeness concerns — does this frame look partial?
 >
-> Return JSON array, one object per segment, preserving segment IDs.
+> Return a JSON object, NOT a flat array:
+> ```json
+> {
+>   "video": "...",
+>   "total_segments": N,
+>   "segments": [
+>     { "segment_id": 1, "keyframe": "...", "has_visual": true, ... },
+>     ...
+>   ]
+> }
+> ```
+> Each segment object must include `segment_id`, `keyframe`, and `has_visual` —
+> copy these verbatim from the input. Add your analysis fields alongside them.
 
 **Output:** `segments_analyzed.json`. Validate: every segment has `speaker_added`.
-Output must include `segment_id`, `keyframe`, `has_visual`, and section time fields
-for self-containment — no separate file join needed at Phase 7.
+Output wrapped in an object matching segments.json structure.
 
 ---
 
@@ -251,14 +264,23 @@ for self-containment — no separate file join needed at Phase 7.
 > Read the image at `keyframes/frame_XX.jpg`. Extract ALL text and formulas.
 > Formulas: LaTeX (block $$...$$, inline $...$). Tables: markdown. Diagrams: describe.
 >
+> Analyze ONLY this one image. Do NOT include cross-frame comparisons.
+>
 > The speaker said about this slide: '[SPEAKER_ADDED]'. Use this context.
 >
 > Pay attention to: Greek letters as \alpha, \sum (not Unicode), subscripts (x_i not xi),
 > superscripts (x^2 not x2), fractions (\frac{a}{b} not a/b), integrals with limits.
 > Language: [LANGUAGE].
 
-**Save each as `ocr_results/frame_XX.txt`** with structured sections:
-`## Text`, `## Formulas (LaTeX)`, `## Diagrams`, `## Tables`, `## Annotations`.
+**Save each as `ocr_results/frame_XX.txt`** with these exact section headers —
+all five required, even if a section is empty:
+```
+## Text
+## Formulas (LaTeX)
+## Diagrams
+## Tables
+## Annotations
+```
 
 **Verify:** Greek letters correct, subscripts/superscripts placed, fractions formatted,
 multi-line equations preserved, tables complete.
