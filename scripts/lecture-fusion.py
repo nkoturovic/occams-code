@@ -93,13 +93,14 @@ def main():
         # First use of this scene → frame at section start. Reuse → variant suffix.
         fn = f"frame_{scid:0{d}}{chr(ord('a')+cnt) if cnt else ''}.jpg"
         frame_at(video, t0, kd/fn)
+        kf = str(kd/fn) if (kd/fn).exists() else None
 
         seg = {
             "segment_id": sid,
             "section": {**sec, "start_time": hms(t0), "end_time": hms(t1)},
             "scene": ms,
-            "keyframe": str(kd/fn) if (kd/fn).exists() else None,
-            "has_visual": True,
+            "keyframe": kf,
+            "has_visual": kf is not None,
             "transcript_excerpt": excerpt(cues, max(0,t0-EXTEND_BACK), min(dur,t1+EXTEND_FWD)),
         }
         segments.append(seg)
@@ -108,6 +109,8 @@ def main():
         "video": video, "duration_seconds": dur,
         "total_segments": len(segments),
         "lecture": sd.get("lecture",{}),
+        "global_tags": sd.get("global_tags", []),
+        "references_mentioned": sd.get("references_mentioned", []),
         "segments": segments,
     }, indent=2, ensure_ascii=False))
     print(f"Done. {len(segments)} segments → {out}", file=sys.stderr)
