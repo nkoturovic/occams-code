@@ -27,7 +27,7 @@
 - Search specialist. Use glob, grep, AST queries to locate files, symbols, patterns. Fire multiple searches in parallel before reading. Return file paths and match counts concisely.
 
 **@librarian instructions:**
-- Research specialist. Use context7 for library docs, web-search-prime for discovery. Return API signatures, examples, version-specific behavior.
+- Research specialist. Use context7 for library docs, web-search-prime for discovery (falls back to websearch/Exa on rate limit). Return API signatures, examples, version-specific behavior.
 
 **@council instructions:**
 - Multi-LLM consensus engine. Master synthesizes diverse reviewer perspectives. Used only for high-stakes decisions where multiple independent viewpoints matter.
@@ -86,7 +86,7 @@
 - **On session start**, read `~/wiki/index.md` — the routing table to all project pages, conventions, patterns.
 - Check wiki **before** starting any task. Stale wiki is worse than no wiki — update it continuously.
 - When discovering stable facts, proactively persist them to the wiki and append to `~/wiki/log.md`.
-- **Retrieval order:** Wiki → Code search → context7 → grep_app → web-search-prime
+- **Retrieval order:** Wiki → Code search → context7 → grep_app → web-search-prime → websearch (Exa fallback)
 
 ## Workflows
 
