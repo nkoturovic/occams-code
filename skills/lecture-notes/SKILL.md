@@ -44,7 +44,7 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 |-------|------|
 | **0** | Archetype identified. Output directory + language confirmed with user. |
 | **1** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
-| **2** | 10-30 scenes. `scenes.json` valid. All keyframes exist. |
+| **2** | 6-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
 | **5** | Every segment has `speaker_added`. `needs_ocr` flags set for text/formula slides. |
@@ -117,8 +117,12 @@ python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD -o O
 # → scenes.json + keyframes/frame_XX.jpg
 ```
 
-Uses threshold from Phase 0. Fallback to periodic sampling if <5 scenes. Caps at 40.
-10-30 scenes for 60-min lecture is ideal. Tune threshold if outside range.
+Uses threshold from Phase 0. Fallback to periodic sampling if <6 scenes.
+Gate: 6-60 scenes, max scene duration < total/2, median < total/8.
+Failed gate → auto-retune (step 0.05, max 3 retries) or best-effort with warning.
+Post-detect merge: scenes shorter than `--min-duration` (default 8s) are absorbed
+into the previous scene. Eliminates presentation flickers, cursor transitions, and
+taskbar overlays without losing real content boundaries.
 
 ---
 
@@ -186,10 +190,12 @@ Prompt:
 python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json video.srt -o segments.json
 ```
 
-The script: for each section, finds the best-matching scene by overlap, extracts a
-**per-section frame** (at max(section_start, scene_start) — critical for whiteboard
-lectures where one scene spans many sections), pads transcript excerpt 15s backward, and
-writes self-contained `segments.json`.
+The script: for each section, finds the best-matching scene by overlap. Extracts 3
+**candidate frames** at 25%, 50%, 75% through the section→scene overlap window, then
+selects the one with largest JPEG file size (most visual content — blank boards compress
+smaller). This prevents capturing blank/transition frames in whiteboard lectures where
+content builds incrementally. Pads transcript excerpt 15s backward, writes self-contained
+`segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
 `segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
@@ -203,7 +209,8 @@ keyframes (`frame_NNN.jpg`) are never overwritten.
 **Misalignments:**
 - Speaker introduces topic before slide → excerpt padded 15s backward
 - Slide changes mid-sentence → padded 5s forward
-- No visual (talking head) → `"has_visual": false`, frame still extracted at midpoint as best-effort
+- No visual (talking head) → `"has_visual": false`, frame at midpoint as best-effort
+- Blank frame detected (JPEG < 50KB) → keyframe discarded, `has_visual: false`
 
 ---
 
@@ -218,8 +225,14 @@ when a whiteboard scene spans multiple sections.
 >
 > For each segment:
 >
-> 1. `slide_content`: Everything visible on the image — text, formulas, diagrams,
->    charts, annotations, layout, branding.
+> 1. `slide_content`: Everything **actually visible** on the image — text, formulas,
+>    diagrams, charts, annotations, layout, branding. **ANTI-HALLUCINATION RULE:**
+>    Describe ONLY what you can see in the image. If the board is blank, say "blank
+>    whiteboard — no visible content." If faint or partial, describe only what is
+>    clearly legible. Never fabricate colors, positions, or formula details from the
+>    transcript. If the image quality is poor or motion-blurred, state that directly.
+>    The transcript is provided for context on speaker_added (field 4), NOT for
+>    slide_content (field 1).
 >
 > 2. `content_type`: text_slide | formula_slide | diagram_slide | code_slide |
 >    mixed_slide | whiteboard | talking_head | screencast | title_slide | blank

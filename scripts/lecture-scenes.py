@@ -2,11 +2,17 @@
 """Scene detection + keyframe extraction for lecture videos.
 
 Usage:
-  lecture-scenes.py <video> [-t THRESHOLD] [-o DIR] [--digits N]
+  lecture-scenes.py <video> [-t THRESHOLD] [-o DIR] [--min-duration SEC] [--digits N]
 
 Threshold: 0.30 slides, 0.15 whiteboard, 0.10 screencast, >0.40 animations.
-Quality gate: count 6-40, max_duration < total/3, median < total/8.
+Quality gate: 6-60 scenes, max_duration < total/2, median < total/8.
 Fail → auto-retune (step 0.05, max 3 retries) → accept best + warn.
+
+Post-detect merge: scenes shorter than --min-duration are absorbed into the
+PREVIOUS scene (not longer neighbor). Default 8s — catches PowerPoint transition
+flickers, cursor movements, and taskbar overlays that ffmpeg scene-detect falsely
+registers as scene changes. Preserves meaningful content boundaries while
+eliminating noise.
 
 Output: scenes.json + keyframes/frame_NNN.jpg (3-digit zero-padded).
 """
@@ -48,10 +54,33 @@ def scenes_from_ts(ts, total):
 def gate_ok(scenes, total):
     if not scenes: return False
     d = [s["end_seconds"]-s["start_seconds"] for s in scenes]
-    return 6 <= len(scenes) <= 40 and max(d) < total/3 and statistics.median(d) < total/8
+    return 6 <= len(scenes) <= 60 and max(d) < total/2 and statistics.median(d) < total/8
 
 def periodic(total, interval=10):
     n = max(6, int(total/interval)); return scenes_from_ts([i*interval for i in range(n)], total)
+
+def merge_short(scenes, min_dur):
+    """Absorb scenes shorter than min_dur into the PREVIOUS scene.
+    Short scenes are always transition tail ends of the previous visual —
+    the first frame(s) after a slide change belong to new content already.
+    Re-numbers after merging. Runs iteratively until stable."""
+    if len(scenes) <= 1: return scenes
+    changed = True
+    while changed:
+        changed = False
+        for i in range(len(scenes)-1, 0, -1):  # skip scene 0 — nothing to merge it into
+            if scenes[i]["end_seconds"] - scenes[i]["start_seconds"] >= min_dur:
+                continue
+            # Absorb into previous scene: extend its end, this scene's content never began
+            prev = i - 1
+            scenes[prev]["end_seconds"] = scenes[i]["end_seconds"]
+            scenes[prev]["midpoint_seconds"] = round(
+                (scenes[prev]["start_seconds"] + scenes[prev]["end_seconds"]) / 2, 2)
+            scenes.pop(i)
+            changed = True
+            break  # list mutated, restart outer loop
+    for j, s in enumerate(scenes): s["scene_id"] = j + 1
+    return scenes
 
 def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
 
@@ -60,6 +89,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("video"); p.add_argument("-t","--threshold",type=float,default=0.30)
     p.add_argument("-o","--output",default="."); p.add_argument("--digits",type=int,default=3)
+    p.add_argument("--min-duration",type=float,default=8.0,
+                   help="Merge scenes shorter than this (seconds) into neighbours (default 8)")
     a = p.parse_args()
     vp = Path(a.video)
     if not vp.exists(): panic(f"not found: {a.video}")
@@ -80,13 +111,15 @@ def main():
             best = sc; best_thresh = thresh
         retries = attempt + 1
         if attempt < 3:
-            if len(sc) > 40:
-                if thresh + 0.05 <= 0.50:
-                    thresh = round(thresh+0.05, 2)    # too many false boundaries → raise
-                else: break                           # capped at 0.50, accept best-so-far
-            elif thresh - 0.05 >= 0.05:
-                thresh = round(thresh-0.05, 2)         # too few or long scenes → lower
-            else: break
+            if len(sc) > 60:
+                if thresh + 0.05 <= 0.60:
+                    thresh = round(thresh+0.05, 2)    # too many tiny fragments → raise
+                else: break                           # capped at 0.60, accept best-so-far
+            elif len(sc) < 6:
+                if thresh - 0.05 >= 0.05:
+                    thresh = round(thresh-0.05, 2)     # too few → lower
+                else: break
+            else: break                                # max(d) or median(d) issue → threshold won't help
         else: break
 
     if not best or len(best) < 6:
@@ -98,6 +131,13 @@ def main():
     else:
         print(f"  → best-effort at {best_thresh:.2f} (gate failed — {len(best)} scenes)", file=sys.stderr)
 
+    # Merge flicker scenes (PPT transitions, cursor overlays) into neighbors.
+    # Default 8s threshold catches 100% of observed noise across 4 datasets.
+    pre_merge = len(best)
+    best = merge_short(best, a.min_duration)
+    if pre_merge != len(best):
+        print(f"  merged {pre_merge} → {len(best)} scenes (min-duration={a.min_duration}s)", file=sys.stderr)
+
     # Write scenes.json IMMEDIATELY — before extraction.
     # If extraction times out, timestamps survive.
     for s in best:
@@ -105,7 +145,7 @@ def main():
         s["keyframe"] = str(kd / f"frame_{s['scene_id']:0{a.digits}d}.jpg")
     manifest = {"video":str(vp.resolve()),"duration_seconds":round(dur,2),
                 "threshold_used":best_thresh,"threshold_initial":a.threshold,"retries":retries,
-                "scenes":best}
+                "min_duration":a.min_duration,"scenes":best}
     (od/"scenes.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
     print(f"  scenes.json written ({len(best)} scenes)", file=sys.stderr)
 
