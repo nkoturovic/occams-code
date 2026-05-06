@@ -1,4 +1,5 @@
 {
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
   "preset": "balanced",
   "disabled_agents": [],
   "todoContinuation": {
@@ -8,18 +9,18 @@
     "autoEnableThreshold": 4
   },
   "presets": {
-    "cheap": {
+    "custom": {
       "orchestrator": {
-        "model": "openrouter/qwen/qwen3-coder",
-        "variant": "high",
-        "temperature": 1.0,
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
         "skills": [
           "*"
         ],
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 0.3
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
@@ -29,12 +30,12 @@
           "web-search-prime",
           "websearch",
           "context7"
-        ]
+        ],
+        "temperature": 0.1
       },
       "designer": {
-        "model": "openrouter/google/gemini-3-flash-preview",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 1.0,
         "skills": [
           "agent-browser"
         ],
@@ -43,64 +44,83 @@
           "websearch",
           "context7",
           "zai_vision"
-        ]
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 32000
+          }
+        },
+        "temperature": 0.7
       },
       "explorer": {
-        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
         "skills": [],
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.3
       },
       "librarian": {
-        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "model": "zai-coding-plan/glm-5.1",
         "variant": "high",
-        "temperature": 1.0,
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.6
       },
       "fixer": {
-        "model": "openrouter/deepseek/deepseek-v3.2",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 32000
+          }
+        },
+        "temperature": 0.1
       },
       "observer": {
-        "model": "openrouter/google/gemini-3-flash-preview",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [
           "video-analysis",
           "lecture-notes"
         ],
         "mcps": [
           "zai_vision"
-        ]
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 32000
+          }
+        },
+        "temperature": 0.1
       }
     },
     "balanced": {
       "orchestrator": {
         "model": "openrouter/z-ai/glm-5.1",
         "variant": "high",
-        "temperature": 0.6,
         "skills": [
           "*"
         ],
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 0.6
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
@@ -115,7 +135,6 @@
       "designer": {
         "model": "openrouter/google/gemini-3-flash-preview",
         "variant": "high",
-        "temperature": 1.0,
         "skills": [
           "agent-browser"
         ],
@@ -124,64 +143,65 @@
           "websearch",
           "context7",
           "zai_vision"
-        ]
+        ],
+        "temperature": 1.0
       },
       "explorer": {
         "model": "openrouter/deepseek/deepseek-v3.2",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [],
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.1
       },
       "librarian": {
         "model": "openrouter/qwen/qwen3.6-plus",
         "variant": "high",
-        "temperature": 0.6,
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.6
       },
       "fixer": {
         "model": "openrouter/deepseek/deepseek-v3.2",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.1
       },
       "observer": {
         "model": "openrouter/moonshotai/kimi-k2.6",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [
           "video-analysis",
           "lecture-notes"
         ],
         "mcps": [
           "zai_vision"
-        ]
+        ],
+        "temperature": 0.1
       }
     },
     "premium": {
       "orchestrator": {
         "model": "anthropic/claude-opus-4-6",
         "variant": "max",
-        "temperature": 0.3,
         "skills": [
           "*"
         ],
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 0.3
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
@@ -196,7 +216,6 @@
       "designer": {
         "model": "openrouter/google/gemini-3.1-pro-preview",
         "variant": "max",
-        "temperature": 1.0,
         "skills": [
           "agent-browser"
         ],
@@ -205,63 +224,65 @@
           "websearch",
           "context7",
           "zai_vision"
-        ]
+        ],
+        "temperature": 1.0
       },
       "explorer": {
         "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [],
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.1
       },
       "librarian": {
         "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
-        "temperature": 0.2,
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.2
       },
       "fixer": {
         "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.1
       },
       "observer": {
         "model": "openrouter/moonshotai/kimi-k2.6",
         "variant": "high",
-        "temperature": 0.1,
         "skills": [
           "video-analysis",
           "lecture-notes"
         ],
         "mcps": [
           "zai_vision"
-        ]
+        ],
+        "temperature": 0.1
       }
     },
-    "custom": {
+    "cheap": {
       "orchestrator": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
+        "model": "openrouter/qwen/qwen3-coder",
+        "variant": "high",
         "skills": [
           "*"
         ],
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 1.0
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
@@ -274,14 +295,8 @@
         ]
       },
       "designer": {
-        "model": "kimi-for-coding/kimi-for-coding",
+        "model": "openrouter/google/gemini-3-flash-preview",
         "variant": "high",
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 32000
-          }
-        },
         "skills": [
           "agent-browser"
         ],
@@ -290,60 +305,51 @@
           "websearch",
           "context7",
           "zai_vision"
-        ]
+        ],
+        "temperature": 1.0
       },
       "explorer": {
-        "model": "zai-coding-plan/glm-5.1",
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "variant": "high",
-        "temperature": 0.3,
         "skills": [],
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 1.0
       },
       "librarian": {
-        "model": "zai-coding-plan/glm-5.1",
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "variant": "high",
-        "temperature": 0.6,
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 1.0
       },
       "fixer": {
-        "model": "kimi-for-coding/kimi-for-coding",
+        "model": "openrouter/deepseek/deepseek-v3.2",
         "variant": "high",
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 32000
-          }
-        },
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.1
       },
       "observer": {
-        "model": "kimi-for-coding/kimi-for-coding",
+        "model": "openrouter/google/gemini-3-flash-preview",
         "variant": "high",
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 32000
-          }
-        },
         "skills": [
           "video-analysis",
           "lecture-notes"
         ],
         "mcps": [
           "zai_vision"
-        ]
+        ],
+        "temperature": 1.0
       }
     }
   },
@@ -409,9 +415,27 @@
     "master": {
       "model": "zai-coding-plan/glm-5.1"
     },
-    "default_preset": "balanced",
+    "default_preset": "custom",
     "councillor_execution_mode": "parallel",
     "presets": {
+      "custom": {
+        "master": {
+          "model": "zai-coding-plan/glm-5.1",
+          "temperature": 0.6
+        },
+        "reviewer-1": {
+          "model": "kimi-for-coding/kimi-for-coding",
+          "temperature": 1.0
+        },
+        "reviewer-2": {
+          "model": "openrouter/qwen/qwen3.6-plus",
+          "temperature": 0.6
+        },
+        "reviewer-3": {
+          "model": "openrouter/anthropic/claude-sonnet-4.6",
+          "temperature": 0.3
+        }
+      },
       "balanced": {
         "master": {
           "model": "anthropic/claude-sonnet-4-6",
@@ -460,24 +484,6 @@
         "reviewer-3": {
           "model": "openrouter/google/gemini-3.1-pro-preview",
           "temperature": 1.0
-        }
-      },
-      "custom": {
-        "master": {
-          "model": "zai-coding-plan/glm-5.1",
-          "temperature": 0.6
-        },
-        "reviewer-1": {
-          "model": "kimi-for-coding/kimi-for-coding",
-          "temperature": 1.0
-        },
-        "reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus",
-          "temperature": 0.6
-        },
-        "reviewer-3": {
-          "model": "openrouter/anthropic/claude-sonnet-4.6",
-          "temperature": 0.3
         }
       }
     }

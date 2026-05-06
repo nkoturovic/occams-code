@@ -63,15 +63,15 @@ def parse_jsonc(path: Path) -> dict[str, Any]:
 AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "orchestrator": {
         "skills": ["*"],
-        "mcps": ["web-search-prime"],
+        "mcps": ["web-search-prime", "websearch"],
     },
     "oracle": {
         "skills": [],
-        "mcps": ["web-search-prime", "context7"],
+        "mcps": ["web-search-prime", "websearch", "context7"],
     },
     "designer": {
         "skills": ["agent-browser"],
-        "mcps": ["web-search-prime", "context7", "zai_vision"],
+        "mcps": ["web-search-prime", "websearch", "context7", "zai_vision"],
     },
     "explorer": {
         "variant": "high",
@@ -81,7 +81,7 @@ AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "librarian": {
         "variant": "high",
         "skills": [],
-        "mcps": ["web-search-prime", "context7", "grep_app"],
+        "mcps": ["web-search-prime", "websearch", "context7", "grep_app"],
     },
     "fixer": {
         "variant": "high",
@@ -90,9 +90,10 @@ AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "observer": {
         "variant": "high",
-        "skills": [],
+        "skills": ["video-analysis", "lecture-notes"],
         "mcps": ["zai_vision"],
     },
+
 }
 
 
@@ -151,6 +152,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free",
     ],
+
 }
 
 
@@ -211,27 +213,24 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     config["skills"] = defaults.get("skills", [])
     config["mcps"] = defaults.get("mcps", [])
 
-    # Temperature — explicitly set in override, or absent
+    # Temperature — always from override if set (including thinking-mode models)
     model = config["model"]
     is_kimi = "kimi-for-coding" in model
     is_deepseek_v4 = "deepseek-v4-pro" in model
 
     if is_kimi:
-        # Kimi enforces temperature via API — never set it
-        # Kimi agents use thinking options instead
+        # Kimi agents use thinking options
         budget = override.get("thinking", 16000)
         config["options"] = {
             "thinking": {"type": "enabled", "budgetTokens": budget}
         }
     elif is_deepseek_v4:
-        # DeepSeek V4 Pro thinking auto-handled by @ai-sdk/deepseek provider
-        # No temperature (thinking mode enforces its own)
-        # No options needed (provider handles it natively)
+        # DeepSeek V4 Pro — no special options needed
         pass
-    else:
-        # Other models: temperature from override
-        if "temperature" in override:
-            config["temperature"] = override["temperature"]
+
+    # Temperature applies to ALL models (including thinking-mode ones)
+    if "temperature" in override:
+        config["temperature"] = override["temperature"]
 
     return config
 
@@ -282,6 +281,7 @@ def build_council(council_map: dict[str, Any] | None) -> dict[str, Any]:
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
     """Generate the complete oh-my-opencode-slim.json from model-map input."""
     return {
+        "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
         "todoContinuation": model_map.get("todoContinuation", {

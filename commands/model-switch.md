@@ -12,10 +12,16 @@ Every model in your config already has a temperature example in at least one pre
 1. Search for that model string across all presets in `model-profile.jsonc`
 2. Copy its `"temperature"` or `"thinking"` field — same model, same temp regardless of role
 
-Rules (for models not yet in config):
-- Kimi models → no temperature, set `"thinking"`: 16000
-- DeepSeek V4 Pro → no temperature, no thinking (provider handles it)
-- All other models → 1.0 unless you have a specific reason to lower it
+Temperature is always set explicitly for every agent. For thinking-mode models
+(Kimi, DeepSeek V4 Pro), the API ignores temperature — use these values for
+consistency with the plugin defaults:
+- DeepSeek V4 Pro: 0.3 (orchestrator), 0.1 (oracle/fixer/observer)
+- Kimi K2.6: 0.7 (designer), 0.1 (fixer/observer)
+- GLM 5.1: 0.3–0.6 (tested — avoid 0.0, it breaks reasoning)
+- Claude: 0.1–0.3 (fixer/oracle), 0.3 (orchestrator)
+- All other models: 1.0 unless you have a specific reason to lower it
+
+Kimi models additionally require `"thinking"`: 32000 (or 16000 for minimum).
 
 ## Global model switch (applies everywhere)
 

@@ -170,13 +170,17 @@
         "glm-5.1": {
           "name": "GLM 5.1 (Z.AI)",
           "reasoning": true,
+          "interleaved": {
+            "field": "reasoning_content"
+          },
           "limit": {
             "context": 202000,
-            "output": 32768
+            "output": 65536
           },
           "options": {
             "thinking": {
-              "type": "enabled"
+              "type": "enabled",
+              "clear_thinking": false
             },
             "reasoningEffort": "high"
           },
@@ -366,7 +370,7 @@
         "@z_ai/mcp-server"
       ],
       "environment": {
-        "Z_AI_API_KEY": "",
+        "Z_AI_API_KEY": "YOUR_ZAI_API_KEY",
         "Z_AI_MODE": "ZAI"
       },
       "enabled": true,
@@ -376,7 +380,7 @@
       "type": "remote",
       "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
       "headers": {
-        "Authorization": "Bearer your_Z_AI_API_key"
+        "Authorization": "Bearer YOUR_ZAI_API_KEY"
       },
       "enabled": true,
       "timeout": 60000
