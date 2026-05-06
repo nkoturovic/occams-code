@@ -19,8 +19,7 @@ compatibility: >
 # Lecture Notes Pipeline
 
 8-phase pipeline. **Orchestrator drives all phases.** Transcript is the spine — semantic
-structure comes from spoken content. Visuals are precision enhancements. Full reference:
-`~/wiki/raw/user/docs/2026-05-03_lecture-notes-workflow.md`
+structure comes from spoken content. Visuals are precision enhancements.
 
 ```
 Phase 0: Assessment      (1-2 min, free)     → Orchestrator

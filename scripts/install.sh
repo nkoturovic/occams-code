@@ -20,6 +20,13 @@
 #   OCCAM_INSTALL_OBSIDIAN=1             # 0|1
 #   OCCAM_SETUP_CRON=1                   # 0|1
 #   OCCAM_SETUP_PATH=1                   # 0|1
+#   OCCAM_SETUP_SECRETS=1                # 0|1  write API keys to ~/.config/secrets/env
+#   OCCAM_OPENROUTER_KEY=                # API keys (optional in unattended; prompts hidden interactively)
+#   OCCAM_DEEPSEEK_KEY=
+#   OCCAM_ANTHROPIC_KEY=
+#   OCCAM_KIMI_KEY=
+#   OCCAM_HF_TOKEN=                      # HuggingFace token (optional)
+#   OCCAM_EXA_API_KEY=                   # Exa websearch (optional)
 #   OCCAM_OPENCODE_DIR=$HOME/.config/opencode
 #   OCCAM_WIKI_DIR=$HOME/wiki
 #
@@ -40,14 +47,30 @@ SKILLS_DIR="$OPENCODE_DIR/skills"
 OBSIDIAN_SKILLS_DIR="$HOME/.opencode/skills"
 
 UNATTENDED=0
-case "${1:-}" in
-    --help|-h)
-        sed -n '3,28p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
-        exit 0 ;;
-    --unattended) UNATTENDED=1 ;;
-    "") : ;;
-    *) echo "Unknown flag: $1 (use --help)" >&2; exit 1 ;;
-esac
+DRY_RUN=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            sed -n '3,28p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
+            exit 0 ;;
+        --unattended)         UNATTENDED=1; shift ;;
+        --dry-run)            DRY_RUN=1; UNATTENDED=1; shift ;;
+        --preset)             OCCAM_PRESET="$2"; shift 2 ;;
+        --providers)          OCCAM_PROVIDERS="$2"; shift 2 ;;
+        --transcribe)         OCCAM_TRANSCRIBE="$2"; shift 2 ;;
+        --no-defuddle)        OCCAM_INSTALL_DEFUDDLE=0; shift ;;
+        --no-agent-browser)   OCCAM_INSTALL_AGENT_BROWSER=0; shift ;;
+        --no-obsidian)        OCCAM_INSTALL_OBSIDIAN=0; shift ;;
+        --no-cron)            OCCAM_SETUP_CRON=0; shift ;;
+        --no-path)            OCCAM_SETUP_PATH=0; shift ;;
+        --enable-zai)         OCCAM_ENABLE_ZAI_MCPS=1; shift ;;
+        --zai-key)            OCCAM_ZAI_API_KEY="$2"; shift 2 ;;
+        *) echo "Unknown flag: $1 (use --help)" >&2; exit 1 ;;
+    esac
+done
+export OCCAM_PRESET OCCAM_PROVIDERS OCCAM_TRANSCRIBE OCCAM_INSTALL_DEFUDDLE \
+       OCCAM_INSTALL_AGENT_BROWSER OCCAM_INSTALL_OBSIDIAN OCCAM_SETUP_CRON \
+       OCCAM_SETUP_PATH OCCAM_ENABLE_ZAI_MCPS OCCAM_ZAI_API_KEY
 
 # ─── Tiny helpers ───────────────────────────────────────────────
 log()      { printf '%b\n' "$*"; }
@@ -97,7 +120,9 @@ log "${BOLD}${CYAN}  ▄  Occam's Code  ▄${RESET}"
 log "${DIM}  ─────────────────${RESET}"
 log "${DIM}  OpenCode setup sharpened by Occam's Razor${RESET}"
 log ""
-[[ "$UNATTENDED" == 1 ]] && log "${YELLOW}  (unattended mode — using defaults + env vars)${RESET}\n"
+[[ "$UNATTENDED" == 1 ]] && log "${YELLOW}  (unattended mode — using defaults + env vars + flags)${RESET}"
+[[ "$DRY_RUN"    == 1 ]] && log "${YELLOW}  (dry-run mode — will print summary and exit without writing)${RESET}"
+[[ "$UNATTENDED" == 1 || "$DRY_RUN" == 1 ]] && log ""
 
 # ─── Platform detection ─────────────────────────────────────────
 PLATFORM="$(uname -s)"
@@ -243,17 +268,33 @@ if is_in_csv "zai" "$PROVIDERS"; then
     if [[ "${OCCAM_ENABLE_ZAI_MCPS:-}" == "1" ]] || ask_yn "  Enable Z.AI MCPs?" "N"; then
         ENABLE_ZAI_MCPS=1
         ZAI_API_KEY="${OCCAM_ZAI_API_KEY:-}"
+        # trim whitespace
+        ZAI_API_KEY="${ZAI_API_KEY#"${ZAI_API_KEY%%[![:space:]]*}"}"
+        ZAI_API_KEY="${ZAI_API_KEY%"${ZAI_API_KEY##*[![:space:]]}"}"
         if [[ -z "$ZAI_API_KEY" && "$UNATTENDED" != 1 ]]; then
             read -r -p "$(printf '  Paste your Z.AI API key (input hidden): ')" -s ZAI_API_KEY < /dev/tty || true
+            ZAI_API_KEY="${ZAI_API_KEY#"${ZAI_API_KEY%%[![:space:]]*}"}"
+            ZAI_API_KEY="${ZAI_API_KEY%"${ZAI_API_KEY##*[![:space:]]}"}"
             log ""
         fi
+        # Validate
         if [[ -z "$ZAI_API_KEY" ]]; then
-            warn "No Z.AI key provided — MCPs will be added with a placeholder. Edit opencode.json later."
+            if [[ "$UNATTENDED" == 1 ]]; then
+                err "OCCAM_ENABLE_ZAI_MCPS=1 set but OCCAM_ZAI_API_KEY is empty. Hard-fail in unattended mode."
+                exit 1
+            fi
+            warn "No Z.AI key provided — MCPs will be added with placeholder 'YOUR_ZAI_API_KEY'."
+            warn "Edit ~/.config/opencode/opencode.json to set the real key before launching oc."
             ZAI_API_KEY="YOUR_ZAI_API_KEY"
+        elif [[ "${#ZAI_API_KEY}" -lt 32 ]]; then
+            warn "Z.AI key looks short (${#ZAI_API_KEY} chars) — typical Z.AI keys are ≥ 32 chars."
+            warn "Continuing — but verify the key works after install."
+        else
+            ok "Z.AI key length: ${#ZAI_API_KEY} chars (looks valid)"
         fi
         ok "Z.AI MCPs will be injected into opencode.json"
     else
-        ok "Z.AI MCPs not added (default)"
+        ok "Z.AI MCPs not added (default — opt-in later via INSTALL.md jq snippet)"
     fi
 fi
 
@@ -321,6 +362,21 @@ elif [[ "${OCCAM_SETUP_PATH:-}" == "1" ]] || ask_yn "  Add 'oc' to your PATH (mo
     SETUP_PATH=1
 fi
 
+# ─── Q7: Shared env-secrets ─────────────────────────────────────
+section "7. API keys + shared env-secrets file"
+log "${DIM}  Several scripts (analyze-video.py, transcribe HF model downloads,${RESET}"
+log "${DIM}  Exa websearch MCP) read API keys from environment variables.${RESET}"
+log "${DIM}  We can write them to ~/.config/secrets/env (chmod 600), sourced from ~/.profile.${RESET}"
+log "${DIM}  This file is SHARED across all shells and scripts on your system.${RESET}"
+log "${DIM}  (Skip if you prefer to manage secrets through OpenCode's auth.json only.)${RESET}"
+log ""
+
+SETUP_SECRETS=0
+if [[ "${OCCAM_SETUP_SECRETS:-}" == "0" ]]; then :
+elif [[ "${OCCAM_SETUP_SECRETS:-}" == "1" ]] || ask_yn "  Create / update ~/.config/secrets/env?" "Y"; then
+    SETUP_SECRETS=1
+fi
+
 # ─── Confirmation ───────────────────────────────────────────────
 section "Summary"
 hr
@@ -336,8 +392,14 @@ printf "  agent-browser:   %s\n" "$([[ $INSTALL_AGENT_BROWSER == 1 ]] && echo "i
 printf "  Obsidian:        %s\n" "$([[ $INSTALL_OBSIDIAN == 1 ]] && echo "install" || echo "skip")"
 printf "  Weekly cron:     %s\n" "$([[ $SETUP_CRON == 1 ]] && echo "yes" || echo "no")"
 printf "  Add to PATH:     %s\n" "$([[ $SETUP_PATH == 1 ]] && echo "yes" || echo "no")"
+printf "  Env-secrets:     %s\n" "$([[ $SETUP_SECRETS == 1 ]] && echo "~/.config/secrets/env" || echo "skip")"
 hr
 log ""
+
+if [[ "$DRY_RUN" == 1 ]]; then
+    log "${YELLOW}  Dry-run — exiting without writing anything.${RESET}"
+    exit 0
+fi
 
 if [[ "$UNATTENDED" != 1 ]]; then
     if ! ask_yn "Proceed with installation?" "Y"; then
@@ -532,15 +594,16 @@ fi
 
 # ─── oh-my-opencode-slim plugin ─────────────────────────────────
 section "Installing oh-my-opencode-slim plugin"
+PLUGIN_SPEC="oh-my-opencode-slim@^1.0"   # pin to major to avoid surprise breaks
 (
     cd "$OPENCODE_DIR"
     if command -v bun &>/dev/null; then
-        bun install oh-my-opencode-slim 2>&1 | tail -3 && ok "Installed via bun"
+        bun install "$PLUGIN_SPEC" 2>&1 | tail -3 && ok "Installed via bun ($PLUGIN_SPEC)"
     elif command -v npm &>/dev/null; then
-        npm install oh-my-opencode-slim 2>&1 | tail -3 && ok "Installed via npm"
+        npm install "$PLUGIN_SPEC" 2>&1 | tail -3 && ok "Installed via npm ($PLUGIN_SPEC)"
     else
         warn "Neither bun nor npm — install plugin manually:"
-        log "    cd $OPENCODE_DIR && npm install oh-my-opencode-slim"
+        log "    cd $OPENCODE_DIR && npm install $PLUGIN_SPEC"
     fi
 )
 
@@ -684,24 +747,119 @@ if [[ "$SETUP_CRON" == 1 ]]; then
     fi
 fi
 
+# ─── Shared env-secrets ─────────────────────────────────────────
+if [[ "$SETUP_SECRETS" == 1 ]]; then
+    section "Setting up shared env-secrets at ~/.config/secrets/env"
+    SECRETS_DIR="$HOME/.config/secrets"
+    SECRETS_FILE="$SECRETS_DIR/env"
+    SECRETS_EXAMPLE="$REPO_ROOT/config/secrets-env.example"
+
+    mkdir -p "$SECRETS_DIR"
+    chmod 700 "$SECRETS_DIR" 2>/dev/null || true
+
+    # Bootstrap from template (preserves existing file content)
+    if [[ ! -f "$SECRETS_FILE" ]]; then
+        if [[ -f "$SECRETS_EXAMPLE" ]]; then
+            cp "$SECRETS_EXAMPLE" "$SECRETS_FILE"
+            ok "Created $SECRETS_FILE from template"
+        else
+            cat > "$SECRETS_FILE" <<'EOF'
+# Occam's Code shared API secrets — sourced by ~/.profile.
+# chmod 600 — never commit, never share.
+EOF
+            ok "Created $SECRETS_FILE"
+        fi
+    else
+        ok "$SECRETS_FILE exists — will update in place"
+    fi
+
+    # Idempotent set: remove any existing 'export VAR=' line, append new value
+    set_secret() {
+        local var="$1" val="$2"
+        [[ -z "$val" ]] && return 0
+        # Strip surrounding whitespace
+        val="${val#"${val%%[![:space:]]*}"}"
+        val="${val%"${val##*[![:space:]]}"}"
+        [[ -z "$val" ]] && return 0
+        # Remove any existing line(s) for this var (commented or not)
+        local tmp; tmp="$(mktemp)"
+        grep -vE "^[[:space:]]*#?[[:space:]]*export[[:space:]]+${var}=" "$SECRETS_FILE" > "$tmp" || true
+        mv "$tmp" "$SECRETS_FILE"
+        # Append using printf %q to escape special characters safely
+        printf 'export %s=%q\n' "$var" "$val" >> "$SECRETS_FILE"
+    }
+
+    # Prompt for selected providers' keys
+    prompt_key() {
+        local label="$1" var="$2" envname="$3"
+        local val="${!envname:-}"
+        if [[ -z "$val" && "$UNATTENDED" != 1 ]]; then
+            read -r -s -p "  $label (input hidden, blank to skip): " val < /dev/tty || true
+            log ""
+        fi
+        set_secret "$var" "$val"
+    }
+
+    is_in_csv "openrouter" "$PROVIDERS" && prompt_key "OpenRouter key"      "OPENROUTER_API_KEY" "OCCAM_OPENROUTER_KEY"
+    is_in_csv "deepseek"   "$PROVIDERS" && prompt_key "DeepSeek key"        "DEEPSEEK_API_KEY"   "OCCAM_DEEPSEEK_KEY"
+    is_in_csv "anthropic"  "$PROVIDERS" && prompt_key "Anthropic key"       "ANTHROPIC_API_KEY"  "OCCAM_ANTHROPIC_KEY"
+    is_in_csv "zai"        "$PROVIDERS" && [[ -n "$ZAI_API_KEY" && "$ZAI_API_KEY" != "YOUR_ZAI_API_KEY" ]] && \
+        set_secret "Z_AI_API_KEY" "$ZAI_API_KEY"
+    is_in_csv "kimi"       "$PROVIDERS" && prompt_key "Kimi for Coding key" "KIMI_API_KEY"       "OCCAM_KIMI_KEY"
+
+    # Always offer HF_TOKEN + EXA_API_KEY (used by transcribe + websearch MCP)
+    log "${DIM}  Optional tokens (used by scripts/MCPs, not by OpenCode itself):${RESET}"
+    prompt_key "HF_TOKEN (HuggingFace, for whisper.cpp model downloads + MCPs)" "HF_TOKEN"     "OCCAM_HF_TOKEN"
+    prompt_key "EXA_API_KEY (websearch MCP higher quotas)"                      "EXA_API_KEY"  "OCCAM_EXA_API_KEY"
+
+    chmod 600 "$SECRETS_FILE"
+    secret_count="$(grep -cE '^export ' "$SECRETS_FILE" 2>/dev/null || echo 0)"
+    ok "$secret_count active env vars in $SECRETS_FILE (mode 600)"
+
+    # Ensure ~/.profile sources the file (sourced by both bash and zsh login shells)
+    PROFILE="$HOME/.profile"
+    if ! grep -F -q '.config/secrets/env' "$PROFILE" 2>/dev/null; then
+        printf '\n# Occam'\''s Code: source shared API secrets\n[ -f "$HOME/.config/secrets/env" ] && . "$HOME/.config/secrets/env"\n' >> "$PROFILE"
+        ok "Added sourcing line to ~/.profile"
+    else
+        ok "~/.profile already sources the secrets file"
+    fi
+    log "    ${DIM}Restart shell or 'source ~/.profile' to load the keys into your session.${RESET}"
+fi
+
 # ─── PATH setup ─────────────────────────────────────────────────
 if [[ "$SETUP_PATH" == 1 ]]; then
     section "Adding 'oc' to PATH"
-    SHELL_RC=""
-    [[ -f "$HOME/.zshrc"  ]] && SHELL_RC="$HOME/.zshrc"
-    [[ -f "$HOME/.bashrc" ]] && SHELL_RC="${SHELL_RC:-$HOME/.bashrc}"
-    [[ "$PLATFORM" == "Darwin" && -f "$HOME/.zshrc" ]] && SHELL_RC="$HOME/.zshrc"
-    if [[ -z "$SHELL_RC" ]]; then
-        SHELL_RC="$HOME/.bashrc"
-        touch "$SHELL_RC"
-    fi
     PATH_LINE='export PATH="$HOME/.config/opencode/bin:$PATH"'
-    if grep -F -q ".config/opencode/bin" "$SHELL_RC" 2>/dev/null; then
-        ok "PATH already set in $SHELL_RC"
+    # Determine which shell rc files to write. macOS Terminal launches login shells
+    # which read .bash_profile (not .bashrc); Linux interactive shells read .bashrc.
+    # We append to all relevant ones the user has, creating none.
+    RC_FILES=()
+    [[ -f "$HOME/.zshrc" ]] && RC_FILES+=("$HOME/.zshrc")
+    if [[ "$PLATFORM" == "Darwin" ]]; then
+        [[ -f "$HOME/.bash_profile" ]] && RC_FILES+=("$HOME/.bash_profile")
+        [[ -f "$HOME/.bashrc"        ]] && RC_FILES+=("$HOME/.bashrc")
     else
-        printf '\n# Occam'\''s Code launcher\n%s\n' "$PATH_LINE" >> "$SHELL_RC"
-        ok "Appended to $SHELL_RC — restart shell or 'source $SHELL_RC' to activate"
+        [[ -f "$HOME/.bashrc"        ]] && RC_FILES+=("$HOME/.bashrc")
+        [[ -f "$HOME/.bash_profile"  ]] && RC_FILES+=("$HOME/.bash_profile")
     fi
+    if [[ ${#RC_FILES[@]} -eq 0 ]]; then
+        # No existing rc files — create one for the current shell
+        if [[ "${SHELL:-}" == */zsh ]]; then
+            RC_FILES=("$HOME/.zshrc"); touch "$HOME/.zshrc"
+        else
+            RC_FILES=("$HOME/.bashrc"); touch "$HOME/.bashrc"
+        fi
+    fi
+    for rc in "${RC_FILES[@]}"; do
+        if grep -F -q ".config/opencode/bin" "$rc" 2>/dev/null; then
+            ok "PATH already set in $rc"
+        else
+            printf '\n# Occam'\''s Code launcher\n%s\n' "$PATH_LINE" >> "$rc"
+            ok "Appended to $rc"
+        fi
+    done
+    log "    ${DIM}Restart your shell or 'source ~/.bashrc' (or .zshrc / .bash_profile) to activate.${RESET}"
 fi
 
 # ═══ POST-INSTALL ═══════════════════════════════════════════════
@@ -718,6 +876,17 @@ if jq empty "$OPENCODE_DIR/opencode.json" 2>/dev/null && jq empty "$OPENCODE_DIR
     ok "JSON files valid"
 else
     err "Some JSON files have syntax errors"
+fi
+
+# End-to-end check via oc --doctor (best effort — needs bash 4+)
+if [[ "${BASH_VERSINFO[0]:-0}" -ge 4 && -x "$OPENCODE_DIR/bin/oc" ]]; then
+    log ""
+    log "${DIM}  Running 'oc --doctor' for end-to-end check...${RESET}"
+    if "$OPENCODE_DIR/bin/oc" --doctor 2>&1 | sed 's/^/    /'; then
+        ok "oc --doctor passed"
+    else
+        warn "oc --doctor reported issues (output above) — usually harmless if you haven't set up auth.json yet"
+    fi
 fi
 
 # ─── Done + next steps ──────────────────────────────────────────

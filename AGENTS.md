@@ -104,8 +104,6 @@ workflow. Triggered when user says "create notes from this video", "make lecture
   is in an Obsidian vault — warn if Media Extended plugin is missing.
 - **Skill reference:** `/skill lecture-notes` — full pipeline spec with prompts, quality
   gates, edge cases, output format, and delegation map.
-- **Deep reference:** `~/wiki/raw/user/docs/2026-05-03_lecture-notes-workflow.md` — 1,700-line
-  comprehensive document with comparison to other systems, NMO case study, and rationale.
 
 ## Non-text Content
 

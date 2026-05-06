@@ -1,22 +1,29 @@
 # Occam's Code
 
 > OpenCode setup sharpened by Occam's Razor.
-
-> The simplest solution that fully solves the problem is the correct solution.
+> *The simplest solution that fully solves the problem is the correct solution.*
 
 A shareable, open-source configuration for [OpenCode](https://github.com/sst/opencode) — an AI coding agent with multi-model orchestration, Karpathy-style persistent wiki memory, and a smart launcher.
+
+**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys, but you don't need them to start.
+
+```bash
+git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
+./scripts/install.sh                                    # interactive
+# OR for AI agents / CI:
+OCCAM_PROVIDERS=openrouter ./scripts/install.sh --unattended
+```
 
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **4 presets** — `balanced` (default), `cheap`, `premium`, `custom` (subscription-based)
-- **8 Python scripts + transcribe** — Config generator, wiki lint, project init, repo ingestion, project state detection, video analysis, lecture scene detection, lecture audio-visual fusion, local speech-to-text (whisper.cpp)
+- **4 presets** — `balanced` (default), `cheap`, `premium`, `custom`
+- **8 Python scripts** + `transcribe` + `cleanup-logs.sh` — Config generator, wiki lint, project init, repo ingestion, project state detection, video analysis, lecture scene detection, lecture audio-visual fusion, speech-to-text, weekly log pruner
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
-- **oh-my-opencode-slim** config — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
-- **model-profile.jsonc** — Single source of truth for model assignments. Edit this file, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
-- **4 MCP servers** — context7 (library docs), grep_app (code search), zai_vision (image analysis, opt-in), web-search-prime (Z.AI, opt-in)
-- **Plugin-built websearch** — Exa fallback (free tier, higher quotas with `EXA_API_KEY`)
-- **5 local skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify (plus 5 from obsidian-skills plugin if installed: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
+- **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
+- **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
+- **3 default MCPs + 2 opt-in** — context7 (library docs) + grep_app (code search) + websearch (Exa, free tier) ship by default; zai_vision + web-search-prime are injected by the installer only if you have a Z.AI subscription
+- **5 local skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify (plus 5 from the obsidian-skills bundle if cloned: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 7 agent roles with specialist instructions, pipeline workflows, and multi-agent delegation rules
 
@@ -24,43 +31,49 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 
 ### Prerequisites
 
-- [OpenCode](https://github.com/sst/opencode) installed (`npm install -g opencode` or `bun install -g opencode`)
+- [OpenCode](https://github.com/sst/opencode) (`npm install -g opencode` or `bun install -g opencode`)
 - Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), git, curl
-- `npm` or `bun` (for oh-my-opencode-slim plugin)
-- API keys for at least one provider (OpenRouter, Anthropic, or Z.AI)
-- *Optional:* [fzf](https://github.com/junegunn/fzf) for interactive preset picker
+- `npm` or `bun` (for installing the oh-my-opencode-slim plugin)
+- An API key for at least one provider (**OpenRouter recommended for the OOB `balanced` preset**)
 
 <details>
 <summary>Platform-specific notes</summary>
 
-- **Linux:** bash 4+ is default. `sudo apt install python3 jq git curl` (Debian/Ubuntu)
-- **macOS:** `brew install bash jq` (bash 5 required, system bash 3.2 won't work with `oc`)
-- **Windows:** Use WSL2, then same as Linux
+- **Linux:** bash 4+ is default. `sudo apt install python3 jq git curl` (Debian/Ubuntu) / `brew install jq` (others)
+- **macOS:** `brew install bash jq` — system bash 3.2 won't run `oc`. After install, run with `/opt/homebrew/bin/bash` or `chsh -s /opt/homebrew/bin/bash`.
+- **Windows:** Use WSL2 — same as Linux from inside WSL.
 
 </details>
 
 ### Install
 
 ```bash
-git clone https://github.com/nkoturovic/occams-code.git
-cd occams-code
-./scripts/install.sh
+git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
+./scripts/install.sh                                          # interactive (recommended)
+# or unattended (e.g. for AI agents / CI):
+OCCAM_PROVIDERS=openrouter ./scripts/install.sh --unattended
 ```
 
-The installer will:
-1. Copy scripts, commands, and config to `~/.config/opencode/`
-2. Copy the wiki template to `~/wiki/`
-3. Copy `opencode.json` core config
-4. Install oh-my-opencode-slim plugin
+The installer:
+1. Asks 6 questions (providers, default preset, Z.AI opt-in, transcription backend, optional CLIs, cron + PATH)
+2. Copies scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
+3. Sets up the wiki template at `~/wiki/`
+4. Installs the oh-my-opencode-slim plugin
+5. Optionally injects Z.AI MCP blocks if you confirmed a Z.AI subscription
 
-See [INSTALL.md](INSTALL.md) for detailed per-platform instructions.
+Set up your API keys — the installer's **step 7** writes them to `~/.config/secrets/env` (sourced by `~/.profile`) and optionally to OpenCode's `~/.local/share/opencode/auth.json`. Both stores serve different consumers:
+- `~/.config/secrets/env` — env vars read by scripts (`analyze-video.py`, `transcribe`) and MCPs (`websearch` Exa, `zai_vision`)
+- `~/.local/share/opencode/auth.json` — JSON keys read by OpenCode core for provider routing
+
+See [INSTALL.md](INSTALL.md) for the full env-var reference (`OCCAM_*`), CLI flags, manual install, and per-platform instructions.
 
 ### First Launch
 
 ```bash
-oc                  # Interactive: pick preset, launch
-oc --preset cheap   # Skip prompts, use cheap preset
-oc --sync-profile   # Regenerate oh-my-opencode-slim.json from model-profile.jsonc
+oc --doctor              # Verify config + wiki health
+oc                       # Interactive: pick preset, launch
+oc --preset cheap        # Skip prompts, use the cheap preset
+oc --sync-profile        # Regenerate oh-my-opencode-slim.json from model-profile.jsonc
 ```
 
 ## Usage
@@ -80,9 +93,10 @@ oc -c               Continue last session
 
 ### Permissions
 
-Default is `--unsafe` (auto-approve). We trust you. You trust your agents. Life's too short for permission dialogs.
+By default `opencode.json` ships with `"permission": "allow"` — the agent auto-approves every tool call. This is good for trusted local work; not great for code you didn't write yourself.
 
-To make prompts the default, remove `"permission": "allow"` from `~/.config/opencode/opencode.json`. Then use `oc --unsafe` when you want to live dangerously.
+- `oc --safe` — temporarily switches to permission prompts for the current session (restored on exit).
+- To make prompts the persistent default, remove `"permission": "allow"` from `~/.config/opencode/opencode.json`. Then use `oc --unsafe` for one-off auto-approve sessions.
 
 ### The Wiki
 
@@ -99,8 +113,8 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 | Preset | Use case | Required keys | Notes |
 |--------|----------|---------------|-------|
 | `balanced` | **Default** — daily development | OpenRouter only | OOB-usable: all primary models route through OpenRouter (GLM, Qwen, DeepSeek V3.2, Gemini Flash, Kimi K2.6) |
-| `cheap` | Exploration, bulk tasks | OpenRouter only | Heavy use of free tier (Nemotron, Qwen Coder Free) |
-| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator + oracle), Sonnet 4.6 (workers), Gemini Pro (designer) |
+| `cheap` | Exploration, bulk tasks | OpenRouter only | Free Nemotron for explorer/librarian; paid Qwen Coder for orchestrator; mixed paid/free elsewhere |
+| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator, oracle), Claude Sonnet 4.6 (explorer, librarian, fixer), Gemini 3.1 Pro (designer), Kimi K2.6 (observer) |
 | `custom` | Subscription-based | DeepSeek + Kimi + Z.AI | DeepSeek V4 Pro (orchestrator, oracle) + Kimi for Coding ($39/mo, 4 agents) + Z.AI GLM-5.1 ($30/mo, 2 agents) |
 
 **The default `balanced` preset works fully with just an OpenRouter key.** The other presets require additional API keys/subscriptions.
@@ -154,7 +168,7 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 ### Agents
 
-7 specialist agents, each with curated models per preset:
+1 orchestrator + 6 specialist agents, each with curated models per preset:
 
 | Agent | Role | Delegation trigger |
 |-------|------|--------------------|
@@ -172,20 +186,20 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 
 ### MCP Servers
 
-Default (always enabled):
+**Default (3, always enabled):**
 
 | Server | Purpose |
 |--------|---------|
 | **context7** | Remote library documentation lookup |
 | **grep_app** | Search code across open-source repos |
-| **websearch** | Exa web search (plugin-built, free tier; `EXA_API_KEY` for higher quotas) |
+| **websearch** | Exa web search, plugin-built, free tier (set `EXA_API_KEY` for higher quotas) |
 
-Opt-in (only if you have a Z.AI subscription — installer prompts for the key):
+**Opt-in (2 — only if you have a Z.AI subscription, installer prompts for the key):**
 
 | Server | Purpose |
 |--------|---------|
 | **zai_vision** | Image analysis, UI-to-code, OCR, technical diagrams, video |
-| **web-search-prime** | Z.AI primary web search alternative to Exa |
+| **web-search-prime** | Z.AI web search (alternative to Exa websearch) |
 
 The default repo config does **not** ship Z.AI MCP blocks. The installer asks "Do you have a Z.AI subscription?" — if yes, it injects the blocks via `jq` with your API key. If no, the agent.mcps lists in `oh-my-opencode-slim.json` reference these names harmlessly (they're no-ops without the MCPs declared).
 
@@ -225,7 +239,7 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── model-profile.jsonc            # Source-of-truth for model assignments (oc --sync-profile regenerates slim.json)
 ├── bin/oc                         # Launcher script
-├── scripts/                       # 9 Python scripts + transcribe + cleanup-logs.sh
+├── scripts/                       # 8 Python scripts + transcribe + cleanup-logs.sh
 ├── commands/                      # Slash command definitions (6 commands)
 ├── skills/                        # Local skills (codemap, simplify, audio/video/lecture pipeline)
 
