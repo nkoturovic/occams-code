@@ -173,6 +173,17 @@
           "limit": {
             "context": 202000,
             "output": 32768
+          },
+          "options": {
+            "reasoningEffort": "high"
+          },
+          "variants": {
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "max": {
+              "reasoningEffort": "max"
+            }
           }
         }
       }
