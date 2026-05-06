@@ -217,6 +217,7 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     model = config["model"]
     is_kimi = "kimi-for-coding" in model
     is_deepseek_v4 = "deepseek-v4-pro" in model
+    is_glm_zai = "zai-coding-plan/glm" in model
 
     if is_kimi:
         # Kimi agents use thinking options
@@ -227,6 +228,11 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     elif is_deepseek_v4:
         # DeepSeek V4 Pro — no special options needed
         pass
+    elif is_glm_zai:
+        # GLM 5.1 — thinking enabled by default, explicit in agent config
+        config["options"] = {
+            "thinking": {"type": "enabled"}
+        }
 
     # Temperature applies to ALL models (including thinking-mode ones)
     if "temperature" in override:

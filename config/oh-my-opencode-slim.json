@@ -61,6 +61,11 @@
           "context7",
           "grep_app"
         ],
+        "options": {
+          "thinking": {
+            "type": "enabled"
+          }
+        },
         "temperature": 0.3
       },
       "librarian": {
@@ -73,6 +78,11 @@
           "context7",
           "grep_app"
         ],
+        "options": {
+          "thinking": {
+            "type": "enabled"
+          }
+        },
         "temperature": 0.6
       },
       "fixer": {
