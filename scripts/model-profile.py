@@ -90,7 +90,7 @@ AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "observer": {
         "variant": "high",
-        "skills": ["video-analysis", "lecture-notes"],
+        "skills": ["video-analysis", "lecture-notes", "audio-analysis"],
         "mcps": ["zai_vision"],
     },
 
@@ -123,13 +123,11 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/qwen/qwen3-coder:free",
     ],
     "observer": [
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/moonshotai/kimi-k2.6",
+        "kimi-for-coding/kimi-for-coding",
         "openrouter/z-ai/glm-5v-turbo",
-        "openrouter/google/gemini-3.1-pro-preview",
-        "openrouter/google/gemini-3-flash-preview",
         "anthropic/claude-sonnet-4-6",
-        "openrouter/qwen/qwen3-coder:free",
+        "openrouter/google/gemini-3-flash-preview",
     ],
     "explorer": [
         "openrouter/deepseek/deepseek-v3.2",
@@ -218,12 +216,19 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     is_kimi = "kimi-for-coding" in model
     is_deepseek_v4 = "deepseek-v4-pro" in model
     is_glm_zai = "zai-coding-plan/glm" in model
+    is_gemini = "gemini" in model
 
     if is_kimi:
         # Kimi agents use thinking options
         budget = override.get("thinking", 16000)
         config["options"] = {
             "thinking": {"type": "enabled", "budgetTokens": budget}
+        }
+    elif is_gemini:
+        # Gemini — reasoningEffort (low/medium/high/max), no budgetTokens
+        effort = override.get("reasoningEffort", "high")
+        config["options"] = {
+            "reasoningEffort": effort
         }
     elif is_deepseek_v4:
         # DeepSeek V4 Pro — no special options needed

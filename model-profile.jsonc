@@ -6,7 +6,7 @@
   // Per-project overrides use .opencode/oh-my-opencode-slim.jsonc
   // (omo-slim reads this automatically — just set model there)
 
-  "preset": "balanced",
+  "preset": "custom",
 
   "presets": {
 
@@ -18,18 +18,18 @@
       "explorer":     { "model": "zai-coding-plan/glm-5.1", "variant": "high", "temperature": 0.3 },
       "librarian":    { "model": "zai-coding-plan/glm-5.1", "variant": "high", "temperature": 0.6 },
       "fixer":        { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 32000, "temperature": 0.1 },
-      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 32000, "temperature": 0.1 }
+      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "variant": "high", "reasoningEffort": "max", "temperature": 1.0 }
     },
 
-    // ============ BALANCED (OpenRouter-only, works OOB with just an OpenRouter key — DEFAULT) ============
+    // ============ BALANCED (OpenRouter-first, best cost/quality) ============
     "balanced": {
       "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 0.6 },
-      "oracle":       { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.2 },
+      "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "designer":     { "model": "openrouter/google/gemini-3-flash-preview", "variant": "high", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.1 },
       "librarian":    { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.6 },
       "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.1 },
-      "observer":     { "model": "openrouter/moonshotai/kimi-k2.6", "variant": "high", "temperature": 0.1 }
+      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "variant": "high", "reasoningEffort": "max", "temperature": 1.0 }
     },
 
     // ============ PREMIUM (best available, no cost concern) ============
@@ -40,18 +40,18 @@
       "explorer":     { "model": "anthropic/claude-sonnet-4-6", "variant": "high", "temperature": 0.1 },
       "librarian":    { "model": "anthropic/claude-sonnet-4-6", "variant": "high", "temperature": 0.2 },
       "fixer":        { "model": "anthropic/claude-sonnet-4-6", "variant": "high", "temperature": 0.1 },
-      "observer":     { "model": "openrouter/moonshotai/kimi-k2.6", "variant": "high", "temperature": 0.1 }
+      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "variant": "high", "reasoningEffort": "max", "temperature": 1.0 }
     },
 
-    // ============ CHEAP (OpenRouter-only, budget-optimized, free models where possible) ============
+    // ============ CHEAP (budget-optimized, free models where possible) ============
     "cheap": {
       "orchestrator": { "model": "openrouter/qwen/qwen3-coder", "variant": "high", "temperature": 1.0 },
-      "oracle":       { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.2 },
+      "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "designer":     { "model": "openrouter/google/gemini-3-flash-preview", "variant": "high", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
       "librarian":    { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
       "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.1 },
-      "observer":     { "model": "openrouter/google/gemini-3-flash-preview", "variant": "high", "temperature": 1.0 }
+      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "variant": "high", "reasoningEffort": "max", "temperature": 1.0 }
     }
   }
 }

@@ -12,7 +12,7 @@ description: >
   — that requires audio-analysis instead.
 compatibility: >
   Requires: transcribe (whisper.cpp local), ffmpeg, lecture-scenes.py, lecture-fusion.py,
-  OPENROUTER_API_KEY (vision LLM — Gemini Pro via OpenRouter). Output is Obsidian-flavored
+  OPENROUTER_API_KEY (vision LLM via OpenRouter). Output is Obsidian-flavored
   markdown using wikilinks, callouts, LaTeX, Media Extended #t= timestamps.
 ---
 
@@ -127,7 +127,7 @@ taskbar overlays without losing real content boundaries.
 
 ## Phase 3: Semantic Segmentation
 
-**Delegate to @oracle.** Send full SRT (Gemini handles 1M tokens easily).
+**Delegate to @oracle.** Send full SRT (1M-token context models handle this easily).
 
 Prompt:
 

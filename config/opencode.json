@@ -224,9 +224,32 @@
         },
         "google/gemini-3.1-pro-preview": {
           "name": "Gemini 3.1 Pro Preview (via OpenRouter)",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "high": {
+              "temperature": 1.0
+            },
+            "max": {
+              "temperature": 1.0
+            },
+            "low": {
+              "temperature": 0.2
+            }
           }
         },
         "deepseek/deepseek-v3.2": {
@@ -259,9 +282,32 @@
         },
         "google/gemini-3-flash-preview": {
           "name": "Gemini 3 Flash Preview (via OpenRouter)",
+          "reasoning": true,
           "limit": {
             "context": 1000000,
             "output": 32768
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "high": {
+              "temperature": 1.0
+            },
+            "max": {
+              "temperature": 1.0
+            },
+            "low": {
+              "temperature": 0.2
+            }
           }
         },
         "qwen/qwen3-coder": {
@@ -288,6 +334,60 @@
             ]
           },
           "attachment": true
+        },
+        "~google/gemini-pro-latest": {
+          "name": "Gemini Pro (auto-updating)",
+          "reasoning": true,
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "high": {
+              "temperature": 1.0
+            },
+            "low": {
+              "temperature": 0.2
+            }
+          }
+        },
+        "~google/gemini-flash-latest": {
+          "name": "Gemini Flash (auto-updating)",
+          "reasoning": true,
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "high": {
+              "temperature": 1.0
+            },
+            "low": {
+              "temperature": 0.2
+            }
+          }
         }
       }
     }
