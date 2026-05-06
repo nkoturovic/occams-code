@@ -23,7 +23,10 @@
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
-        "variant": "high",
+        "reasoningEffort": "max",
+        "thinking": {
+          "type": "enabled"
+        },
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -104,7 +107,10 @@
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
-        "variant": "high",
+        "reasoningEffort": "max",
+        "thinking": {
+          "type": "enabled"
+        },
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -172,7 +178,7 @@
     },
     "premium": {
       "orchestrator": {
-        "model": "openrouter/anthropic/claude-opus-4-6",
+        "model": "anthropic/claude-opus-4-6",
         "variant": "max",
         "temperature": 0.3,
         "skills": [
@@ -184,8 +190,11 @@
         ]
       },
       "oracle": {
-        "model": "openrouter/deepseek/deepseek-v4-pro",
-        "variant": "max",
+        "model": "deepseek/deepseek-v4-pro",
+        "reasoningEffort": "max",
+        "thinking": {
+          "type": "enabled"
+        },
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -208,7 +217,7 @@
         ]
       },
       "explorer": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -218,7 +227,7 @@
         ]
       },
       "librarian": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
@@ -230,7 +239,7 @@
         ]
       },
       "fixer": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "model": "anthropic/claude-sonnet-4-6",
         "variant": "high",
         "temperature": 0.1,
         "skills": [],
@@ -254,7 +263,10 @@
     "custom": {
       "orchestrator": {
         "model": "deepseek/deepseek-v4-pro",
-        "variant": "high",
+        "reasoningEffort": "max",
+        "thinking": {
+          "type": "enabled"
+        },
         "skills": [
           "*"
         ],
@@ -265,7 +277,10 @@
       },
       "oracle": {
         "model": "deepseek/deepseek-v4-pro",
-        "variant": "high",
+        "reasoningEffort": "max",
+        "thinking": {
+          "type": "enabled"
+        },
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -409,7 +424,7 @@
     "master": {
       "model": "zai-coding-plan/glm-5.1"
     },
-    "default_preset": "custom",
+    "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
       "balanced": {
@@ -480,7 +495,6 @@
           "temperature": 0.3
         }
       }
-    },
-    "default": "balanced"
+    }
   }
 }
