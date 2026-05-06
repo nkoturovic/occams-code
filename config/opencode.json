@@ -175,6 +175,9 @@
             "output": 32768
           },
           "options": {
+            "thinking": {
+              "type": "enabled"
+            },
             "reasoningEffort": "high"
           },
           "variants": {
@@ -183,6 +186,11 @@
             },
             "max": {
               "reasoningEffort": "max"
+            },
+            "non-think": {
+              "thinking": {
+                "type": "disabled"
+              }
             }
           }
         }
