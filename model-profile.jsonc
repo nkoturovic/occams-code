@@ -14,11 +14,11 @@
     "custom": {
       "orchestrator": { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
-      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 16000 },
+      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 32000 },
       "explorer":     { "model": "zai-coding-plan/glm-5.1", "variant": "high", "temperature": 0.3 },
       "librarian":    { "model": "zai-coding-plan/glm-5.1", "variant": "high", "temperature": 0.6 },
-      "fixer":        { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 16000 },
-      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 16000 }
+      "fixer":        { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 32000 },
+      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "variant": "high", "thinking": 32000 }
     },
 
     // ============ BALANCED (OpenRouter-first, best cost/quality) ============

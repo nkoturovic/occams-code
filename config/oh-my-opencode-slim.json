@@ -279,7 +279,7 @@
         "options": {
           "thinking": {
             "type": "enabled",
-            "budgetTokens": 16000
+            "budgetTokens": 32000
           }
         },
         "skills": [
@@ -320,7 +320,7 @@
         "options": {
           "thinking": {
             "type": "enabled",
-            "budgetTokens": 16000
+            "budgetTokens": 32000
           }
         },
         "skills": [],
@@ -334,7 +334,7 @@
         "options": {
           "thinking": {
             "type": "enabled",
-            "budgetTokens": 16000
+            "budgetTokens": 32000
           }
         },
         "skills": [
