@@ -72,13 +72,15 @@ Some models validate in the catalog but fail at runtime. Check the model's provi
 
 ### Config file locations
 ```
-~/.config/opencode/opencode.json              # Core config (static)
-~/.config/opencode/oh-my-opencode-slim.json   # Plugin config (your presets)
+~/.config/opencode/opencode.json              # Core config (providers, MCPs, LSPs)
+~/.config/opencode/oh-my-opencode-slim.json   # Plugin config (presets, agents, council)
+~/.config/opencode/model-profile.jsonc        # Model assignment source-of-truth (oc --sync-profile regenerates slim.json)
 ~/.config/opencode/AGENTS.md                  # Agent instructions
 ~/.config/opencode/bin/oc                     # Launcher script
-~/.config/opencode/scripts/                   # 4 utility scripts
-~/.config/opencode/commands/                  # 4 slash command docs
-~/.config/opencode/auth.json                  # API keys (NEVER share)
+~/.config/opencode/scripts/                   # ~10 utility scripts (incl. cleanup-logs.sh)
+~/.config/opencode/commands/                  # 6 slash command docs
+~/.config/opencode/skills/                    # Local skills (codemap, simplify, lecture pipeline, etc.)
+~/.local/share/opencode/auth.json             # API keys (NEVER share, gitignored)
 ```
 
 ## Related

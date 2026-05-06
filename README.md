@@ -96,14 +96,14 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 
 ### Presets
 
-| Preset | Use case | Cost model |
-|--------|----------|------------|
-| `cheap` | Quick tasks, exploration | Free/cheap models only |
-| `balanced` | Daily development | Mix of quality and cost |
-| `premium` | Complex architecture, debugging | Best models regardless of cost |
-| `custom` | **Subscription-based** — live setup: DeepSeek V4 Pro (orchestrator, oracle), plus Kimi + Z.AI GLM | Requires DeepSeek API, Kimi for Coding ($39/mo), and Z.AI Coding Plan ($30/mo) |
+| Preset | Use case | Required keys | Notes |
+|--------|----------|---------------|-------|
+| `balanced` | **Default** — daily development | OpenRouter only | OOB-usable: all primary models route through OpenRouter (GLM, Qwen, DeepSeek V3.2, Gemini Flash, Kimi K2.6) |
+| `cheap` | Exploration, bulk tasks | OpenRouter only | Heavy use of free tier (Nemotron, Qwen Coder Free) |
+| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator + oracle), Sonnet 4.6 (workers), Gemini Pro (designer) |
+| `custom` | Subscription-based | DeepSeek + Kimi + Z.AI | DeepSeek V4 Pro (orchestrator, oracle) + Kimi for Coding ($39/mo, 4 agents) + Z.AI GLM-5.1 ($30/mo, 2 agents) |
 
-**Note:** The `custom` preset uses `deepseek/`, `kimi-for-coding/`, and `zai-coding-plan/` providers that require active subscriptions or API keys. If you don't have these, use `balanced` or `premium` instead.
+**The default `balanced` preset works fully with just an OpenRouter key.** The other presets require additional API keys/subscriptions.
 
 ### Per-Project Config
 
@@ -149,7 +149,8 @@ The plugin deep-merges project config with global config. Edit the file directly
 | `analyze-video.py` | Video analysis via OpenRouter (Gemini, multi-provider) |
 | `lecture-scenes.py` | Scene detection + keyframe extraction (ffmpeg) |
 | `lecture-fusion.py` | Audio-visual fusion for lecture notes pipeline |
-| `transcribe` | Local speech-to-text via whisper.cpp (Vulkan GPU) |
+| `transcribe` | Speech-to-text. Default backend: whisper.cpp via nix flake (Linux/WSL, Vulkan GPU). Installer offers system whisper-cpp / OpenAI API as alternatives |
+| `cleanup-logs.sh` | Weekly log pruner (30-day retention, runs via cron if installer set it up) |
 
 ### Agents
 
@@ -171,23 +172,26 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 
 ### MCP Servers
 
+Default (always enabled):
+
 | Server | Purpose |
 |--------|---------|
 | **context7** | Remote library documentation lookup |
 | **grep_app** | Search code across open-source repos |
-| **zai_vision** | Image analysis, UI-to-code, OCR, diagrams, video (opt-in, needs Z.ai API key) |
-| **web-search-prime** | Z.AI web search (primary, opt-in; needs GLM Coding Plan key) |
-| **websearch** | Exa web search (fallback, plugin-built; `EXA_API_KEY` for higher quotas) |
+| **websearch** | Exa web search (plugin-built, free tier; `EXA_API_KEY` for higher quotas) |
 
-### Removing Z.AI / GLM Coding Plan
+Opt-in (only if you have a Z.AI subscription — installer prompts for the key):
 
-To go fully OpenRouter-only (no Z.AI subscription needed):
+| Server | Purpose |
+|--------|---------|
+| **zai_vision** | Image analysis, UI-to-code, OCR, technical diagrams, video |
+| **web-search-prime** | Z.AI primary web search alternative to Exa |
 
-1. **Remove from MCP arrays** in `config/oh-my-opencode-slim.json` — delete `"web-search-prime"` and `"zai_vision"` from all agent `mcps` entries
-2. **Remove from `config/opencode.json`** — delete the `"web-search-prime"` and `"zai_vision"` MCP server blocks
-3. **Remove from model assignments** — replace `zai-coding-plan/glm-5.1` and `openrouter/z-ai/glm-5.1` models with OpenRouter equivalents
+The default repo config does **not** ship Z.AI MCP blocks. The installer asks "Do you have a Z.AI subscription?" — if yes, it injects the blocks via `jq` with your API key. If no, the agent.mcps lists in `oh-my-opencode-slim.json` reference these names harmlessly (they're no-ops without the MCPs declared).
 
-Web search will continue via `websearch` (Exa, plugin-built). Vision analysis falls back to the model's native multimodal support (Kimi K2.6, Gemini).
+### Adding Z.AI Later
+
+If you skipped Z.AI during install and want to enable it later, see [INSTALL.md → Z.AI MCPs (Opt-in)](INSTALL.md#zai-mcps-opt-in) for the `jq` snippet that injects the blocks.
 
 ## Workflow Principles
 
@@ -217,11 +221,13 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ```
 ~/.config/opencode/
 ├── AGENTS.md                      # Agent rules and workflow principles
-├── opencode.json                  # Core config
+├── opencode.json                  # Core config (providers, MCPs, LSPs)
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
+├── model-profile.jsonc            # Source-of-truth for model assignments (oc --sync-profile regenerates slim.json)
 ├── bin/oc                         # Launcher script
-├── scripts/                       # Python utilities (8 .py + transcribe)
+├── scripts/                       # 9 Python scripts + transcribe + cleanup-logs.sh
 ├── commands/                      # Slash command definitions (6 commands)
+├── skills/                        # Local skills (codemap, simplify, audio/video/lecture pipeline)
 
 ~/wiki/
 ├── AGENTS.md                      # Wiki schema (LLM follows these rules)

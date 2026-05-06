@@ -97,13 +97,17 @@ Needs: precise code edits, bounded implementation, follows specifications exactl
 
 | MCP | Who gets it | Why |
 |-----|------------|-----|
-| `web-search-prime` | Orchestrator, oracle, designer, librarian | Z.AI — primary web search (opt-in, needs GLM Coding Plan key) |
-| `websearch` | Orchestrator, oracle, designer, librarian | Exa — fallback web search (plugin-built; `EXA_API_KEY` for higher quotas) |
+| `websearch` | Orchestrator, oracle, designer, librarian | Exa — **default web search** (plugin-built; `EXA_API_KEY` for higher quotas) |
+| `web-search-prime` | Orchestrator, oracle, designer, librarian | Z.AI — **opt-in** web search alternative (requires GLM Coding Plan key; not enabled in default repo config) |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
-| `zai_vision` | Observer, designer (all presets) | Observer: primary vision agent, Read-first with MCP fallback. Designer: retained for direct delegation. |
+| `zai_vision` | Observer, designer (custom/premium presets) | **Opt-in** Z.AI vision MCP. Observer falls back to native multimodal (Read tool) when not enabled. |
 
-**Notable:** Orchestrator gets both web search tools — it delegates specialized research to other agents, but has its own for discovery/decision-making. Explorer, fixer, observer get no web search (codebase-only, implementation-only, visual-only). Observer owns `zai_vision` MCP for video and Read fallback.
+**Default behavior (no Z.AI subscription):** websearch (Exa) handles web; observer uses Read tool + native multimodal models for images/PDFs/video; analyze-video.py handles video files (≤20MB) via OpenRouter→Gemini.
+
+**With Z.AI subscription (opt-in via install.sh):** web-search-prime + zai_vision MCPs become available. Observer gets MCP fallback for cases where native Read fails (e.g., older or non-multimodal models in the fallback chain).
+
+**Notable:** Orchestrator gets web search — it delegates specialized research to other agents, but has its own for discovery/decision-making. Explorer, fixer, observer get no web search (codebase-only, implementation-only, visual-only).
 
 ## Council Diversity Rules
 

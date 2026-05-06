@@ -27,10 +27,10 @@ confidence: high
 **Routing:** Orchestrator is text-only. Images, PDFs, video, audio → `@observer` (fact extraction). Design work → `@designer` (creative, works from observer's text output).
 
 ### Observer skills
-All presets: `["video-analysis", "lecture-notes"]`. These skills tell observer how to use `analyze-video.py`, `transcribe`, and the lecture notes pipeline.
+All presets: `["video-analysis", "lecture-notes", "audio-analysis"]`. These skills tell observer how to use `analyze-video.py`, `transcribe`, and the lecture notes pipeline.
 
 ### Observer MCPs
-All presets: `["zai_vision"]`. Observer uses Read tool first for images/PDFs, `zai_vision` MCP as fallback and for video.
+All presets reference `["zai_vision"]` — but the `zai_vision` MCP is **disabled (not declared) in the default repo config**. Observer uses Read tool first for images/PDFs (works with multimodal models like Kimi K2.6 and Gemini); falls back to `zai_vision` only when the user opts into Z.AI during install.
 
 ## Architecture
 
@@ -80,11 +80,30 @@ sqlite3 ~/.local/share/opencode/opencode.db "SELECT json_extract(data, '$.url') 
 
 Caveat: `ORDER BY id DESC LIMIT 1` may extract from a different session if multiple sessions run concurrently.
 
-## Z.ai Vision MCP
+## Z.ai Vision MCP (Opt-in)
 
-**Status varies by config:**
-- **Live (all presets):** `enabled: true` in opencode.json, assigned to observer mcps (all presets). Observer uses Read for images/PDFs; MCP for video and Read fallback. Designer retains MCP on premium/custom for direct delegation.
-- **Repo (all presets):** `enabled: false` in opencode.json. Opt-in per-project: set `enabled: true` in opencode.json AND add `"zai_vision"` to observer's `mcps` array.
+**Default repo config:** `zai_vision` MCP block is **not present** in opencode.json. Observer relies on the model's native multimodal capability via Read tool.
+
+**To enable** (only if you have a Z.AI Coding Plan subscription):
+1. The `install.sh` prompt asks "Do you have a Z.AI subscription?" — answer yes and provide the key
+2. Or manually add the MCP blocks to `~/.config/opencode/opencode.json`:
+   ```json
+   "zai_vision": {
+     "type": "local",
+     "command": ["npx", "-y", "@z_ai/mcp-server"],
+     "environment": { "Z_AI_API_KEY": "<your-key>", "Z_AI_MODE": "ZAI" },
+     "enabled": true,
+     "timeout": 600000
+   },
+   "web-search-prime": {
+     "type": "remote",
+     "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+     "headers": { "Authorization": "Bearer <your-key>" },
+     "enabled": true,
+     "timeout": 60000
+   }
+   ```
+   The agent.mcps lists in `oh-my-opencode-slim.json` already reference these names — no further config changes needed.
 
 8 tools, needs API key:
 

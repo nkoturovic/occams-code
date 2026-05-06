@@ -136,3 +136,7 @@ After simplifying, confirm:
 - [ ] No unrelated files were refactored
 - [ ] No error handling was weakened or removed
 - [ ] The result is simpler to review than the original
+
+## Source
+
+Adapted from the bundled `oh-my-opencode-slim` simplify skill (originally derived from Addy Osmani's [`code-simplification` skill](https://github.com/addyosmani/agent-skills/blob/main/skills/code-simplification/SKILL.md)).

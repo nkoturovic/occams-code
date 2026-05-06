@@ -142,7 +142,7 @@ Skills are **on-demand procedural expertise** for agents. They differ from AGENT
 ### Per-agent skill assignments
 - **orchestrator:** `"*"` (all skills)
 - **designer:** `["agent-browser"]` (needs browser for visual verification)
-- **observer (all presets):** `["video-analysis", "lecture-notes"]` (vision + pipeline awareness)
+- **observer (all presets):** `["video-analysis", "lecture-notes", "audio-analysis"]` (vision + pipeline + transcription)
 - **all others:** `[]` (no skills — they operate through tools and MCPs)
 
 ## Scripts

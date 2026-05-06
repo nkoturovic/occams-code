@@ -18,10 +18,11 @@ There are two directions:
 | File | Live location | Repo location | Notes |
 |------|--------------|---------------|-------|
 | Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~387 lines |
-| Scripts | `~/.config/opencode/scripts/{*.py,transcribe}` | `scripts/{*.py,transcribe}` | 9 files: analyze-video.py, detect-project-state.py, lecture-fusion.py, lecture-scenes.py, model-profile.py, project-init.py, repo-ingest.py, transcribe, wiki-lint.py |
+| Scripts | `~/.config/opencode/scripts/{*.py,transcribe,cleanup-logs.sh}` | `scripts/{*.py,transcribe,cleanup-logs.sh}` | 10 files: analyze-video.py, detect-project-state.py, lecture-fusion.py, lecture-scenes.py, model-profile.py, project-init.py, repo-ingest.py, transcribe, wiki-lint.py, cleanup-logs.sh |
 | Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 6 files: model-switch.md, permissions.md, preset.md, remember.md, wiki.md, wiki-lint.md |
 | Skills | `~/.config/opencode/skills/*/SKILL.md` | `skills/*/SKILL.md` | 5 skills: audio-analysis, codemap, lecture-notes, simplify, video-analysis |
-| model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `model-profile.jsonc` | Model pricing source of truth |
+| model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `model-profile.jsonc` | Model assignment source of truth (default preset = `balanced` in repo, may be `custom` in live) |
+| install.sh | `~/.config/opencode/scripts/install.sh` (not used live) | `scripts/install.sh` | Repo-only: cross-platform installer with interactive + unattended modes |
 
 ### Files that SYNC with SCRUBBING (live → repo only)
 
@@ -84,18 +85,45 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Default preset in repo must stay `balanced` (custom can remain available)
 
 ### Config-specific
+- [ ] **`balanced` preset must be OOB-usable with OpenRouter-only API key** — primary models all `openrouter/*` (no direct `deepseek/`, `anthropic/`, `kimi-for-coding/`, `zai-coding-plan/` references in primary `model` fields). Same for `cheap`.
 - [ ] General preset/fallback chains should use OpenRouter equivalents (custom may keep subscription models)
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Default preset must be `balanced`
-- [ ] Observer skills: `["video-analysis", "lecture-notes"]` in all presets (no `audio-analysis`)
-- [ ] Observer temperature: `0.1` for cheap preset (match balanced)
+- [ ] **Z.AI MCPs (zai_vision + web-search-prime): REMOVED ENTIRELY from default `config/opencode.json`** — these are opt-in via the install.sh prompt (which injects them via jq with the user's API key). Don't ship them as `enabled: false` either (they show in the OC TUI as "disabled" — clutter).
+- [ ] Observer skills: `["video-analysis", "lecture-notes", "audio-analysis"]` in all presets — keep `audio-analysis` (resolves AGENTS.md inconsistency).
 - [ ] Custom model table in AGENTS.md → replace with pointer to oh-my-opencode-slim.json
 - [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.jsonc` → strip personal models
-- [ ] Z.ai Vision MCP `Z_AI_API_KEY` value → must be empty string `""` (never share API keys)
+- [ ] **Hardcoded API keys in opencode.json `mcp.*.environment` / `mcp.*.headers`**: live may have real Z.AI keys baked in (lines reference `REDACTED_ZAI_KEY.*`). Repo never has these — Z.AI MCP blocks themselves are removed. If you're forced to keep MCPs in repo with placeholder, use `"YOUR_ZAI_API_KEY"`.
 - [ ] Do NOT commit `oh-my-opencode-slim.json` to repo root — only `config/oh-my-opencode-slim.json`
+- [ ] Trim unreferenced models from `provider.opencode.models` (TUI metadata duplicates), unused OpenRouter entries (e.g., `openai/gpt-5.4` if not in any agent/fallback), unused direct deepseek (`deepseek-v3.2` direct version if only `openrouter/deepseek/deepseek-v3.2` is used)
+- [ ] Keep `deepseek-v4-flash` declared (useful Flash-tier option for direct DeepSeek users editing model-profile)
 
 ### Verification
-After scrubbing, run: `grep -rn "personal_username\|/home/\|specific_project_name" repo/` — should return 0 matches.
+After scrubbing, run these to confirm clean state:
+
+```bash
+cd ~/personal/repos/occams-code
+
+# 1. No personal data leaked
+rg -l 'personal_username|/home/[a-zA-Z]|specific_project_name' . --type-not binary || echo "✓ no personal paths"
+
+# 2. No real API keys leaked (Z.AI keys look like 32hex.16-22-chars)
+rg -l '[a-f0-9]{32}\.[A-Za-z0-9]{16,22}' . --type-not binary || echo "✓ no leaked Z.AI keys"
+
+# 3. JSON validity
+jq empty config/opencode.json && jq empty config/oh-my-opencode-slim.json && echo "✓ JSON valid"
+
+# 4. balanced preset is OOB-usable with OpenRouter-only key
+jq -r '.presets.balanced | to_entries[] | "\(.key): \(.value.model)"' config/oh-my-opencode-slim.json
+# All values should start with 'openrouter/'
+
+# 5. Z.AI MCPs not present in default config
+jq '.mcp | keys' config/opencode.json
+# Should be ["context7", "grep_app"] only
+
+# 6. install.sh syntax + help output
+bash -n scripts/install.sh && bash scripts/install.sh --help | head -5
+```
 
 ## Step-by-Step: Live → Repo Sync
 
