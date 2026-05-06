@@ -34,7 +34,7 @@
         "temperature": 0.1
       },
       "designer": {
-        "model": "kimi-for-coding/kimi-for-coding",
+        "model": "openrouter/~google/gemini-pro-latest",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -46,12 +46,9 @@
           "zai_vision"
         ],
         "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 32000
-          }
+          "reasoningEffort": "max"
         },
-        "temperature": 0.7
+        "temperature": 1.0
       },
       "explorer": {
         "model": "zai-coding-plan/glm-5.1",
@@ -145,7 +142,7 @@
         ]
       },
       "designer": {
-        "model": "openrouter/google/gemini-3-flash-preview",
+        "model": "openrouter/~google/gemini-flash-latest",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -157,7 +154,7 @@
           "zai_vision"
         ],
         "options": {
-          "reasoningEffort": "high"
+          "reasoningEffort": "max"
         },
         "temperature": 1.0
       },
@@ -234,7 +231,7 @@
         "temperature": 0.1
       },
       "designer": {
-        "model": "openrouter/google/gemini-3.1-pro-preview",
+        "model": "openrouter/~google/gemini-pro-latest",
         "variant": "max",
         "skills": [
           "agent-browser"
@@ -246,7 +243,7 @@
           "zai_vision"
         ],
         "options": {
-          "reasoningEffort": "high"
+          "reasoningEffort": "max"
         },
         "temperature": 1.0
       },
@@ -322,7 +319,7 @@
         ]
       },
       "designer": {
-        "model": "openrouter/google/gemini-3-flash-preview",
+        "model": "openrouter/~google/gemini-flash-latest",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -334,7 +331,7 @@
           "zai_vision"
         ],
         "options": {
-          "reasoningEffort": "high"
+          "reasoningEffort": "max"
         },
         "temperature": 1.0
       },
