@@ -5,7 +5,8 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "DeepSeek",
       "options": {
-        "baseURL": "https://api.deepseek.com"
+        "baseURL": "https://api.deepseek.com",
+        "includeUsage": true
       },
       "models": {
         "deepseek-v4-pro": {
@@ -16,7 +17,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 65536
+            "output": 393216
           },
           "options": {
             "thinking": {
@@ -46,7 +47,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 65536
+            "output": 393216
           },
           "options": {
             "thinking": {
@@ -75,7 +76,6 @@
       "name": "Kimi for Coding",
       "options": {
         "baseURL": "https://api.kimi.com/coding/v1",
-        "compatibility": "compatible",
         "includeUsage": true
       },
       "models": {
@@ -105,7 +105,6 @@
       "name": "Z.AI Coding Plan",
       "options": {
         "baseURL": "https://api.z.ai/api/coding/paas/v4",
-        "compatibility": "compatible",
         "includeUsage": true
       },
       "models": {
@@ -189,7 +188,6 @@
       "name": "OpenRouter",
       "options": {
         "baseURL": "https://openrouter.ai/api/v1",
-        "compatibility": "compatible",
         "includeUsage": true
       },
       "models": {
