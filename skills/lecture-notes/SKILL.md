@@ -48,10 +48,10 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
 | **4.5** | Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 20MB. All `clip_status: "ok"` clips playable. |
-| **5** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment) AND `transcript_corrections` field (may be `[]`). `slide_content` describes progression. Keyframe-fallback segments require `speaker_added` only, `transcript_corrections: []`. `needs_ocr` flags set for text/formula slides. |
+| **5** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Keyframe-fallback segments require `speaker_added` only. `needs_ocr` flags set for text/formula slides. |
 | **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
 | **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
-| **8** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. Transcript corrections: zero false corrections (2-3 spot-checked against audio). Corrected SRT plays in sync, format intact. |
+| **8** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. |
 
 If phase fails gate 3 times: flag for human review, continue best-effort with incomplete sections marked.
 
@@ -292,20 +292,10 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 >    Format: [{"time": "14:20", "text": "exact emphasized quote", "cue": "slows down, repeats"}]
 >    Capture 2-5 per section. These become [!important] callouts in the notes.
 >
-> 6. `transcript_corrections` (FROM AUDIO VERIFICATION): Compare the transcript
->    text against the audio you hear in the video. The transcript was
->    machine-generated and contains phonetic errors. When you CLEARLY hear the
->    speaker say something different from the transcript, flag it. Format:
->    [{"time": "MM:SS", "transcript": "garbled text", "correction": "what was actually said", "confidence": "high"}]
->    Only flag corrections you are confident about from hearing the audio. Skip
->    if unsure or if the audio is unclear. 0-5 corrections per section is typical.
->    WARNING: A false correction is worse than no correction. Only flag what you
->    can verify from audio.
->
-> 7. `connections`: How this section connects to the broader lecture structure.
+> 6. `connections`: How this section connects to the broader lecture structure.
 >    Continuation / builds on previous / introduces new concept / complete shift?
 >
-> 8. `video_note`: Hints for the note composer. Did the video clip capture the
+> 7. `video_note`: Hints for the note composer. Did the video clip capture the
 >    full section? Any quick transitions the low FPS might have missed? Is the
 >    audio clear enough? Any completeness concerns? (For keyframe-fallback
 >    segments, use `image_note` instead — same content.)
@@ -325,9 +315,8 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 > copy these verbatim from the input. Add your analysis fields alongside them.
 
 **Output:** `segments_analyzed.json`. Validate: every video segment has `speaker_added`
-AND `speaker_emphasis` (≥1 per segment) AND `transcript_corrections` field (may be `[]`).
-Keyframe-fallback segments require `speaker_added` only, with `transcript_corrections: []`.
-Output wrapped in an object matching `segments.json` structure.
+AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added`
+only. Output wrapped in an object matching `segments.json` structure.
 
 ---
 
@@ -343,10 +332,6 @@ Output wrapped in an object matching `segments.json` structure.
 > The speaker emphasized these parts in this section:
 > [SPEAKER_EMPHASIS from Phase 5 — e.g. "Pay attention to boundary conditions" (14:20)]
 > Pay special attention to accurately transcribing emphasized content.
->
-> The transcript had these corrections from audio verification:
-> [TRANSCRIPT_CORRECTIONS from Phase 5 — e.g. "interpolcijanog prenoma" → "interpolacionog polinoma"]
-> Use corrected terms when they appear on the slide.
 >
 > The speaker said about this slide: '[SPEAKER_ADDED]'. Use this context.
 >
@@ -475,23 +460,6 @@ type: lecture-notes
 Verify all sections present, all images exist, all LaTeX valid, frontmatter complete,
 summary + links present.
 
-### SRT Correction
-
-After composition, correct the SRT using Phase 5 audio-verified transcript corrections:
-
-```bash
-python3 correct-transcript.py segments_analyzed.json transcript.srt -o transcript_corrected.srt
-
-# Preserve raw for audit:
-mv "path/to/video.srt" "path/to/video_raw.srt"
-
-# Corrected SRT → Media Extended auto-detects sibling SRT:
-cp transcript_corrected.srt "path/to/video.srt"
-```
-
-**Verify:** Corrected SRT has same number of entries as original. No broken timestamps.
-Media Extended copy placed alongside source video. Raw SRT preserved as `*_raw.srt`.
-
 ---
 
 ## Phase 8: Review
@@ -508,11 +476,6 @@ Media Extended copy placed alongside source video. Raw SRT preserved as `*_raw.s
 > or fabricate transitions between sampled frames? Cross-check 2-3 random
 > segments against the actual video. Are `speaker_emphasis` entries grounded
 > in audible vocal cues (not inferred from transcript alone)?
-> **Transcript corrections:** Spot-check 2-3 corrections against the video audio.
-> Does the speaker actually say the corrected version? Flag any correction that
-> differs from what is heard. **False correction = critical issue.**
-> Also verify: corrected SRT plays in sync (timestamps untouched), SRT format
-> intact (correct number of entries, no broken boundaries).
 >
 > Flag keyframe-fallback segments for human review.
 > **Markdown:** Unescaped underscores? Valid wikilinks? `#t=` syntax correct?
@@ -534,10 +497,6 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | **Non-English** | Explicit `--language` in Phase 1. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
 | **Animations** | Threshold 0.40 to avoid false boundaries. Use most complete frame. |
-| **Transcript errors** | Phase 5 observer flags only audio-verified discrepancies. False correction > no correction. Audio unclear, speaker mumbling, or ambiguity → skip. |
-| **Correction false-positive** | Critical. Phase 8 gate: zero false corrections. Observer must not guess. |
-| **SRT match failure** | `correct-transcript.py` skips unmatched corrections (logs to stderr). Raw SRT preserved as audit trail. |
-| **Corrected text longer** | Fine — SRT supports multi-line text. Timestamps and entry numbers unchanged, format intact. |
 | **Multi-video** | Process parts independently through Phase 6. Merge in Phase 7. `[[part1.mp4#t=...]]` per source. |
 
 ---
@@ -568,6 +527,5 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 - **Check:** If output dir is in an Obsidian vault → verify Media Extended plugin.
   If missing: warn user. Timestamps will be plain links. All else (callouts, LaTeX,
   wikilinks, embeds) work with core Obsidian.
-- **SRT subtitles:** Phase 7 runs `correct-transcript.py` to fix ~15% of garbled technical
-  terms. Corrected SRT placed alongside source video → Media Extended auto-detects and
-  shows corrected subtitles during playback. Raw SRT preserved as `*_raw.srt` for audit.
+- **SRT subtitles:** Copy `transcript.srt` alongside source video file → Media Extended
+  auto-detects and shows interactive subtitles during playback.
