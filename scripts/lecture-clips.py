@@ -75,7 +75,7 @@ def extract_clip(
         "-ss", str(start), "-to", str(end),
         "-i", str(video),
         "-vf", "fps=0.5,scale=640:-1",
-        "-c:v", "libx264", "-crf", "28", "-preset", "ultrafast",
+        "-c:v", "libopenh264", "-allow_skip_frames", "1",
         "-c:a", "aac", "-ac", "1", "-b:a", "32k",
         str(out),
     ]
@@ -95,7 +95,7 @@ def extract_clip(
         "-ss", str(start), "-to", str(end),
         "-i", str(video),
         "-vf", "fps=0.3,scale=480:-1",
-        "-c:v", "libx264", "-crf", "32", "-preset", "ultrafast",
+        "-c:v", "libopenh264", "-allow_skip_frames", "1",
         "-c:a", "aac", "-ac", "1", "-b:a", "24k",
         str(out),
     ]
