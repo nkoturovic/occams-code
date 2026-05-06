@@ -12,8 +12,8 @@ description: >
   — that requires audio-analysis instead.
 compatibility: >
   Requires: transcribe (whisper.cpp local), ffmpeg, lecture-scenes.py, lecture-fusion.py,
-  OPENROUTER_API_KEY (vision LLM via OpenRouter). Output is Obsidian-flavored
-  markdown using wikilinks, callouts, LaTeX, Media Extended #t= timestamps.
+  lecture-clips.py, OPENROUTER_API_KEY (vision LLM via OpenRouter). Output is
+  Obsidian-flavored markdown using wikilinks, callouts, LaTeX, Media Extended #t= timestamps.
 ---
 
 # Lecture Notes Pipeline
@@ -27,13 +27,14 @@ Phase 1: Transcription   (~8 min, free)      → transcribe
 Phase 2: Scene Detection (1-2 min, free)     → lecture-scenes.py
 Phase 3: Semantic Seg.   (30s, ~$0.001)      → @oracle
 Phase 4: Audio-Visual    (<1s, free)         → lecture-fusion.py
-Phase 5: AI Scouting     (30-60s, ~$0.01)    → @observer (vision)
+Phase 4.5: Clip Extract  (<1s, free)         → lecture-clips.py
+Phase 5: AI Scouting     (1-2 min, ~$0.08)   → @observer (video)
 Phase 6: Selective OCR   (2-3 min, ~$0.01)   → @observer (parallel)
 Phase 7: Composition     (10-15 min)          → Orchestrator + @fixer
 Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 ```
 
-**Per 60-min lecture:** ~25 min runtime, ~$0.02 cost (transcription is free/local).
+**Per 60-min lecture:** ~25 min runtime, ~$0.10 cost (transcription is free/local).
 
 ---
 
@@ -46,10 +47,11 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | **2** | 6-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
-| **5** | Every segment has `speaker_added`. `needs_ocr` flags set for text/formula slides. |
-| **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. Cross-frame formula comparison done for whiteboard variant frames. |
-| **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. |
-| **8** | AI review: zero critical, zero major issues. |
+| **4.5** | Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 20MB. All `clip_status: "ok"` clips playable. |
+| **5** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Keyframe-fallback segments require `speaker_added` only. `needs_ocr` flags set for text/formula slides. |
+| **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
+| **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
+| **8** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. |
 
 If phase fails gate 3 times: flag for human review, continue best-effort with incomplete sections marked.
 
@@ -213,44 +215,92 @@ keyframes (`frame_NNN.jpg`) are never overwritten.
 
 ---
 
-## Phase 5: Per-Segment AI Scouting
+## Phase 4.5: Per-Section Video Clip Extraction
 
-**Delegate to @observer. ONE batch call.** Group segments by unique keyframe — send each
-image once with all associated transcript excerpts. Prevents sending the same image 5×
-when a whiteboard scene spans multiple sections.
+```bash
+python3 ~/.config/opencode/scripts/lecture-clips.py segments.json video.mp4 -o clips/
+```
+
+Extracts per-section video clips for Phase 5 scouting. For each segment:
+
+1. Read `start_seconds` and `end_seconds` from `segments.json`
+2. Stream-copy clip via ffmpeg (instant, lossless)
+3. If clip exceeds 15MB: re-encode at 640px, 0.5 FPS, mono audio
+4. If still exceeds 15MB: second-pass at 480px, 0.3 FPS, CRF 32
+5. Write `clip_path` and `clip_status` to `segments.json`
+
+**Output:** `clips/section_NN.mp4` + updated `segments.json`.
+
+**Clip status fields** written to each segment:
+- `clip_path`: path to clip (or `null` if extraction failed/skipped)
+- `clip_status`: `"ok"` | `"re_encoded"` | `"oversize"` | `"error"` | `"no_visual"`
+
+Phase 5 reads `clip_status` per segment:
+- `"ok"` or `"re_encoded"` → send video clip to observer
+- `"oversize"`, `"error"`, or `"no_visual"` → fall back to keyframe-only analysis
+
+**Stream-copy note:** ffmpeg `-c copy` seeks to the nearest keyframe before `start_seconds`.
+Clips may start up to GOP-size seconds early (typically 2-10s). The 15s backward transcript
+padding from Phase 4 already covers this drift — no correctness impact.
+
+---
+
+## Phase 5: Per-Segment AI Scouting (Video-Enhanced)
+
+**Delegate to @observer. Send all sections in PARALLEL calls.** Each section has its own
+video clip — no dedup needed (every section has unique time ranges).
+
+For segments where `clip_status` is `"oversize"`, `"error"`, or `"no_visual"`:
+fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 
 > You are analyzing a recorded lecture. I will give you segments — each with a
-> keyframe image and the transcript excerpt from that time window.
+> video clip and the transcript excerpt from that time window.
+>
+> The video contains both audio (the speaker's actual voice) and visual (slides,
+> whiteboard, screencast). The transcript below is for precise text reference —
+> the video is the authoritative source for tone, emphasis, and visual content.
 >
 > For each segment:
 >
-> 1. `slide_content`: Everything **actually visible** on the image — text, formulas,
->    diagrams, charts, annotations, layout, branding. **ANTI-HALLUCINATION RULE:**
->    Describe ONLY what you can see in the image. If the board is blank, say "blank
->    whiteboard — no visible content." If faint or partial, describe only what is
->    clearly legible. Never fabricate colors, positions, or formula details from the
->    transcript. If the image quality is poor or motion-blurred, state that directly.
->    The transcript is provided for context on speaker_added (field 4), NOT for
->    slide_content (field 1).
+> 1. `slide_content`: Everything VISIBLE across the video clip. Describe the slide
+>    progression — content that builds up, animations, handwriting appearing on
+>    whiteboard, laser pointer movements. **ANTI-HALLUCINATION RULE:** Describe
+>    ONLY what you can see in the video frames. If the board is blank at the start
+>    and fills in later, describe that progression. Never fabricate content from
+>    the transcript.
 >
 > 2. `content_type`: text_slide | formula_slide | diagram_slide | code_slide |
 >    mixed_slide | whiteboard | talking_head | screencast | title_slide | blank
 >
-> 3. `needs_ocr`: TRUE if slide needs precise text/formula extraction, FALSE if
->    general description is sufficient.
+> 3. `needs_ocr`: TRUE if the section contains important text/formulas that need
+>    precise extraction, FALSE if general description is sufficient.
 >
-> 4. `speaker_added` (MOST VALUABLE): What did the speaker say about this slide
->    that is NOT visible on it? Explanations, examples, intuition, caveats,
->    applications, stories, connections, "this is important" moments.
+> 4. `speaker_added` (MOST VALUABLE — 70% of the work): What did the speaker say
+>    about the visible content that is NOT apparent from the visuals alone?
+>    Explanations, examples, intuition, caveats, applications, stories,
+>    connections to prior sections. Draw this from the AUDIO in the video.
+>    "This is the formula we'll use, but pay attention because there's a subtle
+>    issue with the boundary conditions..." — capture the spoken insight.
 >
-> 5. `connections`: Continuation / builds on previous / new topic / complete shift?
+> 5. `speaker_emphasis` (NEW — CAPTURED FROM AUDIO): Specific moments where the
+>    speaker's voice indicates importance. Include:
+>    - Slowing down or pausing before a key point
+>    - Raising volume or changing tone
+>    - Repeating a phrase or formula
+>    - Explicit markers: "this is important", "remember this", "the key insight is"
+>    - Saying "pay attention" or "don't forget"
+>    Format: [{"time": "14:20", "text": "exact emphasized quote", "cue": "slows down, repeats"}]
+>    Capture 2-5 per section. These become [!important] callouts in the notes.
 >
-> 6. `image_note`: Hints for the note composer. Is this the best frame for this
->    section, or would a nearby frame be better? Are there visible annotations
->    (handwritten marks, arrows, underlines) the speaker added? Content, position,
->    color. Any completeness concerns — does this frame look partial?
+> 6. `connections`: How this section connects to the broader lecture structure.
+>    Continuation / builds on previous / introduces new concept / complete shift?
 >
-> Return a JSON object, NOT a flat array:
+> 7. `video_note`: Hints for the note composer. Did the video clip capture the
+>    full section? Any quick transitions the low FPS might have missed? Is the
+>    audio clear enough? Any completeness concerns? (For keyframe-fallback
+>    segments, use `image_note` instead — same content.)
+>
+> Return a JSON object:
 > ```json
 > {
 >   "video": "...",
@@ -264,8 +314,9 @@ when a whiteboard scene spans multiple sections.
 > Each segment object must include `segment_id`, `keyframe`, and `has_visual` —
 > copy these verbatim from the input. Add your analysis fields alongside them.
 
-**Output:** `segments_analyzed.json`. Validate: every segment has `speaker_added`.
-Output wrapped in an object matching segments.json structure.
+**Output:** `segments_analyzed.json`. Validate: every video segment has `speaker_added`
+AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added`
+only. Output wrapped in an object matching `segments.json` structure.
 
 ---
 
@@ -277,6 +328,10 @@ Output wrapped in an object matching segments.json structure.
 > Formulas: LaTeX (block $$...$$, inline $...$). Tables: markdown. Diagrams: describe.
 >
 > Analyze ONLY this one image. Do NOT include cross-frame comparisons.
+>
+> The speaker emphasized these parts in this section:
+> [SPEAKER_EMPHASIS from Phase 5 — e.g. "Pay attention to boundary conditions" (14:20)]
+> Pay special attention to accurately transcribing emphasized content.
 >
 > The speaker said about this slide: '[SPEAKER_ADDED]'. Use this context.
 >
@@ -324,8 +379,9 @@ OUTPUT_DIR/
 └── Lecture Title/
     ├── Lecture Title.md
     ├── transcript.srt
+    ├── clips/             ← per-section video clips
     ├── keyframes/
-    ├── slides/          ← selected frames copied from keyframes
+    ├── slides/            ← selected frames copied from keyframes
     └── ocr_results/
 ```
 
@@ -375,6 +431,9 @@ type: lecture-notes
 > [!tip] Practical Example
 > [Concrete example with full context]
 
+> [!important] Speaker Emphasis
+> "Pay attention to boundary conditions" — speaker slows down, repeats (≈14:20)
+
 > [!info] Connection
 > [How this builds on / connects to other sections]
 ```
@@ -383,7 +442,7 @@ type: lecture-notes
 
 | Callout | When | | Callout | When |
 |---------|------|-|---------|------|
-| `note` | Speaker's explanation | | `important` | Critical/counter-intuitive |
+| `note` | Speaker's explanation | | `important` | Speaker emphasis (tone, repetition, "this is key") |
 | `warning` | Emphasis, exam-relevant | | `question` | Questions posed |
 | `tip` | Examples, code, illustrations | | `danger` | Common mistakes, pitfalls |
 | `info` | Connections, references | | `abstract` | Section index |
@@ -413,6 +472,12 @@ summary + links present.
 > **Mathematical:** LaTeX syntax + semantics correct? Match OCR source?
 > **Visual:** Every embedded image exists? Correct image per section?
 > **Content:** All key_quotes represented? Emphasis visible? Thin sections?
+> **Video-specific:** Does `slide_content` describe visible content progression,
+> or fabricate transitions between sampled frames? Cross-check 2-3 random
+> segments against the actual video. Are `speaker_emphasis` entries grounded
+> in audible vocal cues (not inferred from transcript alone)?
+>
+> Flag keyframe-fallback segments for human review.
 > **Markdown:** Unescaped underscores? Valid wikilinks? `#t=` syntax correct?
 > **Completeness:** Summary? Links? Frontmatter?
 >

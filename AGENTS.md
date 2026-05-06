@@ -39,6 +39,7 @@
 - **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. Your model handles audio+visual in one call (≤20MB).
 - **Audio/Speech-to-Text:** Use `~/.config/opencode/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
 - **Combined (lectures/talks with slides):** Run both — transcribe for speech, analyze-video for visuals. Merge by timestamp.
+- **Lecture note video analysis:** For lecture-notes pipeline, process pre-clipped per-section videos (≤5 min, ≤15MB, 0.5 FPS, 640px). Audio+visual fusion provides `speaker_emphasis` (vocal cues: tone, pacing, repetition) and `slide_content` (visual progression across frames — not just one snapshot).
 - For lecture note creation, load `/skill lecture-notes` for the complete pipeline spec and expected output fields.
 - Load `/skill video-analysis` or `/skill audio-analysis` for provider/model options and usage details.
 - Return factual descriptions: components, text content, layout, colors, structure. No design opinions.
