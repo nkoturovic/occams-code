@@ -229,9 +229,10 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
         # DeepSeek V4 Pro — no special options needed
         pass
     elif is_glm_zai:
-        # GLM 5.1 — thinking enabled by default, explicit in agent config
+        # GLM 5.1 — explicit thinking config matching model options
         config["options"] = {
-            "thinking": {"type": "enabled"}
+            "thinking": {"type": "enabled", "clear_thinking": False},
+            "reasoningEffort": "high"
         }
 
     # Temperature applies to ALL models (including thinking-mode ones)
