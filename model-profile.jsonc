@@ -43,7 +43,7 @@
       "observer       ": { "model": "openrouter/moonshotai/kimi-k2.6", "variant": "high", "temperature": 0.1 }
     },
 
-    // ============ CHEAP (budget-optimized, free models where possible) ============
+    // ============ CHEAP (budget-optimized) ============
     "cheap": {
       "orchestrator   ": { "model": "openrouter/qwen/qwen3-coder", "variant": "high", "temperature": 1.0 },
       "oracle         ": { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
