@@ -98,10 +98,8 @@ candidates. Lower thresholds over-segment into near-identical frames; the extra
 candidates are discarded. Worse, exceeding n_max triggers periodic fallback
 (uniform time-slicing) — lower quality than content-aware boundaries.
 
-Hybrid classifications (e.g., "whiteboard/mixed"): use the lower threshold.
-E.g., whiteboard/mixed → whiteboard (0.05). Missing boundaries from too-high
-threshold can't be recovered; excess scenes from too-low threshold are handled
-by the retry loop.
+If @observer returns multiple archetypes, average their thresholds
+as the starting value. The retry loop will find the correct threshold.
 
 **If not already specified:** Ask user for output directory and language.
 
