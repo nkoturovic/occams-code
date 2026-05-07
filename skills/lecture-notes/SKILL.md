@@ -68,7 +68,7 @@ ffprobe -v error -show_entries format=duration,format_name,size -of json video.m
 # 6 frames at evenly spaced intervals across full duration
 dur_s=$(ffprobe -v error -show_entries format=duration -of csv=p=0 video.mp4 | cut -d. -f1)
 for i in 1 2 3 4 5 6; do
-    ffmpeg -ss $((dur_s * i / 7)) -i video.mp4 \
+    ffmpeg -ss $((dur_s * (2*i - 1) / 12)) -i video.mp4 \
         -frames:v 1 -q:v 3 /tmp/sample_$(printf '%02d' $i).jpg
 done
 ```
