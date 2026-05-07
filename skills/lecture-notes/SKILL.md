@@ -50,8 +50,8 @@ Transcription is local (whisper.cpp, GPU).
 | **2** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
 | **3** | 12-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
-| **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip — missing clips are anomalies (investigate). No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
-| **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty (video is expected); `null` only for missing-video anomaly. `needs_ocr` flags set for text/formula slides. |
+| **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
+| **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty when video is available; `null` if video absent. `needs_ocr` flags set for text/formula slides. |
 | **7** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
 | **8** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
 | **9** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. |
@@ -226,23 +226,24 @@ padding from Phase 5 already covers this drift — no correctness impact.
 ## Phase 6: Per-Segment AI Scouting (Video-Enhanced)
 
 **Delegate to @observer. Send all sections in PARALLEL calls.** Each section has its own
-keyframe JPEG + video clip — no dedup needed (every section has unique time ranges). Video is the expected input — absence is an anomaly.
+keyframe JPEG + video clip (no dedup needed — every section has unique time ranges).
 
-If `clip_status` is `oversize` or `error`: the video component is missing — this should not happen in normal operation. Investigate Phase 5 extraction before proceeding. For `no_visual` (legitimate — talking-head with no visual content): keyframe-only. In all these rare cases, send only the keyframe JPEG (emergency fallback, loses temporal + audio).
+If `clip_status` is `oversize` or `error`: video is missing. This should not happen — Phase 5 gate ensures every visual section has a clip. For `no_visual` (talking-head): legitimate skip. In these rare cases: keyframe-only emergency fallback.
 
 **Per-segment observer prompt construction:** For each segment, build the prompt by:
 1. Always send the keyframe JPEG via Read tool (high-res still for precise visual detail).
-2. If \`clip_status\` is \`ok\` or \`re_encoded\`: also send the video clip via \`python3 ~/.config/opencode/scripts/analyze-video.py <clip> "<PROMPT>"\` (temporal progression + audio for speaker_emphasis). Keyframe + video are complementary — neither substitutes the other. Keyframe catches full-res detail the low-FPS video may miss; video captures movement and audio the still can't convey.
-3. If \`clip_status\` is \`oversize\` or \`error\`: video component missing (anomaly — investigate Phase 5). For \`no_visual\`: legitimate skip. In both rare cases: keyframe-only emergency fallback.
-4. Injecting \`[START_TIME]\` and \`[END_TIME]\` — use \`start_time\` and \`end_time\` (HH:MM:SS format) from the segment's \`section\` fields
-5. Including the `transcript_excerpt` from `segments.json`
-6. Optionally including the section title for context
+2. Send the video clip via \`python3 ~/.config/opencode/scripts/analyze-video.py <clip> "<PROMPT>"\` (temporal progression + audio for speaker_emphasis). Keyframe + video are complementary — keyframe catches full-res detail low-FPS video may miss; video captures movement and audio the still can't convey.
+3. If \`clip_status\` is \`no_visual\` (talking-head segment): keyframe-only — legitimate design path. Audio-derived fields (`speaker_added`, `speaker_emphasis`) are not expected.
+4. If \`clip_status\` is \`oversize\` or \`error\`: keyframe-only emergency fallback. This should not happen — Phase 5 gate ensures every visual section has a clip.
+5. Injecting \`[START_TIME]\` and \`[END_TIME]\` — use \`start_time\` and \`end_time\` (HH:MM:SS format) from the segment's \`section\` fields
+6. Including the `transcript_excerpt` from `segments.json`
+7. Optionally including the section title for context
 
 Template:
 
 > You are analyzing a recorded lecture segment. You receive:
 > - A high-res keyframe JPEG (always) — best still for precise visual detail
-> - A video clip (expected for every segment) — temporal progression + audio for speaker_emphasis
+> - A video clip — temporal progression + audio for speaker_emphasis
 > - Transcript excerpt spanning [START_TIME] to [END_TIME] in the original lecture
 >
 > Use the keyframe for equations, annotations, diagrams — the video may be
@@ -282,8 +283,7 @@ Template:
 >    references earlier material.
 >
 > 7. `video_note` — audio quality, transitions, temporal completeness
->    (required, non-empty string; video is the pipeline's expected input.
->    `null` signals anomaly — investigate Phase 5 extraction).
+>    (required, non-empty string when video is available; `null` if video absent).
 
 > 8. `image_note` — keyframe resolution, angle, partial visibility
 >    (required, non-empty string; keyframe is always available).
@@ -304,10 +304,7 @@ Template:
 >   "image_note": "..."
 > }
 > ```
-> `video_note` is required (non-empty) for every segment — video is the
-> pipeline's expected input. Set to `null` only when video is genuinely absent
-> (anomaly — investigate Phase 5 extraction).
-> (Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
+> Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
 > Add your analysis fields alongside them.
 
 
@@ -315,7 +312,7 @@ Template:
 ```json
 { "video": "video.mp4", "total_segments": N, "segments": [...] }
 ```
-Validate: every video segment (ok/re_encoded) requires `speaker_added` (non-empty string), `speaker_emphasis` (≥1 entry), `video_note` (non-empty string), and `image_note` (non-empty string). Segments with missing video (anomaly) require `speaker_added` + `image_note` (both non-empty); `video_note` must be `null`.
+Validate: every video segment (ok/re_encoded) requires `speaker_added` (non-empty string), `speaker_emphasis` (≥1 entry), `video_note` (non-empty string), and `image_note` (non-empty string). Segments with missing video require `speaker_added` + `image_note` (both non-empty); `video_note` must be `null`.
 
 **→ GATE: Check `needs_ocr` in segments_analyzed.json. If ANY segment has `needs_ocr: true`, Phase 7 IS REQUIRED for those segments. Do not skip.**
 
@@ -484,7 +481,7 @@ summary + links present.
 > segments against the actual video. Are `speaker_emphasis` entries grounded
 > in audible vocal cues (not inferred from transcript alone)?
 >
-> Flag segments with missing video (anomaly) for human review.
+> Flag segments with unexpectedly missing video (`oversize`/`error`) for human review. `no_visual` segments are intentional — no action needed.
 > **Markdown:** Unescaped underscores? Valid wikilinks? `#t=` syntax correct?
 > **Completeness:** Summary? Links? Frontmatter?
 >
@@ -503,7 +500,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
-| **No audio** | Skip Phase 2. Use periodic sampling in Phase 3. Video clips still sent to observer (temporal progression) but no audio to analyze. Heavier reliance on OCR. |
+| **No audio** | Skip Phase 2. Use periodic sampling in Phase 3. Phase 6: run with relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Video clips still sent for temporal progression. Heavier reliance on OCR. |
 | **Animations** | Threshold 0.40 to avoid false boundaries. Use most complete frame. |
 | **Multi-video** | Process parts independently through Phase 7. Merge in Phase 8. `[[part1.mp4#t=...]]` per source. |
 
