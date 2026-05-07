@@ -4,8 +4,8 @@
 Usage:
   lecture-scenes.py <video> [-t THRESHOLD] [-o DIR] [--min-duration SEC] [--digits N]
 
-Threshold: 0.30 slides, 0.15 whiteboard, 0.10 screencast, >0.40 animations.
-Quality gate: 6-60 scenes, max_duration < total/2, median < total/8.
+Threshold: 0.25 slides, 0.05 whiteboard, 0.10 screencast, >0.40 animations.
+Quality gate: n_min–n_max scenes (n_min = max(12, dur/300), n_max = max(60, dur/180)), max_duration < total/2, median < total/8.
 Fail → auto-retune (step 0.05, max 3 retries) → accept best + warn.
 
 Post-detect merge: scenes shorter than --min-duration are absorbed into the
@@ -55,7 +55,8 @@ def gate_ok(scenes, total):
     if not scenes: return False
     d = [s["end_seconds"]-s["start_seconds"] for s in scenes]
     n_min = max(12, int(total / 300))  # at least 12, +1 per 5 minutes
-    return n_min <= len(scenes) <= 60 and max(d) < total/2 and statistics.median(d) < total/8
+    n_max = max(60, int(total / 180))  # at least 60, +1 per 3 minutes
+    return n_min <= len(scenes) <= n_max and max(d) < total/2 and statistics.median(d) < total/8
 
 def periodic(total):
     """Fallback: periodic keyframes targeting ~5-minute intervals, minimum 12 scenes."""
@@ -91,7 +92,7 @@ def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
 # --- main ---
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("video"); p.add_argument("-t","--threshold",type=float,default=0.30)
+    p.add_argument("video"); p.add_argument("-t","--threshold",type=float,default=0.25)
     p.add_argument("-o","--output",default="scenes.json"); p.add_argument("--digits",type=int,default=3)
     p.add_argument("--min-duration",type=float,default=8.0,
                    help="Merge scenes shorter than this (seconds) into neighbours (default 8)")
@@ -105,6 +106,8 @@ def main():
     od = out.parent; json_name = out.name
     kd = od/"keyframes"; kd.mkdir(parents=True,exist_ok=True)
     meta = probe(str(vp)); dur = meta["dur"]
+    n_min = max(12, int(dur / 300))
+    n_max = max(60, int(dur / 180))
     print(f"Video: {vp.name} ({dur/60:.1f}min)", file=sys.stderr)
 
     thresh = a.threshold; best = None; best_thresh = thresh; retries = 0; passed = False
@@ -120,11 +123,11 @@ def main():
             best = sc; best_thresh = thresh
         retries = attempt + 1
         if attempt < 3:
-            if len(sc) > 60:
+            if len(sc) > n_max:
                 if thresh + 0.05 <= 0.60:
                     thresh = round(thresh+0.05, 2)    # too many tiny fragments → raise
                 else: break                           # capped at 0.60, accept best-so-far
-            elif len(sc) < 6:
+            elif len(sc) < n_min:
                 if thresh - 0.05 >= 0.05:
                     thresh = round(thresh-0.05, 2)     # too few → lower
                 else: break
@@ -132,13 +135,19 @@ def main():
         else: break
 
     if not best or len(best) < 6:
-        print(f"  → fallback periodic sampling", file=sys.stderr); best = periodic(dur)
-        best_thresh = "fallback"; retries = 0; passed = False
+        print(f"  → fallback periodic sampling (count fail)", file=sys.stderr)
+        best = periodic(dur); best_thresh = "fallback"; retries = 0; passed = False
     elif passed:
         rs = "retry" if retries == 1 else "retries"
         print(f"  → accepted at {best_thresh:.2f}" + (f" after {retries} {rs}" if retries else ""), file=sys.stderr)
     else:
-        print(f"  → best-effort at {best_thresh:.2f} (gate failed — {len(best)} scenes)", file=sys.stderr)
+        # Max duration or median failed — periodic beats best-effort for continuous content
+        durs = [s["end_seconds"]-s["start_seconds"] for s in best]
+        if max(durs) > dur/2:
+            print(f"  → fallback periodic sampling (max scene {max(durs):.0f}s > {dur/2:.0f}s)", file=sys.stderr)
+            best = periodic(dur); best_thresh = "fallback"; retries = 0; passed = False
+        else:
+            print(f"  → best-effort at {best_thresh:.2f} (gate failed — {len(best)} scenes)", file=sys.stderr)
 
     # Merge flicker scenes (PPT transitions, cursor overlays) into neighbors.
     # Default 8s threshold catches 100% of observed noise across 4 datasets.

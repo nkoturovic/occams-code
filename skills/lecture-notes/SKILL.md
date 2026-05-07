@@ -47,8 +47,8 @@ Transcription is local (whisper.cpp, GPU).
 | Phase | Gate |
 |-------|------|
 | **1** | Archetype identified. Output directory + language confirmed with user. |
-| **2** | Transcript coherent (head/tail 40 lines). SRT in source video's directory — verify: `ls "$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"`. |
-| **3** | 12-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
+| **2** | Transcript coherent (head/tail 40 lines). SRT in source video's directory — verify: `ls "${video_abs%.*}.srt"`. |
+| **3** | n_min–n_max scenes (both scale with duration). max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
 | **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty when video is available; `null` if video absent. `needs_ocr` flags set for text/formula slides. |
@@ -81,11 +81,11 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 
 | Archetype | Scene threshold | --min-duration | Special |
 |-----------|:---:|:---:|---|
-| Slide-heavy | 0.30 | 8s | Standard, catches cursor flickers |
-| Whiteboard | 0.10 | 4s | Continuous frames, no scene boundaries |
+| Slide-heavy | 0.25 | 8s | Standard, catches cursor flickers |
+| Whiteboard | 0.05 | 4s | Continuous frames, no scene boundaries |
 | Screencast | 0.10 | 4s | Code blocks, syntax preservation |
 | Talking head | Skip Phase 3 | — | Transcript-driven, no visuals |
-| Mixed | 0.30 | 6s | Per-segment classification handles it |
+| Mixed | 0.25 | 6s | Per-segment classification handles it |
 
 **If not already specified:** Ask user for output directory and language.
 
@@ -127,7 +127,7 @@ transcribe "$video_abs" --language LANG \
   --output-dir "$(dirname "$video_abs")" \
   "${prompt_args[@]}"
 # Verify SRT exists alongside source video:
-srt="$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
+srt="${video_abs%.*}.srt"
 head -40 "$srt" && tail -40 "$srt"
 ```
 
@@ -145,16 +145,16 @@ python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD --mi
 
 Uses threshold from Phase 1.
 
-Gate: at least floor(duration_min/5) scenes (minimum 12, maximum 60). max scene
+Gate: n_min–n_max scenes (both scale with duration). max scene
 duration < total/2, median < total/8. Failed gate → auto-retune (step 0.05, max 3
-retries) or best-effort with warning.
+retries) or periodic fallback with warning.
 
 **Whiteboard lectures will typically FAIL the max_duration gate.** One scene
 dominates (59+ min) because gradual chalk/pen writing produces no detectable scene
-changes. This is expected — do NOT retry endlessly. Accept best-effort: Phase 5
-fusion extracts per-section keyframes from each section's own time window within
-the dominant scene, so every section still gets a unique representative frame.
-Phase 4 semantic segmentation supplies the real structure from the transcript.
+changes. This is expected — do NOT retry endlessly. The script triggers periodic
+fallback automatically (5-minute intervals, minimum 12 scenes). Each periodic
+frame captures a different snapshot of board progression. Phase 4 semantic
+segmentation supplies the real structure from the transcript.
 
 Post-detect merge: scenes shorter than `--min-duration` (default 8s) are absorbed into
 the previous scene. Archetype-dependent: Slide-heavy 8s (catches cursor flickers),
@@ -213,7 +213,7 @@ Prompt:
 ```bash
 # Use absolute video path for consistent resolution from output directory:
 video_abs="$(realpath video.mp4)"
-srt="$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
+srt="${video_abs%.*}.srt"
 
 python3 ~/.config/opencode/scripts/lecture-fusion.py \
   sections.json scenes.json "$srt" -o segments.json
@@ -221,7 +221,7 @@ python3 ~/.config/opencode/scripts/lecture-fusion.py \
 
 The script: for each section, finds the best-matching scene by overlap. Extracts the
 best keyframe (largest JPEG — most visual content, avoids blank frames). Pads transcript
-excerpt 15s backward (when a scene match exists; no padding for non-visual segments).
+excerpt 15s backward + 5s forward (when a scene match exists; no padding for non-visual segments).
 Writes self-contained `segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
@@ -400,6 +400,12 @@ all five required, even if a section is empty:
 **Verify:** Greek letters correct, subscripts/superscripts placed, fractions formatted,
 multi-line equations preserved, tables complete.
 
+**Empty result handling:** Some @observer OCR calls return empty results (~30%
+observed rate with parallel dispatch). After collecting OCR outputs, check each
+`ocr_results/frame_XX.txt` file: if it's empty, contains only `<task_result></task_result>`,
+or has section headers with no content, retry that single frame's OCR call once.
+Retries consistently succeed. No data loss — just a re-dispatch.
+
 ### Cross-Frame Comparison (whiteboard lectures)
 
 When multiple OCR results exist for the same scene (variant frames frame_NNNa/b/c):
@@ -545,7 +551,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 
 | Case | Adjustment |
 |------|-----------|
-| **Whiteboard** | Threshold 0.10. Sequential frames. "Handwritten content" in OCR prompt. |
+| **Whiteboard** | Threshold 0.05. Sequential frames. "Handwritten content" in OCR prompt. |
 | **Screencast** | Threshold 0.10. Code blocks with language annotation. Covers coding sessions, video tutorials, terminal demos. |
 | **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt. Generate minimal scenes.json for Phase 5 (see Special Workflows below). |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
@@ -589,7 +595,7 @@ from Phase 1 ffprobe):
 ```
 Then create an empty SRT stub **alongside the source video** (Phase 5 resolves SRT path via `$(dirname "$video_abs")/...`):
 ```bash
-touch "$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
+touch "${video_abs%.*}.srt"
 ```
 
 Phase 5 produces one segment with `has_visual: true` and keyframe from the
