@@ -253,21 +253,20 @@ video clip — no dedup needed (every section has unique time ranges).
 For segments where `clip_status` is `"oversize"`, `"error"`, or `"no_visual"`:
 fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 
-> You are analyzing a recorded lecture. I will give you segments — each with a
-> video clip and the transcript excerpt from that time window.
->
-> The video contains both audio (the speaker's actual voice) and visual (slides,
-> whiteboard, screencast). The transcript below is for precise text reference —
-> the video is the authoritative source for tone, emphasis, and visual content.
+> You are analyzing a recorded lecture. Each segment has a video clip +
+> transcript excerpt spanning [START_TIME] to [END_TIME] in the original
+> lecture. The video clip is a sub-extract — use transcript timestamps as
+> reference. **All time fields (speaker_emphasis.time, slide_content timing
+> hints) must use original lecture time, not clip-internal 00:00.**
 >
 > For each segment:
 >
-> 1. `slide_content`: Everything VISIBLE across the video clip. Describe the slide
->    progression — content that builds up, animations, handwriting appearing on
->    whiteboard, laser pointer movements. **ANTI-HALLUCINATION RULE:** Describe
->    ONLY what you can see in the video frames. If the board is blank at the start
->    and fills in later, describe that progression. Never fabricate content from
->    the transcript.
+> 1. `slide_content`: What is VISIBLE in the clip. Describe progression —
+>    handwriting appearing on whiteboard, code shown on screen, content
+>    building up across frames. Include ~MM:SS timing hints for key transitions
+>    (board cleared, formula completed, graph drawn) — approximate within ±5s,
+>    useful for sub-section navigation. **ANTI-HALLUCINATION:** describe ONLY
+>    what you see in the frames, never invent from transcript.
 >
 > 2. `content_type`: text_slide | formula_slide | diagram_slide | code_slide |
 >    mixed_slide | whiteboard | talking_head | screencast | title_slide | blank
@@ -275,22 +274,14 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 > 3. `needs_ocr`: TRUE if the section contains important text/formulas that need
 >    precise extraction, FALSE if general description is sufficient.
 >
-> 4. `speaker_added` (MOST VALUABLE — 70% of the work): What did the speaker say
->    about the visible content that is NOT apparent from the visuals alone?
->    Explanations, examples, intuition, caveats, applications, stories,
->    connections to prior sections. Draw this from the AUDIO in the video.
->    "This is the formula we'll use, but pay attention because there's a subtle
->    issue with the boundary conditions..." — capture the spoken insight.
+> 4. `speaker_added`: What the speaker said about the visible content that
+>    is NOT on the slide/board — explanations, intuition, caveats, examples.
+>    Draw this from AUDIO. Capture spoken insight, not transcript restatement.
 >
-> 5. `speaker_emphasis` (NEW — CAPTURED FROM AUDIO): Specific moments where the
->    speaker's voice indicates importance. Include:
->    - Slowing down or pausing before a key point
->    - Raising volume or changing tone
->    - Repeating a phrase or formula
->    - Explicit markers: "this is important", "remember this", "the key insight is"
->    - Saying "pay attention" or "don't forget"
->    Format: [{"time": "14:20", "text": "exact emphasized quote", "cue": "slows down, repeats"}]
->    Capture 2-5 per section. These become [!important] callouts in the notes.
+> 5. `speaker_emphasis`: Moments where voice indicates importance (slowing
+>    down, volume shift, repetition, phrases like "this is important").
+>    Format: [{"time": "14:20", "text": "exact quote", "cue": "slows down, repeats"}]
+>    Capture 2-5 per section. Become [!important] callouts in notes.
 >
 > 6. `connections`: How this section connects to the broader lecture structure.
 >    Continuation / builds on previous / introduces new concept / complete shift?
