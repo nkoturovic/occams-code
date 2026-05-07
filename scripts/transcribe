@@ -14,6 +14,7 @@
 #   transcribe audio.wav -otxt -of /tmp/notes                 # plain text
 #   transcribe podcast.mp3 --language en --no-timestamps      # no timestamps
 #   transcribe video.mp4 --output-srt --output-file ./out     # named output
+#   transcribe video.mp4 --language sr --output-dir ./out    # directed output
 
 set -euo pipefail
 
@@ -45,6 +46,7 @@ if [[ $# -lt 1 ]]; then
     echo "  $0 lecture.mp4                     # auto language, SRT" >&2
     echo "  $0 lecture.mp4 --language sr       # Serbian" >&2
     echo "  $0 audio.wav -otxt -of /tmp/out    # plain text" >&2
+    echo "  $0 video.mp4 --output-dir ./out    # SRT in directory" >&2
     exit 1
 fi
 
@@ -80,6 +82,28 @@ fi
 ORIGINAL_NAME="${INPUT##*/}"
 ORIGINAL_NAME="${ORIGINAL_NAME%.*}"
 
+# ─── output directory ────────────────────────────────────────────────────────
+
+OUTPUT_DIR=""
+NEW_ARGS=()
+SKIP_NEXT=false
+for arg in "$@"; do
+    if $SKIP_NEXT; then
+        if [[ "$arg" == -* ]]; then die "--output-dir requires a directory path (got flag: $arg)"; fi
+        OUTPUT_DIR="$arg"
+        SKIP_NEXT=false
+        continue
+    fi
+    if [[ "$arg" == "--output-dir" ]]; then
+        SKIP_NEXT=true
+        continue
+    fi
+    NEW_ARGS+=("$arg")
+done
+set -- "${NEW_ARGS[@]}"
+if $SKIP_NEXT; then die "--output-dir requires a directory path"; fi
+if [[ -n "$OUTPUT_DIR" ]]; then mkdir -p "$OUTPUT_DIR"; fi
+
 if is_video "$INPUT"; then
     TMP_WAV="$(mktemp /tmp/opencode-transcribe-XXXXXX.wav)"
     trap 'rm -f "$TMP_WAV"' EXIT
@@ -97,10 +121,14 @@ export LD_LIBRARY_PATH="/run/opengl-driver/lib:/usr/lib64${LD_LIBRARY_PATH:+:$LD
 
 echo "Transcribing with whisper.cpp (Vulkan/CPU) ..." >&2
 
-# Build whisper.cpp args.  Default output: original filename in cwd if not set by user.
+# Build whisper.cpp args.  Output: alongside source video if --output-dir set, else CWD.
 WHISPER_ARGS=(-m "$MODEL" -f "$INPUT" --output-srt --print-progress)
 if [[ ! " $* " =~ \ (-of|--output-file)\  ]]; then
-    WHISPER_ARGS+=(-of "$ORIGINAL_NAME")
+    if [[ -n "$OUTPUT_DIR" ]]; then
+        WHISPER_ARGS+=(-of "$OUTPUT_DIR/$ORIGINAL_NAME")
+    else
+        WHISPER_ARGS+=(-of "$ORIGINAL_NAME")
+    fi
 fi
 
 exec nix run "${FLAKE}#whisper-cpp-vulkan" -- "${WHISPER_ARGS[@]}" "$@"

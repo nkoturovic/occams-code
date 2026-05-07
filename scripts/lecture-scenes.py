@@ -92,20 +92,17 @@ def hms(s): return f"{int(s//3600):02d}:{int(s%3600//60):02d}:{int(s%60):02d}"
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("video"); p.add_argument("-t","--threshold",type=float,default=0.30)
-    p.add_argument("-o","--output",default="."); p.add_argument("--digits",type=int,default=3)
+    p.add_argument("-o","--output",default="scenes.json"); p.add_argument("--digits",type=int,default=3)
     p.add_argument("--min-duration",type=float,default=8.0,
                    help="Merge scenes shorter than this (seconds) into neighbours (default 8)")
     a = p.parse_args()
     vp = Path(a.video)
     if not vp.exists(): panic(f"not found: {a.video}")
 
-    # Support -o as file path (e.g. -o scenes.json) or directory (e.g. -o output/)
-    out = Path(a.output).resolve()
-    if out.suffix == ".json":
-        od = out.parent; json_name = out.name
-    else:
-        od = out; json_name = "scenes.json"
-    if str(od) == ".": od = Path.cwd()
+    # -o specifies the output JSON file path (default: scenes.json in CWD).
+    # Keyframes go to {json_parent}/keyframes/.
+    out = Path(a.output)
+    od = out.parent; json_name = out.name
     kd = od/"keyframes"; kd.mkdir(parents=True,exist_ok=True)
     meta = probe(str(vp)); dur = meta["dur"]
     print(f"Video: {vp.name} ({dur/60:.1f}min)", file=sys.stderr)

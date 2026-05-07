@@ -5,7 +5,7 @@ Reads segments.json (produced by lecture-fusion.py) and extracts one clip per
 segment via a 3-pass fallback pipeline (stream-copy → re-encode → aggressive).
 
 Usage:
-  lecture-clips.py segments.json video.mp4 [-o DIR] [--max-mb MB] [--fps FPS]
+  lecture-clips.py segments.json video.mp4 [--output-dir DIR] [--max-mb MB] [--fps FPS]
 """
 
 import argparse
@@ -186,7 +186,7 @@ def main() -> None:
         help="Path to source video (overrides segments.json video field)",
     )
     parser.add_argument(
-        "-o", "--output",
+        "--output-dir",
         default="clips",
         help="Output directory for clips (default: clips/)",
     )
@@ -230,7 +230,7 @@ def main() -> None:
         if candidate.exists():
             video = candidate
 
-    out_dir = Path(args.output)
+    out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     total = data.get("total_segments", 0)

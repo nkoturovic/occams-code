@@ -47,7 +47,7 @@ Transcription is local (whisper.cpp, GPU).
 | Phase | Gate |
 |-------|------|
 | **1** | Archetype identified. Output directory + language confirmed with user. |
-| **2** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
+| **2** | Transcript coherent (head/tail 40 lines). SRT alongside source video. |
 | **3** | 12-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
@@ -92,11 +92,10 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 ## Phase 2: Transcription
 
 ```bash
-transcribe video.mp4 --language LANG
-# Verify:
-head -40 video.srt && tail -40 video.srt
-# Sibling copy for Media Extended (auto-detected, manual toggle to show):
-cp video.srt "/path/alongside/source/video.srt" && test -f "/path/alongside/source/video.srt"
+transcribe video.mp4 --language LANG --output-dir "$(dirname video.mp4)"
+# Verify alongside source video:
+srt="$(dirname video.mp4)/$(basename video.mp4 .mp4).srt"
+head -40 "$srt" && tail -40 "$srt"
 ```
 
 Always use explicit `--language` for non-English. GPU (Vulkan): ~8x realtime.
@@ -169,7 +168,7 @@ Prompt:
 ## Phase 5: Segment Preparation
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json video.srt -o segments.json
+python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json "$(dirname video.mp4)/$(basename video.mp4 .mp4).srt" -o segments.json
 ```
 
 The script: for each section, finds the best-matching scene by overlap. Extracts the
@@ -196,10 +195,10 @@ keyframes (`frame_NNN.jpg`) are never overwritten.
 ### Clip Extraction (Phase 6 video input)
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-clips.py segments.json video.mp4 -o clips/
+python3 ~/.config/opencode/scripts/lecture-clips.py segments.json video.mp4 --output-dir clips/
 ```
 
-Extracts per-section video clips for Phase 6 scouting:
+Extracts per-section video clips for Phase 6 scouting. Run from output directory.
 
 1. Read `start_seconds` and `end_seconds` from `segments.json`
 2. Stream-copy clip via ffmpeg (instant, lossless)
@@ -368,7 +367,6 @@ with a table: `| Frame | Changed | New content |`. Use for `> [!warning] Correct
 OUTPUT_DIR/
 └── Lecture Title/
     ├── Lecture Title.md
-    ├── transcript.srt
     ├── clips/             ← per-section video clips
     ├── keyframes/
     ├── slides/            ← selected frames copied from keyframes
@@ -389,7 +387,7 @@ duration: "HH:MM:SS"
 language: "xx"
 tags: [topic1, topic2]
 source_video: "path/to/video.mp4"
-source_transcript: "transcript.srt"
+source_transcript: "video.srt"  # alongside source video (Phase 2 --output-dir)
 type: lecture-notes
 ---
 ```
@@ -540,5 +538,5 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 - **Check:** If output dir is in an Obsidian vault → verify Media Extended plugin.
   If missing: warn user. Timestamps will be plain links. All else (callouts, LaTeX,
   wikilinks, embeds) work with core Obsidian.
-- **SRT subtitles:** Copy `transcript.srt` alongside source video file → Media Extended
+- **SRT subtitles:** `transcript.srt` alongside source video file (Phase 2 `--output-dir`) → Media Extended
   auto-detects and shows interactive subtitles during playback.
