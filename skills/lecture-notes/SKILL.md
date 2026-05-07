@@ -47,7 +47,7 @@ Transcription is local (whisper.cpp, GPU).
 | Phase | Gate |
 |-------|------|
 | **1** | Archetype identified. Output directory + language confirmed with user. |
-| **2** | Transcript coherent (head/tail 40 lines). SRT alongside source video. |
+| **2** | Transcript coherent (head/tail 40 lines). SRT in source video's directory — verify: `ls "$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"`. |
 | **3** | 12-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
@@ -117,15 +117,17 @@ WHISPER_PROMPT="[context prefix in lecture language]. [term1], [term2], ..."
 ## Phase 2: Transcription
 
 ```bash
-# Build command with optional domain prompt (from Phase 1):
-# WHISPER_PROMPT from Phase 1. Metacharacters safe in "$VAR" expansion.
+# ALWAYS use absolute paths. --output-dir is REQUIRED — SRT must land
+# alongside the source video, not in the working directory.
+video_abs="$(realpath video.mp4)"
 prompt_args=()
 [[ -n "$WHISPER_PROMPT" ]] && prompt_args=(--prompt "$WHISPER_PROMPT")
 
-transcribe video.mp4 --language LANG --output-dir "$(dirname video.mp4)" \
+transcribe "$video_abs" --language LANG \
+  --output-dir "$(dirname "$video_abs")" \
   "${prompt_args[@]}"
-# Verify alongside source video:
-srt="$(dirname video.mp4)/$(basename video.mp4 .mp4).srt"
+# Verify SRT exists alongside source video:
+srt="$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
 head -40 "$srt" && tail -40 "$srt"
 ```
 
