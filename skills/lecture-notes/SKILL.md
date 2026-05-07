@@ -72,6 +72,7 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 **Delegate to @observer** with the 6 frames:
 
 > Classify these frames: slides / whiteboard / screencast / talking-head / mixed.
+> Screencast = code editor, terminal, or IDE (speaker inset is standard, not mixed).
 > Which archetype dominates? Speaker visible? Handwriting/drawing present?
 > Language of visible text? Text-heavy (OCR needed) or visual (description needed)?
 > List 10-20 domain-specific technical terms visible in any frame text.
@@ -370,6 +371,7 @@ Template:
 { "video": "video.mp4", "total_segments": N, "segments": [...] }
 ```
 Validate: every video segment (ok/re_encoded) requires `speaker_added` (non-empty string), `speaker_emphasis` (≥1 entry), `video_note` (non-empty string), and `image_note` (non-empty string). Segments with missing video require `speaker_added` + `image_note` (both non-empty); `video_note` must be `null`.
+**Exception (no-audio):** `speaker_added: ""` and `speaker_emphasis: []` are valid — skip those callouts.
 
 **→ GATE: Check `needs_ocr` in segments_analyzed.json. If ANY segment has `needs_ocr: true`, Phase 7 IS REQUIRED for those segments. Do not skip.**
 
@@ -589,6 +591,13 @@ echo "{\"video\":\"$video_abs\",\"duration_seconds\":0,\"scenes\":[]}" > scenes.
 
 All sections from Phase 4 carry through to Phase 8 via `segments.json` with
 `has_visual: false`. No visual data lost — there was none.
+
+**Phase 8 composition (Phases 6-7 skipped):** Compose from `segments.json`
+directly — `segments_analyzed.json` is not created. Use Phase 4 fields:
+`key_quotes` → `> [!important]` callouts, `concepts_introduced` → section narrative,
+`transcript_excerpt` (Phase 5) → body text. Skip image embeds and
+`speaker_added`/`speaker_emphasis` callouts. Derive cross-section connections
+from Phase 4's sequential section ordering — no `connection_type` available.
 
 **No audio (Phase 2, 4 skipped):**
 Phase 5 needs `sections.json` and `transcript.srt`. Generate minimal inputs to
