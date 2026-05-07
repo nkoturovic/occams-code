@@ -185,7 +185,6 @@ def main():
         "total_segments": len(segments),
         "lecture": sd.get("lecture", {}),
         "global_tags": sd.get("global_tags", []),
-        "references_mentioned": sd.get("references_mentioned", []),
         "segments": segments,
     }, indent=2, ensure_ascii=False))
     print(f"Done. {len(segments)} segments → {out}", file=sys.stderr)

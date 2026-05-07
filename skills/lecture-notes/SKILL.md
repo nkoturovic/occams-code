@@ -244,11 +244,14 @@ Template:
 >
 > For each segment:
 >
-> 1. `slide_content`: What is VISIBLE in the clip. Describe progression —
->    handwriting appearing on whiteboard, code shown on screen, content
->    building up across frames. Include ~MM:SS timing hints for key transitions
+> 1. `slide_content`: What is VISIBLE in the clip. Describe progression
+>    thoroughly — all equations, diagrams, annotations visible. Note handwriting
+>    appearing on whiteboard, code shown on screen, content building up across
+>    frames. Include ~MM:SS timing hints for key transitions
 >    (board cleared, formula completed, graph drawn) — approximate within ±5s,
->    useful for sub-section navigation. **ANTI-HALLUCINATION:** describe ONLY
+>    useful for sub-section navigation. Anchor to transcript timestamps where
+>    possible; estimate from clip position otherwise. Skip if unsure.
+>    **ANTI-HALLUCINATION:** describe ONLY
 >    what you see in the frames, never invent from transcript.
 >
 > 2. `content_type`: text | formulas | diagrams | code | whiteboard |
@@ -389,6 +392,8 @@ type: lecture-notes
 
 [OCR text + LaTeX formulas + tables]
 
+[Write the section's core content here — concepts, derivations, flow — as plain text.]
+
 > [!note] Speaker's Explanation
 > [What the speaker said NOT on the slide — the most valuable part]
 
@@ -406,6 +411,8 @@ type: lecture-notes
 ```
 
 ### Callout semantics
+
+Plain text carries the core content; callouts highlight notable moments.
 
 | Callout | When | | Callout | When |
 |---------|------|-|---------|------|
