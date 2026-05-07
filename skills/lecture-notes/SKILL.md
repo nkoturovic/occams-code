@@ -53,7 +53,7 @@ Transcription is local (whisper.cpp, GPU).
 | **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
 | **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty when video is available; `null` if video absent. `needs_ocr` flags set for text/formula slides. |
 | **7** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
-| **8** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
+| **8** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important]` callouts present for emphasized sections (titles in lecture language). |
 | **9** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. |
 
 If phase fails gate 3 times: flag for human review, continue best-effort with incomplete sections marked.
@@ -404,7 +404,7 @@ multi-line equations preserved, tables complete.
 
 When multiple OCR results exist for the same scene (variant frames frame_NNNa/b/c):
 Compare `## Formulas (LaTeX)` sections by content similarity. Write `ocr_results/_cross_frame.md`
-with a table: `| Frame | Changed | New content |`. Use for `> [!warning] Correction` callouts.
+with a table: `| Frame | Changed | New content |`. Use for `> [!warning]` correction callouts (title in lecture language).
 
 ---
 
@@ -506,7 +506,7 @@ Plain text carries the core content; callouts highlight notable moments.
 
 ### Connection Synthesis
 
-After drafting all sections, review `segments_analyzed.json` for `connection_type` values across sections. Write `> [!info] Connection` callouts that show how sections build on each other. The orchestrator has full context — identify narrative arcs, prerequisite chains, and thematic groupings the observer (single-segment) could not see.
+After drafting all sections, review `segments_analyzed.json` for `connection_type` values across sections. Write `> [!info]` connection callouts that show how sections build on each other (title in lecture language). The orchestrator has full context — identify narrative arcs, prerequisite chains, and thematic groupings the observer (single-segment) could not see.
 
 ### Post-composition checklist
 
@@ -549,7 +549,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | **Screencast** | Threshold 0.10. Code blocks with language annotation. Covers coding sessions, video tutorials, terminal demos. |
 | **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt (no visible text for term extraction). |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
-| **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
+| **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning]` audio quality callout (title in lecture language). |
 | **No audio** | Skip Phase 2, 4, 5 (no transcript → no semantic segmentation or fusion). Extract keyframes from Phase 3 scenes.json directly. Phase 6: keyframe-only, relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Heavier reliance on OCR. |
 | **Animations** | Threshold 0.40 to avoid false boundaries. Use most complete frame. |
 | **Multi-video** | Process parts independently through Phase 7. Merge in Phase 8. `[[part1.mp4#t=...]]` per source. |
