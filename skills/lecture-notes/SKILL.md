@@ -32,7 +32,7 @@ Phase 2: Transcription   → transcribe
 Phase 3: Scene Detection → lecture-scenes.py
 Phase 4: Semantic Seg.   → @oracle
 Phase 5: Segment Prep.    → lecture-fusion.py + lecture-clips.py
-Phase 6: AI Scouting     → @observer (video)
+Phase 6: AI Scouting     → @observer (video+keyframe)
 Phase 7: Selective OCR   → @observer (parallel)
 Phase 8: Composition     → Orchestrator + @fixer
 Phase 9: Review          → @oracle
@@ -50,8 +50,8 @@ Transcription is local (whisper.cpp, GPU).
 | **2** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
 | **3** | 12-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
-| **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 20MB. All `clip_status: "ok"` clips playable. |
-| **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Keyframe-fallback segments require `speaker_added` only. `needs_ocr` flags set for text/formula slides. |
+| **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
+| **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty for video segments, `null` for keyframe-fallback. `needs_ocr` flags set for text/formula slides. |
 | **7** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
 | **8** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
 | **9** | AI review: zero critical, zero major issues. Video hallucination check: 2-3 segments cross-checked — no fabricated transitions between frames. |
@@ -107,7 +107,7 @@ Media Extended auto-detects sibling SRT files.
 ## Phase 3: Visual Segmentation
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD -o scenes.json
+python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD --min-duration VALUE -o scenes.json
 # → scenes.json + keyframes/frame_XX.jpg
 ```
 
@@ -178,7 +178,7 @@ excerpt 15s backward, writes self-contained `segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
 `segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
-`global_tags`, `references_mentioned`, and `transcript_excerpt`.
+`global_tags`, and `transcript_excerpt`.
 **No separate file join needed at Phase 8.**
 
 **Frame naming:** always variant suffix — `frame_NNNa.jpg` on first use of a scene,
@@ -226,24 +226,30 @@ padding from Phase 5 already covers this drift — no correctness impact.
 ## Phase 6: Per-Segment AI Scouting (Video-Enhanced)
 
 **Delegate to @observer. Send all sections in PARALLEL calls.** Each section has its own
-video clip — no dedup needed (every section has unique time ranges).
+keyframe JPEG + (if available) video clip — no dedup needed (every section has unique time ranges).
 
 For segments where `clip_status` is `"oversize"`, `"error"`, or `"no_visual"`:
-fall back to sending the keyframe JPEG + transcript excerpt instead of video.
+video is unavailable — send only the keyframe JPEG (emergency fallback, loses temporal + audio).
 
 **Per-segment observer prompt construction:** For each segment, build the prompt by:
-1. For video clips (`clip_status: ok` or `re_encoded`): send via `python3 ~/.config/opencode/scripts/analyze-video.py <clip>`. For keyframe-fallback (`clip_status: oversize`, `error`, or `no_visual`): observer uses Read tool on the keyframe JPEG.
-2. Injecting `[START_TIME]` and `[END_TIME]` from the segment's `section` fields
-3. Including the `transcript_excerpt` from `segments.json`
-4. Optionally including the section title for context
+1. Always send the keyframe JPEG via Read tool (high-res still for precise visual detail).
+2. If \`clip_status\` is \`ok\` or \`re_encoded\`: also send the video clip via \`python3 ~/.config/opencode/scripts/analyze-video.py <clip> "<PROMPT>"\` (temporal progression + audio for speaker_emphasis). Keyframe + video are complementary — neither substitutes the other. Keyframe catches full-res detail the low-FPS video may miss; video captures movement and audio the still can't convey.
+3. If \`clip_status\` is \`oversize\`, \`error\`, or \`no_visual\`: video unavailable — keyframe-only emergency fallback.
+4. Injecting \`[START_TIME]\` and \`[END_TIME]\` — use \`start_time\` and \`end_time\` (HH:MM:SS format) from the segment's \`section\` fields
+5. Including the `transcript_excerpt` from `segments.json`
+6. Optionally including the section title for context
 
 Template:
 
-> You are analyzing a recorded lecture. Each segment has a video clip +
-> transcript excerpt spanning [START_TIME] to [END_TIME] in the original
-> lecture. The video clip is a sub-extract — use transcript timestamps as
-> reference. **All time fields (speaker_emphasis.time, slide_content timing
-> hints) must use original lecture time, not clip-internal 00:00.**
+> You are analyzing a recorded lecture segment. You receive:
+> - A high-res keyframe JPEG (always) — best still for precise visual detail
+> - A video clip (if available) — temporal progression + audio for speaker_emphasis
+> - Transcript excerpt spanning [START_TIME] to [END_TIME] in the original lecture
+>
+> Use the keyframe for equations, annotations, diagrams — the video may be
+> low-FPS and miss fine detail. Use the video for temporal progression and
+> audio cues (speaker_emphasis). All time fields must use original lecture
+> time, not clip-internal 00:00.
 >
 > For each segment:
 >
@@ -276,9 +282,11 @@ Template:
 >    infer from position in lecture and whether speaker introduces new concepts or
 >    references earlier material.
 >
-> 7. `video_note`: Anything the note composer should know — completeness concerns,
->    audio quality, transitions missed by low FPS. (For keyframe-fallback
->    segments, use `image_note` instead.)
+> 7. `video_note` — audio quality, transitions, temporal completeness
+>    (always include; set to `null` if video unavailable — last resort only).
+>
+> 8. `image_note` — keyframe resolution, angle, partial visibility
+>    (always include; keyframe is always available).
 >
 > Return a JSON object for this segment:
 > ```json
@@ -292,10 +300,12 @@ Template:
 >   "speaker_added": "...",
 >   "speaker_emphasis": [{"time": "14:20", "text": "...", "cue": "slows down"}],
 >   "connection_type": "core",
->   "video_note": "..."
+>   "video_note": "...",
+>   "image_note": "..."
 > }
 > ```
-> Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
+> If video was unavailable for this segment, set `video_note` to `null`.
+> (Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
 > Add your analysis fields alongside them.
 
 
@@ -303,7 +313,7 @@ Template:
 ```json
 { "video": "video.mp4", "total_segments": N, "segments": [...] }
 ```
-Validate: every video segment has `speaker_added` AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added` only.
+Validate: every video segment (ok/re_encoded) requires `speaker_added` (non-empty string), `speaker_emphasis` (≥1 entry), `video_note` (non-empty string), and `image_note` (non-empty string). Keyframe-fallback segments require `speaker_added` + `image_note` (both non-empty); `video_note` must be `null`.
 
 **→ GATE: Check `needs_ocr` in segments_analyzed.json. If ANY segment has `needs_ocr: true`, Phase 7 IS REQUIRED for those segments. Do not skip.**
 
@@ -328,7 +338,7 @@ Validate: every video segment has `speaker_added` AND `speaker_emphasis` (≥1 p
 > superscripts (x^2 not x2), fractions (\frac{a}{b} not a/b), integrals with limits.
 > Language: [LANGUAGE].
 
-**Save each as `ocr_results/frame_XX.txt`** with these exact section headers —
+**Save each as `ocr_results/frame_XX.txt`** (relative to the output directory set in Phase 1). Use these exact section headers —
 all five required, even if a section is empty:
 ```
 ## Text
@@ -341,11 +351,11 @@ all five required, even if a section is empty:
 **Verify:** Greek letters correct, subscripts/superscripts placed, fractions formatted,
 multi-line equations preserved, tables complete.
 
-### Cross-Frame Comparison
+### Cross-Frame Comparison (whiteboard lectures)
 
-When multiple OCR results exist for the same scene (whiteboard variant frames):
-compare `## Formulas (LaTeX)` sections. Write `ocr_results/_cross_frame.md` for
-differences. Phase 8 uses it to add `> [!important] Correction` callouts.
+When multiple OCR results exist for the same scene (variant frames frame_NNNa/b/c):
+Compare `## Formulas (LaTeX)` sections by content similarity. Write `ocr_results/_cross_frame.md`
+with a table: `| Frame | Changed | New content |`. Use for `> [!warning] Correction` callouts.
 
 ---
 
@@ -365,6 +375,8 @@ OUTPUT_DIR/
     ├── slides/            ← selected frames copied from keyframes
     └── ocr_results/
 ```
+
+**slides/ selection:** Copy each segment's `keyframe` path from `segments.json` into `slides/`, renaming to `slide_NN.jpg`. Every section gets its corresponding visual — no manual selection needed.
 
 ### Note format
 
@@ -401,9 +413,9 @@ type: lecture-notes
 
 ![[slides/slide_03.jpg|400]]
 
-[OCR text + LaTeX formulas + tables]
+[OCR: Text, Formulas (LaTeX), Diagrams, Tables, Annotations — incorporate all relevant OCR output]
 
-[Write the section's core content here — concepts, derivations, flow — as plain text.]
+[Write the section's core content here — using slide_content for visual progression and speaker_added for explanations. Plain text carries the narrative.]
 
 > <!-- Use callouts selectively — only where segment data warrants. Most sections need 1-2, not all types. -->
 
@@ -440,7 +452,7 @@ Plain text carries the core content; callouts highlight notable moments.
 1. `#t=start` only (no `,end`) — avoids locked playback
 2. Images at 400px width (`|400`)
 3. LaTeX: `$$...$$` block, `$...$` inline. Always commands (`\alpha`), never Unicode (α)
-4. All underscores inside `$...$` or `$$...$$`
+4. Underscores only inside \`$...$\` or \`$$...$$\` — raw underscores in prose render as italics
 5. End with `## Summary` + `## Links & References`
 
 ### Connection Synthesis
@@ -515,7 +527,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 
 1. **Run all 9 phases in order.** Do not skip any phase. Even "free" phases (2, 3, 5) are required — they produce data consumed downstream.
 2. **Phase 6→7 gate:** After Phase 6, scan `segments_analyzed.json` for `needs_ocr: true`. If found, run Phase 7 for those segments. OCR produces exact LaTeX — Phase 8 depends on it for formula-heavy sections.
-3. **Phase 6 is parallel:** Send all per-segment clips to @observer simultaneously. Each segment has its own video clip — calls are independent with no shared state.
+3. **Phase 6 is parallel:** Send all per-segment keyframes + video clips to @observer simultaneously. Each segment has its own keyframe and video clip — calls are independent with no shared state.
 4. **Phase 7 is parallel:** Send all `needs_ocr` slides to @observer simultaneously. Independent images, no cross-contamination risk.
 5. **Quality over speed.** Each phase exists to capture information the next phase depends on. Skipping a phase produces incomplete notes — run all 9 phases regardless of time.
 6. **Gate failures → retry or best-effort.** If a phase fails its quality gate 3 times, continue with incomplete sections marked for human review. Never block the pipeline.
