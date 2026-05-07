@@ -48,7 +48,7 @@ Transcription is local (whisper.cpp, GPU).
 |-------|------|
 | **1** | Archetype identified. Output directory + language confirmed with user. |
 | **2** | Transcript coherent (head/tail 40 lines). SRT in source video's directory — verify: `ls "${video_abs%.*}.srt"`. |
-| **3** | n_min–n_max scenes (both scale with duration). max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
+| **3** | n_min–n_max scenes (n_min = max(12, int(dur/300)), n_max = max(60, int(dur/180))). max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **4** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
 | **5** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every visual section has a `ok` or `re_encoded` clip. No clip exceeds 15MB. All `clip_status: "ok"` clips playable. |
 | **6** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Every segment has `image_note` (keyframe always available). `video_note` non-empty when video is available; `null` if video absent. `needs_ocr` flags set for text/formula slides. |
@@ -156,7 +156,8 @@ python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD --mi
 
 Uses threshold from Phase 1.
 
-Gate: n_min–n_max scenes (both scale with duration). max scene
+Gate: n_min–n_max scenes, where n_min = max(12, int(duration_s/300)) and
+n_max = max(60, int(duration_s/180)). max scene
 duration < total/2, median < total/8. Failed gate → auto-retune (step 0.05, max 3
 retries) or periodic fallback with warning.
 
