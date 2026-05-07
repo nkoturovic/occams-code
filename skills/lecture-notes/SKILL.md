@@ -468,19 +468,19 @@ type: lecture-notes
 > <!-- Use callouts selectively. Callout TITLES (text after [!type]) must be in the
 >      lecture's language (match --language flag). [!type] syntax stays English. -->
 
-> [!note] [Speaker's explanation — localized]
+> [!note] [Speaker's explanation — in lecture language]
 > [What the speaker said NOT on the slide — the most valuable part]
 
-> [!warning] [Emphasis/Exam-relevant — localized]
+> [!warning] [Emphasis/Exam-relevant — in lecture language]
 > [When speaker stressed this point]
 
-> [!tip] [Practical example — localized]
+> [!tip] [Practical example — in lecture language]
 > [Concrete example with full context]
 
-> [!important] [Speaker emphasis — localized]
+> [!important] [Speaker emphasis — in lecture language]
 > "Pay attention to boundary conditions" — speaker slows down, repeats (≈14:20)
 
-> [!info] [Connection — localized]
+> [!info] [Connection — in lecture language]
 > [How this builds on / connects to other sections]
 ```
 
