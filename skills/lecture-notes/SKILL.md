@@ -21,13 +21,15 @@ compatibility: >
 8-phase pipeline. **Orchestrator drives all phases.** Transcript is the spine — semantic
 structure comes from spoken content. Visuals are precision enhancements.
 
+**Execution: first create a todo list with all 8 phases (0–8). Pass each phase's quality
+gate before proceeding to the next. Do not skip any phase.**
+
 ```
 Phase 0: Assessment      (1-2 min, free)     → Orchestrator
 Phase 1: Transcription   (~8 min, free)      → transcribe
 Phase 2: Scene Detection (1-2 min, free)     → lecture-scenes.py
 Phase 3: Semantic Seg.   (30s, ~$0.001)      → @oracle
-Phase 4: Audio-Visual    (<1s, free)         → lecture-fusion.py
-Phase 4.5: Clip Extract  (<1s, free)         → lecture-clips.py
+Phase 4: Segment Prep.    (<1s, free)         → lecture-fusion.py + lecture-clips.py
 Phase 5: AI Scouting     (1-2 min, ~$0.08)   → @observer (video)
 Phase 6: Selective OCR   (2-3 min, ~$0.01)   → @observer (parallel)
 Phase 7: Composition     (10-15 min)          → Orchestrator + @fixer
@@ -46,8 +48,7 @@ Phase 8: Review          (2-3 min, ~$0.001)  → @oracle
 | **1** | Transcript coherent (head/tail 40 lines). SRT copied alongside source video and copy verified. |
 | **2** | 6-60 scenes. max_duration < total/2, median < total/8. `scenes.json` valid. All keyframes exist. |
 | **3** | 5-15 sections. No time gaps >2s. Every section has ≥1 key_quote. |
-| **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. |
-| **4.5** | Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 20MB. All `clip_status: "ok"` clips playable. |
+| **4** | Every section matched to scene (or `has_visual: false`). Misalignments resolved. Every section has a clip OR a `clip_status` explaining why not. No clip exceeds 20MB. All `clip_status: "ok"` clips playable. |
 | **5** | Every segment has `speaker_added` AND `speaker_emphasis` (≥1 per video segment). `slide_content` describes progression. Keyframe-fallback segments require `speaker_added` only. `needs_ocr` flags set for text/formula slides. |
 | **6** | Every `needs_ocr` slide has complete, verified OCR. LaTeX syntax validated. `speaker_emphasis` context used to prioritize OCR accuracy. |
 | **7** | All sections present. All images exist. All LaTeX valid. Frontmatter complete. `> [!important] Speaker Emphasis` callouts present for emphasized sections. |
@@ -68,15 +69,9 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 
 **Delegate to @observer** with the 6 frames:
 
-> Classify each frame: slides, whiteboard/chalkboard, talking-head/webcam,
-> screencast/code, mixed, or other. Answer:
-> 1. Speaker visible on camera?
-> 2. Slides primary visual? (yes/mostly/sometimes/no)
-> 3. Handwriting/drawing present?
-> 4. Language of visible text?
-> 5. Diagrams/charts/code visible?
-> 6. Consistent template/branding?
-> 7. Mostly OCR (text-heavy) or mostly description (diagrams/whiteboard)?
+> Classify these frames: slides / whiteboard / screencast / talking-head / mixed.
+> Which archetype dominates? Speaker visible? Handwriting/drawing present?
+> Language of visible text? Text-heavy (OCR needed) or visual (description needed)?
 
 **Archetype → pipeline parameters:**
 
@@ -88,7 +83,7 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 | Talking head | Skip Phase 2 | Transcript-driven, no visuals |
 | Mixed | 0.30 | Per-segment classification handles it |
 
-**Before proceeding:** Ask user: "Where should I save the output notes? Which language (sr/en/...)?"
+**If not already specified:** Ask user for output directory and language.
 
 ---
 
@@ -103,18 +98,14 @@ cp video.srt "/path/alongside/source/video.srt" && test -f "/path/alongside/sour
 ```
 
 Always use explicit `--language` for non-English. GPU (Vulkan): ~8x realtime.
-
-Media Extended detects sibling SRT files. Auto-display of subtitles is plugin-dependent
-(best-effort config: `playback.track.default-enabled: true` in plugin data.json,
-but known to not work reliably on all versions). User toggles subtitles manually
-in the player — one click.
+Media Extended auto-detects sibling SRT files.
 
 ---
 
 ## Phase 2: Visual Segmentation
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD -o OUTPUT_DIR
+python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD -o scenes.json
 # → scenes.json + keyframes/frame_XX.jpg
 ```
 
@@ -133,49 +124,36 @@ taskbar overlays without losing real content boundaries.
 
 Prompt:
 
-> Below is a complete SRT transcript of a lecture. Extract its thematic structure as JSON.
+> Below is a complete SRT transcript of a lecture. Extract its structure as JSON.
 >
 > ```json
 > {
 >   "lecture": {
 >     "title": "Inferred/stated title",
 >     "speaker": "Name if mentioned",
->     "duration_seconds": N,
 >     "language": "xx"
 >   },
 >   "sections": [
 >     {
 >       "section_id": 1,
->       "title": "Short descriptive title (source language)",
->       "start_time": "00:00:00",
->       "end_time": "00:12:30",
+>       "title": "Short title (source language)",
 >       "start_seconds": 0,
 >       "end_seconds": 750,
->       "summary": "2-3 sentence summary",
->       "topics": ["..."],
->       "concepts_introduced": ["new concepts in this section"],
->       "formulas_mentioned": ["formula descriptions"],
->       "key_quotes": [{"time": "HH:MM:SS", "text": "exact quote"}],
->       "emphasis_markers": [{"time": "HH:MM:SS", "note": "speaker emphasizes"}],
->       "examples": [{"time": "HH:MM:SS", "description": "concrete example"}],
->       "slide_references": [{"time": "HH:MM:SS", "context": "points to slide"}],
->       "transitions": ["bridging language to next section"],
->       "questions_asked": [{"time": "HH:MM:SS", "question": "..."}],
->       "tangential_notes": ["interesting digression"]
+>       "summary": "1-2 sentence summary",
+>       "concepts_introduced": ["new concepts"],
+>       "key_quotes": ["1-3 best core-idea sentences verbatim"],
+>       "content_type": "whiteboard|code|text|mixed"
 >     }
 >   ],
->   "global_tags": ["..."],
->   "references_mentioned": [{"type": "book|paper|url", "citation": "..."}]
+>   "global_tags": ["topic1", "topic2"]
 > }
 > ```
->
 > RULES:
-> - EXACT timestamps from SRT. Do not invent.
-> - start_time/end_time = first/last cue in section.
-> - key_quotes: 1-3 per section. Best core-idea sentences.
-> - emphasis_markers: repetitions, "important"/"remember", vocal emphasis moments.
-> - slide_references: "as you can see", "this formula here", "look at this diagram".
+> - EXACT timestamps from SRT. start_seconds/end_seconds = first/last cue.
+> - 5-15 sections. No time gaps >2s.
 > - concepts_introduced: what is NEW in this section.
+> - key_quotes: 1-3 per section.
+> - content_type: whiteboard (derivations/drawing), code (screen/editor), text (slide-based), mixed.
 > - Keep titles/summaries in transcript's language.
 > - This SRT is the ONLY input. Do not hallucinate.
 >
@@ -185,18 +163,15 @@ Prompt:
 
 ---
 
-## Phase 4: Audio-Visual Fusion
+## Phase 4: Segment Preparation
 
 ```bash
 python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json video.srt -o segments.json
 ```
 
-The script: for each section, finds the best-matching scene by overlap. Extracts 3
-**candidate frames** at 25%, 50%, 75% through the section→scene overlap window, then
-selects the one with largest JPEG file size (most visual content — blank boards compress
-smaller). This prevents capturing blank/transition frames in whiteboard lectures where
-content builds incrementally. Pads transcript excerpt 15s backward, writes self-contained
-`segments.json`.
+The script: for each section, finds the best-matching scene by overlap. Extracts the
+best keyframe (largest JPEG — most visual content, avoids blank frames). Pads transcript
+excerpt 15s backward, writes self-contained `segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
 `segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
@@ -215,23 +190,23 @@ keyframes (`frame_NNN.jpg`) are never overwritten.
 
 ---
 
-## Phase 4.5: Per-Section Video Clip Extraction
+### Clip Extraction (Phase 5 video input)
 
 ```bash
 python3 ~/.config/opencode/scripts/lecture-clips.py segments.json video.mp4 -o clips/
 ```
 
-Extracts per-section video clips for Phase 5 scouting. For each segment:
+Extracts per-section video clips for Phase 5 scouting:
 
 1. Read `start_seconds` and `end_seconds` from `segments.json`
 2. Stream-copy clip via ffmpeg (instant, lossless)
 3. If clip exceeds 15MB: re-encode at 640px, 0.5 FPS, mono audio
-4. If still exceeds 15MB: second-pass at 480px, 0.3 FPS, CRF 32
+4. If still exceeds 15MB: second-pass at 480px, 0.3 FPS
 5. Write `clip_path` and `clip_status` to `segments.json`
 
 **Output:** `clips/section_NN.mp4` + updated `segments.json`.
 
-**Clip status fields** written to each segment:
+**Clip status fields:**
 - `clip_path`: path to clip (or `null` if extraction failed/skipped)
 - `clip_status`: `"ok"` | `"re_encoded"` | `"oversize"` | `"error"` | `"no_visual"`
 
@@ -253,6 +228,14 @@ video clip — no dedup needed (every section has unique time ranges).
 For segments where `clip_status` is `"oversize"`, `"error"`, or `"no_visual"`:
 fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 
+**Per-segment observer prompt construction:** For each segment, build the prompt by:
+1. Sending the video clip path (or keyframe JPEG for fallback segments) — observer uses Read tool
+2. Injecting `[START_TIME]` and `[END_TIME]` from the segment's `section` fields
+3. Including the `transcript_excerpt` from `segments.json`
+4. Optionally including the section title for context
+
+Template:
+
 > You are analyzing a recorded lecture. Each segment has a video clip +
 > transcript excerpt spanning [START_TIME] to [END_TIME] in the original
 > lecture. The video clip is a sub-extract — use transcript timestamps as
@@ -268,8 +251,8 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 >    useful for sub-section navigation. **ANTI-HALLUCINATION:** describe ONLY
 >    what you see in the frames, never invent from transcript.
 >
-> 2. `content_type`: text_slide | formula_slide | diagram_slide | code_slide |
->    mixed_slide | whiteboard | talking_head | screencast | title_slide | blank
+> 2. `content_type`: text | formulas | diagrams | code | whiteboard |
+>    talking_head | screencast | title_slide | mixed
 >
 > 3. `needs_ocr`: TRUE if the section contains important text/formulas that need
 >    precise extraction, FALSE if general description is sufficient.
@@ -286,10 +269,9 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 > 6. `connections`: How this section connects to the broader lecture structure.
 >    Continuation / builds on previous / introduces new concept / complete shift?
 >
-> 7. `video_note`: Hints for the note composer. Did the video clip capture the
->    full section? Any quick transitions the low FPS might have missed? Is the
->    audio clear enough? Any completeness concerns? (For keyframe-fallback
->    segments, use `image_note` instead — same content.)
+> 7. `video_note`: Anything the note composer should know — completeness concerns,
+>    audio quality, transitions missed by low FPS. (For keyframe-fallback
+>    segments, use `image_note` instead.)
 >
 > Return a JSON object:
 > ```json
@@ -308,6 +290,8 @@ fall back to sending the keyframe JPEG + transcript excerpt instead of video.
 **Output:** `segments_analyzed.json`. Validate: every video segment has `speaker_added`
 AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added`
 only. Output wrapped in an object matching `segments.json` structure.
+
+**→ GATE: Check `needs_ocr` in segments_analyzed.json. If ANY segment has `needs_ocr: true`, Phase 6 IS REQUIRED for those segments. Do not skip.**
 
 ---
 
@@ -345,17 +329,9 @@ multi-line equations preserved, tables complete.
 
 ### Cross-Frame Comparison
 
-When whiteboard archetype has variant frames (≥2 OCR results from same scene):
-
-1. Group OCR results by base scene number.
-2. Compare `## Formulas (LaTeX)` sections within each group.
-3. If formula content differs between frames, write `ocr_results/_cross_frame.md`.
-   Flag as `correction` (same concept, changed expression) or `addition` (new formula
-   absent from earlier frames). One section per comparison pair.
-4. Skip if only one OCR frame per scene.
-
-Phase 7 reads `_cross_frame.md` alongside individual OCR results — uses it to add
-`> [!important] Correction` callouts where formulas were later corrected.
+When multiple OCR results exist for the same scene (whiteboard variant frames):
+compare `## Formulas (LaTeX)` sections. Write `ocr_results/_cross_frame.md` for
+differences. Phase 7 uses it to add `> [!important] Correction` callouts.
 
 ---
 
@@ -502,11 +478,21 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | 1 | Orchestrator | Runs transcribe, verifies output |
 | 2 | Orchestrator | Runs lecture-scenes.py |
 | 3 | @oracle | Structured JSON from transcript |
-| 4 | Orchestrator | Runs lecture-fusion.py |
+| 4 | Orchestrator | Runs lecture-fusion.py + lecture-clips.py |
 | 5 | @observer | Vision + text fusion (audio+visual together) |
 | 6 | @observer (parallel) | OCR, independently parallelizable |
 | 7 | Orchestrator + @fixer | Integration + per-section drafting |
 | 8 | @oracle | Quality review |
+
+### Orchestrator Rules
+
+1. **Run all 8 phases in order.** Do not skip any phase. Even "free" phases (1, 2, 4) are required — they produce data consumed downstream.
+2. **Phase 5→6 gate:** After Phase 5, scan `segments_analyzed.json` for `needs_ocr: true`. If found, run Phase 6 for those segments. OCR produces exact LaTeX — Phase 7 depends on it for formula-heavy sections.
+3. **Phase 6 is parallel:** Send all `needs_ocr` slides to @observer simultaneously. Independent images, no cross-contamination risk.
+4. **Cost is not a skip reason.** Full pipeline cost is ~$0.10 per 60-min lecture. Skipping phases to save $0.01 produces incomplete notes.
+5. **Gate failures → retry or best-effort.** If a phase fails its quality gate 3 times, continue with incomplete sections marked for human review. Never block the pipeline.
+6. **Verify outputs before proceeding.** Check file existence, line counts, JSON validity at each phase boundary.
+7. **Script errors → fix, don't skip.** If a local script fails (transcribe, lecture-scenes.py, lecture-clips.py), resolve the error first. These are deterministic — failures are fixable, not random.
 
 ### Skills loaded
 
