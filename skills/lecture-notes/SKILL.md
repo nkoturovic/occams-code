@@ -465,21 +465,22 @@ type: lecture-notes
 
 [Write the section's core content here — using slide_content for visual progression and speaker_added for explanations. Plain text carries the narrative.]
 
-> <!-- Use callouts selectively — only where segment data warrants. Most sections need 1-2, not all types. -->
+> <!-- Use callouts selectively. Callout TITLES (text after [!type]) must be in the
+>      lecture's language (match --language flag). [!type] syntax stays English. -->
 
-> [!note] Speaker's Explanation
+> [!note] [Speaker's explanation — localized]
 > [What the speaker said NOT on the slide — the most valuable part]
 
-> [!warning] Emphasis
+> [!warning] [Emphasis/Exam-relevant — localized]
 > [When speaker stressed this point]
 
-> [!tip] Practical Example
+> [!tip] [Practical example — localized]
 > [Concrete example with full context]
 
-> [!important] Speaker Emphasis
+> [!important] [Speaker emphasis — localized]
 > "Pay attention to boundary conditions" — speaker slows down, repeats (≈14:20)
 
-> [!info] Connection
+> [!info] [Connection — localized]
 > [How this builds on / connects to other sections]
 ```
 
