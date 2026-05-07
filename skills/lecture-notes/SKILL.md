@@ -547,12 +547,53 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 |------|-----------|
 | **Whiteboard** | Threshold 0.10. Sequential frames. "Handwritten content" in OCR prompt. |
 | **Screencast** | Threshold 0.10. Code blocks with language annotation. Covers coding sessions, video tutorials, terminal demos. |
-| **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt (no visible text for term extraction). |
+| **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt. Generate minimal scenes.json for Phase 5 (see Special Workflows below). |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning]` audio quality callout (title in lecture language). |
-| **No audio** | Skip Phase 2, 4, 5 (no transcript → no semantic segmentation or fusion). Extract keyframes from Phase 3 scenes.json directly. Phase 6: keyframe-only, relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Heavier reliance on OCR. |
+| **No audio** | Skip Phase 2, 4. Generate minimal inputs for Phase 5 (see Special Workflows below). Phase 6: keyframe-only, relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Heavier reliance on OCR. |
 | **Animations** | Threshold 0.40 to avoid false boundaries. Use most complete frame. |
 | **Multi-video** | Process parts independently through Phase 7. Merge in Phase 8. `[[part1.mp4#t=...]]` per source. |
+
+### Special workflows
+
+When a phase is legitimately skipped (no visuals, no audio), the downstream phases
+still need compatible input files. Generate minimal placeholders — never skip a phase
+that leaves a required input missing. The goal is to preserve ALL available information
+in every phase's output.
+
+**Talking head (no visuals — Phase 3, 6, 7 skipped):**
+Phase 5 needs `scenes.json`. Generate a minimal one so fusion.py preserves Phase 4's
+semantic structure in `segments.json`:
+
+```bash
+# Empty scenes list: best_scene() returns None → has_visual: false per section
+# Use real video path so ffmpeg has valid input (frames extracted but discarded)
+echo "{\"video\":\"$video_abs\",\"duration_seconds\":0,\"scenes\":[]}" > scenes.json
+```
+
+All sections from Phase 4 carry through to Phase 8 via `segments.json` with
+`has_visual: false`. No visual data lost — there was none.
+
+**No audio (Phase 2, 4 skipped):**
+Phase 5 needs `sections.json` and `transcript.srt`. Generate minimal inputs to
+preserve Phase 3's visual keyframe data in `segments.json`:
+
+Create `sections.json` with a single global section (substitute actual `DUR`
+from Phase 1 ffprobe):
+```json
+{"lecture": {"title": "Silent Video", "speaker": "", "language": "xx"},
+ "sections": [{"section_id": 1, "title": "Full Video",
+   "start_seconds": 0, "end_seconds": DUR,
+   "summary": "Visual content only",
+   "concepts_introduced": [], "key_quotes": [], "content_type": "mixed"}]}
+```
+Then create an empty SRT stub **alongside the source video** (Phase 5 resolves SRT path via `$(dirname "$video_abs")/...`):
+```bash
+touch "$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
+```
+
+Phase 5 produces one segment with `has_visual: true` and keyframe from the
+longest Phase 3 scene. Phase 6 runs keyframe-only. All visual info preserved.
 
 ---
 
