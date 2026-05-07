@@ -282,7 +282,7 @@ keyframe JPEG + video clip (no dedup needed — every section has unique time ra
 If `clip_status` is `oversize` or `error`: video is missing. This should not happen — Phase 5 gate ensures every visual section has a clip. For `no_visual` (talking-head): legitimate skip. In these rare cases: keyframe-only emergency fallback.
 
 **Per-segment observer prompt construction:** For each segment, build the prompt by:
-1. Always send the keyframe JPEG via Read tool (high-res still for precise visual detail).
+1. Always send the keyframe JPEG via Read tool — use the `keyframe` path from `segments.json` (canonical source). Do NOT use `segments_analyzed.json` (orchestrator-constructed, may have stale paths).
 2. Send the video clip via \`python3 ~/.config/opencode/scripts/analyze-video.py <clip> "<PROMPT>"\` (temporal progression + audio for speaker_emphasis). Keyframe + video are complementary — keyframe catches full-res detail low-FPS video may miss; video captures movement and audio the still can't convey.
 3. If \`clip_status\` is \`no_visual\` (talking-head segment): keyframe-only — legitimate design path. Audio-derived fields (`speaker_added`, `speaker_emphasis`) are not expected.
 4. If \`clip_status\` is \`oversize\` or \`error\`: keyframe-only emergency fallback. This should not happen — Phase 5 gate ensures every visual section has a clip.
@@ -372,6 +372,8 @@ Validate: every video segment (ok/re_encoded) requires `speaker_added` (non-empt
 ## Phase 7: Selective Deep OCR
 
 **Delegate to @observer. Send ALL `needs_ocr` slides in PARALLEL calls.**
+
+**Keyframe source:** Use `keyframe` paths from `segments.json` (canonical, produced by fusion.py). Do NOT use `segments_analyzed.json` — it is orchestrator-constructed and may contain stale paths from manual copy-paste errors.
 
 > Read the image at `keyframes/frame_XX.jpg`. Extract ALL text and formulas.
 > Formulas: LaTeX (block $$...$$, inline $...$). Tables: markdown. Diagrams: describe.
