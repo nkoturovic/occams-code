@@ -74,6 +74,8 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 > Classify these frames: slides / whiteboard / screencast / talking-head / mixed.
 > Which archetype dominates? Speaker visible? Handwriting/drawing present?
 > Language of visible text? Text-heavy (OCR needed) or visual (description needed)?
+> List 10-20 domain-specific technical terms visible in any frame text.
+> Output as comma-separated, max ~150 characters. These prime the transcription model.
 
 **Archetype → pipeline parameters:**
 
@@ -87,12 +89,41 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 
 **If not already specified:** Ask user for output directory and language.
 
+**Capture domain terms** from the @observer response. Format as a whisper `--prompt`
+string in the lecture's language: a brief context prefix then the domain terms,
+comma-separated. Max 30 words (~50 tokens); whisper silently truncates prompts
+exceeding `n_text_ctx/2` tokens (224 for large-v3, may be larger for turbo — 50
+tokens is safe regardless). If no terms found (talking-head, no visible text),
+leave empty.
+
+Evidence: prompt primes decoder vocabulary. Brief context prefix + comma-separated
+terms (OpenAI Whisper Prompting Guide). Format example: "Lecture on calculus. theorem,
+lemma, proof, derivative, integral" — note the language matches the spoken audio.
+If transcribing Serbian, the prompt must be in Serbian: "Predavanje iz matematike.
+teorema, lema, dokaz, izvod, integral". Always match the `--language` flag. If
+visible slide text is in a different language than the audio, translate the terms
+to match `--language` — cross-language prompts provide no priming benefit.
+
+```bash
+# Format after @observer returns terms:
+# The prompt MUST be in the lecture's language (= --language flag).
+WHISPER_PROMPT="[context prefix in lecture language]. [term1], [term2], ..."
+# If no terms: WHISPER_PROMPT="" (prompt skipped)
+```
+# WHISPER_PROMPT carries forward to Phase 2.
+
 ---
 
 ## Phase 2: Transcription
 
 ```bash
-transcribe video.mp4 --language LANG --output-dir "$(dirname video.mp4)"
+# Build command with optional domain prompt (from Phase 1):
+# WHISPER_PROMPT from Phase 1. Metacharacters safe in "$VAR" expansion.
+prompt_args=()
+[[ -n "$WHISPER_PROMPT" ]] && prompt_args=(--prompt "$WHISPER_PROMPT")
+
+transcribe video.mp4 --language LANG --output-dir "$(dirname video.mp4)" \
+  "${prompt_args[@]}"
 # Verify alongside source video:
 srt="$(dirname video.mp4)/$(basename video.mp4 .mp4).srt"
 head -40 "$srt" && tail -40 "$srt"
@@ -495,7 +526,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 |------|-----------|
 | **Whiteboard** | Threshold 0.10. Sequential frames. "Handwritten content" in OCR prompt. |
 | **Screencast** | Threshold 0.10. Code blocks with language annotation. Covers coding sessions, video tutorials, terminal demos. |
-| **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. |
+| **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt (no visible text for term extraction). |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
 | **No audio** | Skip Phase 2. Use periodic sampling in Phase 3. Phase 6: run with relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Video clips still sent for temporal progression. Heavier reliance on OCR. |
