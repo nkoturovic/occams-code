@@ -143,9 +143,18 @@ python3 ~/.config/opencode/scripts/lecture-scenes.py video.mp4 -t THRESHOLD --mi
 # → scenes.json + keyframes/frame_XX.jpg
 ```
 
-Uses threshold from Phase 1. Fallback to periodic sampling at 5-minute intervals if gate fails.
-Gate: at least floor(duration_min/5) scenes (minimum 12, maximum 60). max scene duration < total/2, median < total/8.
-Failed gate → auto-retune (step 0.05, max 3 retries) or best-effort with warning.
+Uses threshold from Phase 1.
+
+Gate: at least floor(duration_min/5) scenes (minimum 12, maximum 60). max scene
+duration < total/2, median < total/8. Failed gate → auto-retune (step 0.05, max 3
+retries) or best-effort with warning.
+
+**Whiteboard lectures will typically FAIL the max_duration gate.** One scene
+dominates (59+ min) because gradual chalk/pen writing produces no detectable scene
+changes. This is expected — do NOT retry endlessly. Accept best-effort: the
+dominant scene provides keyframes for all sections, and Phase 4 semantic
+segmentation supplies the real structure from the transcript.
+
 Post-detect merge: scenes shorter than `--min-duration` (default 8s) are absorbed into
 the previous scene. Archetype-dependent: Slide-heavy 8s (catches cursor flickers),
 Whiteboard 4s (preserves incremental writing steps), Screencast 4s (each code block
