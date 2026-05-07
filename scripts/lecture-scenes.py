@@ -54,10 +54,14 @@ def scenes_from_ts(ts, total):
 def gate_ok(scenes, total):
     if not scenes: return False
     d = [s["end_seconds"]-s["start_seconds"] for s in scenes]
-    return 6 <= len(scenes) <= 60 and max(d) < total/2 and statistics.median(d) < total/8
+    n_min = max(12, int(total / 300))  # at least 12, +1 per 5 minutes
+    return n_min <= len(scenes) <= 60 and max(d) < total/2 and statistics.median(d) < total/8
 
-def periodic(total, interval=10):
-    n = max(6, int(total/interval)); return scenes_from_ts([i*interval for i in range(n)], total)
+def periodic(total):
+    """Fallback: periodic keyframes targeting ~5-minute intervals, minimum 12 scenes."""
+    n = max(12, int(total / 300))
+    interval = total / n
+    return scenes_from_ts([round(i * interval, 1) for i in range(n)], total)
 
 def merge_short(scenes, min_dur):
     """Absorb scenes shorter than min_dur into the PREVIOUS scene.

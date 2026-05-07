@@ -56,7 +56,7 @@
 | **@librarian** | Library docs, API references | Official docs, version-specific APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
 | **@fixer** | Bounded implementation, test writing | Fast, concise code edits |
-| **@observer** | Read images/PDFs/video/audio — extract facts • Lecture note pipeline phases 5-6 | Deterministic visual + audio analysis |
+| **@observer** | Read images/PDFs/video/audio — extract facts • Lecture note pipeline phases 6-7 | Deterministic visual + audio analysis |
 | **@designer** | UI/UX, layouts, CSS, visual creation | Creative design with aesthetic intent |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
@@ -93,14 +93,14 @@
 ## Workflows
 
 **Lecture Notes:** Full pipeline for transforming recorded lectures, talks, and presentations
-into comprehensive Obsidian notes. Load the `lecture-notes` skill for the complete 8-phase
+into comprehensive Obsidian notes. Load the `lecture-notes` skill for the complete 9-phase
 workflow. Triggered when user says "create notes from this video", "make lecture notes",
 "transcribe and analyze", or provides a video with intent to study/document it.
 
-- **Orchestrator drives all phases.** Phase 0-2: local tools (ffprobe, transcribe, lecture-scenes.py).
-  Phase 3: @oracle (semantic segmentation). Phase 4: lecture-fusion.py + lecture-clips.py (segment preparation).
-  Phase 5-6: @observer (vision + OCR). Phase 7: composition (+ @fixer for parallel section
-  drafting). Phase 8: @oracle (quality review).
+- **Orchestrator drives all phases.** Phase 1-3: local tools (ffprobe, transcribe, lecture-scenes.py).
+  Phase 4: @oracle (semantic segmentation). Phase 5: lecture-fusion.py + lecture-clips.py (segment preparation).
+  Phase 6-7: @observer (vision + OCR). Phase 8: composition (+ @fixer for parallel section
+  drafting). Phase 9: @oracle (quality review).
 - **Before starting:** Ask user for output directory and video language. Check if output dir
   is in an Obsidian vault — warn if Media Extended plugin is missing.
 - **Skill reference:** `/skill lecture-notes` — full pipeline spec with prompts, quality
