@@ -94,7 +94,15 @@ def main():
     a = p.parse_args()
     vp = Path(a.video)
     if not vp.exists(): panic(f"not found: {a.video}")
-    od = Path(a.output).resolve(); kd = od/"keyframes"; kd.mkdir(parents=True,exist_ok=True)
+
+    # Support -o as file path (e.g. -o scenes.json) or directory (e.g. -o output/)
+    out = Path(a.output).resolve()
+    if out.suffix == ".json":
+        od = out.parent; json_name = out.name
+    else:
+        od = out; json_name = "scenes.json"
+    if str(od) == ".": od = Path.cwd()
+    kd = od/"keyframes"; kd.mkdir(parents=True,exist_ok=True)
     meta = probe(str(vp)); dur = meta["dur"]
     print(f"Video: {vp.name} ({dur/60:.1f}min)", file=sys.stderr)
 
@@ -146,8 +154,8 @@ def main():
     manifest = {"video":str(vp.resolve()),"duration_seconds":round(dur,2),
                 "threshold_used":best_thresh,"threshold_initial":a.threshold,"retries":retries,
                 "min_duration":a.min_duration,"scenes":best}
-    (od/"scenes.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
-    print(f"  scenes.json written ({len(best)} scenes)", file=sys.stderr)
+    (od/json_name).write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
+    print(f"  {json_name} written ({len(best)} scenes)", file=sys.stderr)
 
     # Parallel keyframe extraction
     print(f"Extracting {len(best)} keyframes...", file=sys.stderr)
@@ -175,6 +183,6 @@ def main():
         print(f"Warning: {len(failed)} keyframe extraction(s) failed: scenes {failed}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Done → {od/'scenes.json'}", file=sys.stderr)
+    print(f"Done → {od/json_name}", file=sys.stderr)
 
 if __name__ == "__main__": main()
