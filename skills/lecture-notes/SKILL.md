@@ -27,18 +27,18 @@ to the lecture — archetype from Phase 1, language from user, merge duration fr
 type. Generic defaults produce generic notes.**
 
 ```
-Phase 1: Assessment      (1-2 min)           → Orchestrator
-Phase 2: Transcription   (~8 min)            → transcribe
-Phase 3: Scene Detection (1-2 min)           → lecture-scenes.py
-Phase 4: Semantic Seg.   (~30s)              → @oracle
-Phase 5: Segment Prep.    (~1s)               → lecture-fusion.py + lecture-clips.py
-Phase 6: AI Scouting     (1-2 min)           → @observer (video)
-Phase 7: Selective OCR   (2-3 min)           → @observer (parallel)
-Phase 8: Composition     (10-15 min)          → Orchestrator + @fixer
-Phase 9: Review          (2-3 min)           → @oracle
+Phase 1: Assessment      → Orchestrator
+Phase 2: Transcription   → transcribe
+Phase 3: Scene Detection → lecture-scenes.py
+Phase 4: Semantic Seg.   → @oracle
+Phase 5: Segment Prep.    → lecture-fusion.py + lecture-clips.py
+Phase 6: AI Scouting     → @observer (video)
+Phase 7: Selective OCR   → @observer (parallel)
+Phase 8: Composition     → Orchestrator + @fixer
+Phase 9: Review          → @oracle
 ```
 
-**Per 60-min lecture:** ~25 min runtime (transcription is free/local).
+Transcription is local (whisper.cpp, GPU).
 
 ---
 
@@ -298,14 +298,12 @@ Template:
 > Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
 > Add your analysis fields alongside them.
 
-> **Assembly:** The orchestrator collects all single-segment observer outputs and wraps them into `segments_analyzed.json`:
-> ```json
-> { "video": "...", "total_segments": N, "segments": [...] }
-> ```
 
-**Output:** `segments_analyzed.json`. Validate: every video segment has `speaker_added`
-AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added`
-only. Output wrapped in an object matching `segments.json` structure.
+**Output:** `segments_analyzed.json`. Orchestrator wraps single-segment observer outputs:
+```json
+{ "video": "video.mp4", "total_segments": N, "segments": [...] }
+```
+Validate: every video segment has `speaker_added` AND `speaker_emphasis` (≥1 per segment). Keyframe-fallback segments require `speaker_added` only.
 
 **→ GATE: Check `needs_ocr` in segments_analyzed.json. If ANY segment has `needs_ocr: true`, Phase 7 IS REQUIRED for those segments. Do not skip.**
 
@@ -487,7 +485,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | Case | Adjustment |
 |------|-----------|
 | **Whiteboard** | Threshold 0.10. Sequential frames. "Handwritten content" in OCR prompt. |
-| **Screencast** | Threshold 0.10. Code blocks with language annotation (```python). |
+| **Screencast** | Threshold 0.10. Code blocks with language annotation. Covers coding sessions, video tutorials, terminal demos. |
 | **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
@@ -524,10 +522,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 7. **Verify outputs before proceeding.** Check file existence, line counts, JSON validity at each phase boundary.
 8. **Script errors → fix, don't skip.** If a local script fails (transcribe, lecture-scenes.py, lecture-clips.py), resolve the error first. These are deterministic — failures are fixable, not random.
 
-### Skills loaded
-
-- **Orchestrator:** `lecture-notes` (this), `audio-analysis` (transcribe details)
-- **Observer:** `lecture-notes` (knows output fields expected), `video-analysis` (model options)
+**Skill dependencies:** Orchestrator: `audio-analysis` (transcribe details). @observer (phases 6-7): `video-analysis` (model options), `lecture-notes` (output field spec).
 
 ### Obsidian integration
 
