@@ -79,13 +79,13 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 
 **Archetype → pipeline parameters:**
 
-| Archetype | Scene threshold | Special |
-|-----------|:---:|---|
-| Slide-heavy | 0.30 | Standard |
-| Whiteboard | 0.10 | Continuous frames, no scene boundaries |
-| Screencast | 0.10 | Code blocks, syntax preservation |
-| Talking head | Skip Phase 3 | Transcript-driven, no visuals |
-| Mixed | 0.30 | Per-segment classification handles it |
+| Archetype | Scene threshold | --min-duration | Special |
+|-----------|:---:|:---:|---|
+| Slide-heavy | 0.30 | 8s | Standard, catches cursor flickers |
+| Whiteboard | 0.10 | 4s | Continuous frames, no scene boundaries |
+| Screencast | 0.10 | 4s | Code blocks, syntax preservation |
+| Talking head | Skip Phase 3 | — | Transcript-driven, no visuals |
+| Mixed | 0.30 | 6s | Per-segment classification handles it |
 
 **If not already specified:** Ask user for output directory and language.
 
@@ -211,16 +211,23 @@ Prompt:
 ## Phase 5: Segment Preparation
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-fusion.py sections.json scenes.json "$(dirname video.mp4)/$(basename video.mp4 .mp4).srt" -o segments.json
+# Use absolute video path for consistent resolution from output directory:
+video_abs="$(realpath video.mp4)"
+srt="$(dirname "$video_abs")/$(basename "$video_abs" .mp4).srt"
+
+python3 ~/.config/opencode/scripts/lecture-fusion.py \
+  sections.json scenes.json "$srt" -o segments.json
 ```
 
 The script: for each section, finds the best-matching scene by overlap. Extracts the
 best keyframe (largest JPEG — most visual content, avoids blank frames). Pads transcript
-excerpt 15s backward, writes self-contained `segments.json`.
+excerpt 15s backward (when a scene match exists; no padding for non-visual segments).
+Writes self-contained `segments.json`.
 
 `segments.json` carries all data needed by downstream phases — each segment includes:
 `segment_id`, full `section` fields, matched `scene`, `keyframe`, `has_visual`,
-`global_tags`, and `transcript_excerpt`.
+and `transcript_excerpt`. Top-level fields: `video`, `duration_seconds`,
+`total_segments`, `lecture`, and `global_tags`.
 **No separate file join needed at Phase 8.**
 
 **Frame naming:** always variant suffix — `frame_NNNa.jpg` on first use of a scene,
@@ -238,7 +245,8 @@ keyframes (`frame_NNN.jpg`) are never overwritten.
 ### Clip Extraction (Phase 6 video input)
 
 ```bash
-python3 ~/.config/opencode/scripts/lecture-clips.py segments.json video.mp4 --output-dir clips/
+video_abs="$(realpath video.mp4)"
+python3 ~/.config/opencode/scripts/lecture-clips.py segments.json "$video_abs" --output-dir clips/
 ```
 
 Extracts per-section video clips for Phase 6 scouting. Run from output directory.
@@ -541,7 +549,7 @@ Apply fixes. Re-run review if critical. **Gate: zero critical, zero major.**
 | **Talking head** | Skip Phase 3, 6, 7. Transcript-driven. Heavier on quotes. No domain prompt (no visible text for term extraction). |
 | **Non-English** | Explicit `--language` in Phase 2. OCR prompts specify language + script. |
 | **Poor audio** | Re-transcribe with `ffmpeg -af "highpass=f=200,lowpass=f=3000,afftdn"`. Mark sections `> [!warning] Audio poor`. |
-| **No audio** | Skip Phase 2. Use periodic sampling in Phase 3. Phase 6: run with relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Video clips still sent for temporal progression. Heavier reliance on OCR. |
+| **No audio** | Skip Phase 2, 4, 5 (no transcript → no semantic segmentation or fusion). Extract keyframes from Phase 3 scenes.json directly. Phase 6: keyframe-only, relaxed gate (omit `speaker_added` and `speaker_emphasis` — no audio source). Heavier reliance on OCR. |
 | **Animations** | Threshold 0.40 to avoid false boundaries. Use most complete frame. |
 | **Multi-video** | Process parts independently through Phase 7. Merge in Phase 8. `[[part1.mp4#t=...]]` per source. |
 
