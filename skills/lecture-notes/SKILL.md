@@ -123,7 +123,7 @@ video_abs="$(realpath video.mp4)"
 prompt_args=()
 [[ -n "$WHISPER_PROMPT" ]] && prompt_args=(--prompt "$WHISPER_PROMPT")
 
-transcribe "$video_abs" --language LANG \
+~/.config/opencode/scripts/transcribe "$video_abs" --language LANG \
   --output-dir "$(dirname "$video_abs")" \
   "${prompt_args[@]}"
 # Verify SRT exists alongside source video:
@@ -522,6 +522,7 @@ After drafting all sections, review `segments_analyzed.json` for `connection_typ
 Verify all sections present, all images exist, all LaTeX valid, frontmatter complete,
 summary + links present.
 - Prose thoroughness: every section has substantive plain text (concepts, derivations, flow), not only callout blocks.
+- Multi-video lectures: add `source_video_N` and `source_transcript_N` for each part. Update `duration` to combined total.
 
 ---
 
