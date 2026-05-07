@@ -48,7 +48,7 @@ def extract_clip(
     out: Path,
     max_mb: int,
 ) -> tuple[str, Path | None]:
-    """3-pass extraction. Returns (status, clip_path)."""
+    """4-pass extraction. Returns (status, clip_path)."""
 
     # Pass 1: stream-copy
     cmd1 = [
@@ -67,16 +67,16 @@ def extract_clip(
         if out.exists():
             out.unlink()
 
-    # Pass 2: lecture-optimized re-encode
+    # Pass 2: high-quality re-encode (720p, 0.75fps, 48k audio)
     if out.exists():
         out.unlink()
     cmd2 = [
         "ffmpeg", "-y",
         "-ss", str(start), "-to", str(end),
         "-i", str(video),
-        "-vf", "fps=0.5,scale=640:-1",
+        "-vf", "fps=0.75,scale='min(720,iw)':-2",
         "-c:v", "libopenh264", "-allow_skip_frames", "1",
-        "-c:a", "aac", "-ac", "1", "-b:a", "32k",
+        "-c:a", "aac", "-ac", "1", "-b:a", "48k",
         str(out),
     ]
     ok2, err2 = run_ffmpeg(cmd2)
@@ -87,20 +87,40 @@ def extract_clip(
         if out.exists():
             out.unlink()
 
-    # Pass 3: aggressive re-encode
+    # Pass 3: moderate re-encode (640p, 0.5fps, 48k audio)
     if out.exists():
         out.unlink()
     cmd3 = [
         "ffmpeg", "-y",
         "-ss", str(start), "-to", str(end),
         "-i", str(video),
-        "-vf", "fps=0.3,scale=480:-1",
+        "-vf", "fps=0.5,scale='min(640,iw)':-2",
         "-c:v", "libopenh264", "-allow_skip_frames", "1",
-        "-c:a", "aac", "-ac", "1", "-b:a", "24k",
+        "-c:a", "aac", "-ac", "1", "-b:a", "48k",
         str(out),
     ]
     ok3, err3 = run_ffmpeg(cmd3)
     if ok3 and out.exists():
+        if file_mb(out) <= max_mb:
+            return "re_encoded", out
+    else:
+        if out.exists():
+            out.unlink()
+
+    # Pass 4: aggressive re-encode (480p, 0.3fps, 48k audio)
+    if out.exists():
+        out.unlink()
+    cmd4 = [
+        "ffmpeg", "-y",
+        "-ss", str(start), "-to", str(end),
+        "-i", str(video),
+        "-vf", "fps=0.3,scale='min(480,iw)':-2",
+        "-c:v", "libopenh264", "-allow_skip_frames", "1",
+        "-c:a", "aac", "-ac", "1", "-b:a", "48k",
+        str(out),
+    ]
+    ok4, err4 = run_ffmpeg(cmd4)
+    if ok4 and out.exists():
         if file_mb(out) <= max_mb:
             return "re_encoded", out
         # Still over limit

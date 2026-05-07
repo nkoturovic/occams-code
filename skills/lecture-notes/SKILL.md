@@ -253,9 +253,10 @@ Extracts per-section video clips for Phase 6 scouting. Run from output directory
 
 1. Read `start_seconds` and `end_seconds` from `segments.json`
 2. Stream-copy clip via ffmpeg (instant, lossless)
-3. If clip exceeds 15MB: re-encode at 640px, 0.5 FPS, mono audio
-4. If still exceeds 15MB: second-pass at 480px, 0.3 FPS
-5. Write `clip_path` and `clip_status` to `segments.json`
+3. If clip exceeds 15MB: re-encode — up to 720p, 0.75 FPS, 48kbps mono
+4. If still exceeds 15MB: up to 640p, 0.5 FPS, 48kbps mono
+5. If still exceeds 15MB: emergency — up to 480p, 0.3 FPS, 48kbps mono (audio preserved)
+6. Write `clip_path` and `clip_status` to `segments.json`
 
 **Output:** `clips/section_NN.mp4` + updated `segments.json`.
 
