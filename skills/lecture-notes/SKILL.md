@@ -283,10 +283,11 @@ Template:
 >    references earlier material.
 >
 > 7. `video_note` — audio quality, transitions, temporal completeness
->    (always include; set to `null` if video unavailable — last resort only).
->
+>    (required, non-empty string when video is available; `null` only if no
+>    video exists for this segment — emergency fallback).
+
 > 8. `image_note` — keyframe resolution, angle, partial visibility
->    (always include; keyframe is always available).
+>    (required, non-empty string; keyframe is always available).
 >
 > Return a JSON object for this segment:
 > ```json
@@ -304,7 +305,8 @@ Template:
 >   "image_note": "..."
 > }
 > ```
-> If video was unavailable for this segment, set `video_note` to `null`.
+> `video_note` is required (non-empty) when video is available — set to `null` only
+> when no video exists for this segment (emergency fallback).
 > (Copy `segment_id`, `keyframe`, and `has_visual` verbatim from the prompt.
 > Add your analysis fields alongside them.
 
