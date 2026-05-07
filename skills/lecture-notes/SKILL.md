@@ -65,8 +65,12 @@ If phase fails gate 3 times: flag for human review, continue best-effort with in
 ```bash
 ffprobe -v error -show_entries format=duration,format_name,size -of json video.mp4
 
-# 6 frames at 30s intervals:
-ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
+# 6 frames at evenly spaced intervals across full duration
+dur_s=$(ffprobe -v error -show_entries format=duration -of csv=p=0 video.mp4 | cut -d. -f1)
+for i in 1 2 3 4 5 6; do
+    ffmpeg -ss $((dur_s * i / 7)) -i video.mp4 \
+        -frames:v 1 -q:v 3 /tmp/sample_$(printf '%02d' $i).jpg
+done
 ```
 
 **Delegate to @observer** with the 6 frames:
