@@ -87,6 +87,12 @@ ffmpeg -i video.mp4 -vf "fps=1/30" -vframes 6 -q:v 3 /tmp/sample_%02d.jpg
 | Talking head | Skip Phase 3 | — | Transcript-driven, no visuals |
 | Mixed | 0.25 | 6s | Per-segment classification handles it |
 
+Thresholds are tuned per archetype to maximize keyframe quality, not scene count.
+Scenes are visual bookmarks — `lecture-fusion.py` picks one per section from
+candidates. Lower thresholds over-segment into near-identical frames; the extra
+candidates are discarded. Worse, exceeding n_max triggers periodic fallback
+(uniform time-slicing) — lower quality than content-aware boundaries.
+
 **If not already specified:** Ask user for output directory and language.
 
 **Capture domain terms** from the @observer response. Format as a whisper `--prompt`
