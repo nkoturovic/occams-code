@@ -2,10 +2,10 @@
 """Extract per-section video clips from a lecture using ffmpeg.
 
 Reads segments.json (produced by lecture-fusion.py) and extracts one clip per
-segment via a 3-pass fallback pipeline (stream-copy → re-encode → aggressive).
+segment via a 4-pass fallback pipeline (stream-copy → 720p → 640p → 480p).
 
 Usage:
-  lecture-clips.py segments.json video.mp4 [--output-dir DIR] [--max-mb MB] [--fps FPS]
+  lecture-clips.py segments.json video.mp4 [--output-dir DIR] [--max-mb MB] [--digits N]
 """
 
 import argparse
