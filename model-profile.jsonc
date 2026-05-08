@@ -75,6 +75,7 @@
   },
 
   // ── Council Reviewers ────────────────────────────────────────
+  // (the council chair/synthesis agent is configured in presets.<preset>.council above)
   // Each preset lists reviewer models for @council multi-LLM consensus.
   // Supported per-reviewer: model (required), variant (optional), prompt (optional).
   // Temperature is hardcoded to 0.2 by omo-slim (councillor.ts:67).
