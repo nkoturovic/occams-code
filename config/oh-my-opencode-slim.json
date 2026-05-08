@@ -551,7 +551,7 @@
     }
   },
   "council": {
-    "default_preset": "custom",
+    "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
       "custom": {

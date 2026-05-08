@@ -6,7 +6,7 @@ Usage:
 
 The model-profile.jsonc specifies only the variable parts (model, temperature,
 variant, thinking options). Everything else (skills, MCPs, fallback chains,
-council config, infrastructure keys) is templated from constants.
+council reviewer presets, infrastructure keys) is templated from constants.
 
 Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 (the plugin already reads this and deep-merges at startup).
@@ -269,20 +269,44 @@ def build_presets(preset_map: dict[str, dict[str, Any]]) -> dict[str, dict[str, 
     return presets
 
 
-def build_council(council_map: dict[str, Any] | None) -> dict[str, Any]:
-    """Build council config from template, with optional overrides from model-map."""
-    if council_map:
-        # Merge with defaults — only model/temp are overridable
-        result = dict(council_map)
-        # Ensure default_preset matches the active preset
-        if "default_preset" not in result:
-            result["default_preset"] = "custom"
-        return result
-    return {
-        "default_preset": "custom",
+def build_council(council_map: dict[str, Any] | None, active_preset: str = "custom") -> dict[str, Any]:
+    """Build council config from hardcoded defaults, with optional jsonc overrides.
+
+    Merge strategy: if jsonc has a ``council`` key, its presets replace
+    individual hardcoded entries by name.  Unspecified presets fall back
+    to COUNCIL_PRESETS.  ``default_preset`` is auto-derived from the
+    top-level ``preset`` field unless explicitly set in the jsonc.
+
+    Only {model, variant, prompt} keys are emitted per reviewer — any
+    extra keys (temperature, options, thinking) are stripped defensively.
+    """
+    # Allowed keys per reviewer (omo-slim CouncillorConfigSchema)
+    REVIEWER_KEYS = {"model", "variant", "prompt"}
+
+    def _filter_reviewer(raw: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in raw.items() if k in REVIEWER_KEYS}
+
+    # Start from hardcoded defaults
+    result: dict[str, Any] = {
+        "default_preset": active_preset,
         "councillor_execution_mode": "parallel",
-        "presets": COUNCIL_PRESETS,
+        "presets": {name: {k: _filter_reviewer(r) for k, r in preset.items()}
+                    for name, preset in COUNCIL_PRESETS.items()},
     }
+
+    # Override from jsonc input
+    if council_map:
+        if "default_preset" in council_map:
+            result["default_preset"] = council_map["default_preset"]
+        if "councillor_execution_mode" in council_map:
+            result["councillor_execution_mode"] = council_map["councillor_execution_mode"]
+        if "presets" in council_map:
+            for preset_name, reviewers in council_map["presets"].items():
+                result["presets"][preset_name] = {
+                    k: _filter_reviewer(r) for k, r in reviewers.items()
+                }
+
+    return result
 
 
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
@@ -303,7 +327,7 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
             "timeoutMs": 60000,
             "chains": model_map.get("fallback_chains", FALLBACK_CHAINS),
         },
-        "council": build_council(model_map.get("council")),
+        "council": build_council(model_map.get("council"), model_map.get("preset", "custom")),
     }
 
 

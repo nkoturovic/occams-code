@@ -72,5 +72,42 @@
       "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "council":      { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.7 }
     }
+  },
+
+  // ── Council Reviewers ────────────────────────────────────────
+  // Each preset lists reviewer models for @council multi-LLM consensus.
+  // Supported per-reviewer: model (required), variant (optional), prompt (optional).
+  // Temperature is hardcoded to 0.2 by omo-slim (councillor.ts:67).
+  // Thinking/options are NOT supported per-reviewer — the generator strips
+  // unknown keys; Zod does the same at runtime as a second line of defense.
+  // If a preset is omitted here, hardcoded defaults in model-profile.py are used.
+  "council": {
+    "councillor_execution_mode": "parallel",
+    "presets": {
+      "custom": {
+        "reviewer-1": { "model": "kimi-for-coding/kimi-for-coding" },
+        "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" },
+        "reviewer-3": { "model": "openrouter/anthropic/claude-sonnet-4.6" }
+      },
+      "balanced": {
+        "reviewer-1": { "model": "openrouter/z-ai/glm-5.1" },
+        "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" }
+      },
+      "premium": {
+        "reviewer-1": { "model": "anthropic/claude-sonnet-4-6" },
+        "reviewer-2": { "model": "openrouter/z-ai/glm-5.1" },
+        "reviewer-3": { "model": "openrouter/google/gemini-3.1-pro-preview" }
+      },
+      "deepseek": {
+        "reviewer-1": { "model": "kimi-for-coding/kimi-for-coding" },
+        "reviewer-2": { "model": "openrouter/z-ai/glm-5.1" },
+        "reviewer-3": { "model": "openrouter/anthropic/claude-sonnet-4.6" }
+      },
+      "cheap": {
+        "reviewer-1": { "model": "openrouter/qwen/qwen3-coder" },
+        "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" },
+        "reviewer-3": { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free" }
+      }
+    }
   }
 }
