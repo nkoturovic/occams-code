@@ -123,33 +123,39 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 
 The `oc` launcher creates `.opencode/oh-my-opencode-slim.jsonc` (preferred, supports comments) or `.json` in your project root on first run. Override preset or individual agent models:
 
-```json
+Switch preset:
+```jsonc
 { "preset": "cheap" }
 ```
 
-```json
+Switch one agent's model (recommended — explicit temperature):
+```jsonc
 {
-  "presets": {
-    "balanced": {
-      "oracle": { "model": "anthropic/claude-sonnet-4-6" }
+  "agents": {
+    "orchestrator": {
+      "model": "deepseek/deepseek-v4-pro",
+      "variant": "max",
+      "temperature": 1.0
     }
   }
 }
 ```
 
-Vision-enabled observer (needs multimodal model + `zai_vision` MCP for video fallback):
+**Important:** Always set `temperature` explicitly when switching models — otherwise the preset's temperature (tuned for the original model) leaks through. See the annotated template in this repo for full documentation.
 
-```json
-{
-  "presets": {
-    "balanced": {
-      "observer": { "model": "openrouter/moonshotai/kimi-k2.6" }
-    }
-  }
-}
-```
+**Deep-merge gotchas:**
+- Omitted keys inherit from global config — set only what you want to change
+- Arrays (`skills`, `mcps`, `disabled_agents`) are **replaced entirely**, not appended — list all desired values
+- Nested objects (`options`) merge recursively — you cannot unset keys by omission
+- Never set `presets` in a project config — it wipes out all global preset definitions
 
 The plugin deep-merges project config with global config. Edit the file directly — no wizard needed. `.opencode/` is gitignored.
+
+### Continuing Old Sessions After Config Changes
+
+> ⚠️ When you continue an old session (via startup prompt or `/sessions`), OpenCode restores the model from the session's **last user message**, overriding your current config. Subagents are unaffected — they always use the current config.
+
+**Workaround:** After continuing an old session, use `/models` to select the correct model. Temperature and options are always from the current config — only the model ID needs fixing. Alternatively, start a new session instead.
 
 ### Scripts
 
