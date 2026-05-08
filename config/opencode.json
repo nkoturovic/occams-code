@@ -18,7 +18,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 393216
+            "output": 131072
           },
           "options": {
             "thinking": {
@@ -49,7 +49,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 393216
+            "output": 131072
           },
           "options": {
             "thinking": {
@@ -87,7 +87,7 @@
           "temperature": true,
           "limit": {
             "context": 262144,
-            "output": 262144
+            "output": 32768
           },
           "modalities": {
             "input": [
@@ -120,7 +120,7 @@
           },
           "limit": {
             "context": 202000,
-            "output": 65536
+            "output": 24576
           },
           "options": {
             "thinking": {
@@ -204,7 +204,7 @@
           },
           "limit": {
             "context": 202000,
-            "output": 65535
+            "output": 24576
           },
           "options": {
             "reasoning": {
@@ -218,7 +218,7 @@
           "temperature": true,
           "limit": {
             "context": 202000,
-            "output": 131072
+            "output": 24576
           },
           "modalities": {
             "input": [
@@ -274,7 +274,7 @@
           },
           "limit": {
             "context": 128000,
-            "output": 32768
+            "output": 16384
           }
         },
         "qwen/qwen3.6-plus": {
@@ -335,7 +335,7 @@
           "temperature": true,
           "limit": {
             "context": 131072,
-            "output": 32768
+            "output": 16384
           }
         },
         "moonshotai/kimi-k2.6": {
@@ -344,7 +344,7 @@
           "temperature": true,
           "limit": {
             "context": 262144,
-            "output": 262144
+            "output": 32768
           },
           "modalities": {
             "input": [

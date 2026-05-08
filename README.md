@@ -10,19 +10,17 @@ A shareable, open-source configuration for [OpenCode](https://github.com/sst/ope
 ```bash
 git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ./scripts/install.sh                                    # interactive
-# OR for AI agents / CI:
-OCCAM_PROVIDERS=openrouter ./scripts/install.sh --unattended
 ```
 
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **4 presets** — `balanced` (default), `cheap`, `premium`, `custom`
-- **8 Python scripts** + `transcribe` + `cleanup-logs.sh` — Config generator, wiki lint, project init, repo ingestion, project state detection, video analysis, lecture scene detection, lecture audio-visual fusion, speech-to-text, weekly log pruner
+- **5 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`
+- **10 Python scripts** + `transcribe` + `cleanup-logs.sh` — Config generator, wiki lint, project init, repo ingestion, project state detection, model health check, video analysis, lecture scene detection, lecture audio-visual fusion, lecture clip encoding, speech-to-text, weekly log pruner
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
-- **3 default MCPs + 2 opt-in** — context7 (library docs) + grep_app (code search) + websearch (Exa, free tier) ship by default; zai_vision + web-search-prime are injected by the installer only if you have a Z.AI subscription
+- **4 MCP servers** — context7 (library docs) + grep_app (code search) + zai_vision (image analysis) + web-search-prime (Z.AI web search). All ship in the default config; zai_vision and web-search-prime require a Z.AI API key set via `Z_AI_API_KEY` env var.
 - **5 local skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify (plus 5 from the obsidian-skills bundle if cloned: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
 - **AGENTS.md** — 7 agent roles with specialist instructions, pipeline workflows, and multi-agent delegation rules
@@ -50,22 +48,15 @@ OCCAM_PROVIDERS=openrouter ./scripts/install.sh --unattended
 ```bash
 git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ./scripts/install.sh                                          # interactive (recommended)
-# or unattended (e.g. for AI agents / CI):
-OCCAM_PROVIDERS=openrouter ./scripts/install.sh --unattended
 ```
 
 The installer:
-1. Asks 6 questions (providers, default preset, Z.AI opt-in, transcription backend, optional CLIs, cron + PATH)
-2. Copies scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
-3. Sets up the wiki template at `~/wiki/`
-4. Installs the oh-my-opencode-slim plugin
-5. Optionally injects Z.AI MCP blocks if you confirmed a Z.AI subscription
+1. Copies scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
+2. Sets up the wiki template at `~/wiki/`
+3. Installs the oh-my-opencode-slim plugin
+4. Optionally installs Obsidian
 
-Set up your API keys — the installer's **step 7** writes them to `~/.config/secrets/env` (sourced by `~/.profile`) and optionally to OpenCode's `~/.local/share/opencode/auth.json`. Both stores serve different consumers:
-- `~/.config/secrets/env` — env vars read by scripts (`analyze-video.py`, `transcribe`) and MCPs (`websearch` Exa, `zai_vision`)
-- `~/.local/share/opencode/auth.json` — JSON keys read by OpenCode core for provider routing
-
-See [INSTALL.md](INSTALL.md) for the full env-var reference (`OCCAM_*`), CLI flags, manual install, and per-platform instructions.
+Set up your API keys in `~/.local/share/opencode/auth.json`. See [INSTALL.md](INSTALL.md) for the full reference and manual install instructions.
 
 ### First Launch
 
@@ -112,10 +103,11 @@ Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The L
 
 | Preset | Use case | Required keys | Notes |
 |--------|----------|---------------|-------|
-| `balanced` | **Default** — daily development | OpenRouter only | OOB-usable: all primary models route through OpenRouter (GLM, Qwen, DeepSeek V3.2, Gemini Flash, Kimi K2.6) |
-| `cheap` | Exploration, bulk tasks | OpenRouter only | Free Nemotron for explorer/librarian; paid Qwen Coder for orchestrator; mixed paid/free elsewhere |
-| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator, oracle), Claude Sonnet 4.6 (explorer, librarian, fixer), Gemini 3.1 Pro (designer), Kimi K2.6 (observer) |
-| `custom` | Subscription-based | DeepSeek + Kimi + Z.AI | DeepSeek V4 Pro (orchestrator, oracle) + Kimi for Coding ($39/mo, 4 agents) + Z.AI GLM-5.1 ($30/mo, 2 agents) |
+| `balanced` | **Default** — daily development | OpenRouter only | GLM-5.1 oracle, DeepSeek V3.2 explorer/fixer, Qwen 3.6 Plus librarian/council, Gemini Flash designer/observer |
+| `cheap` | Exploration, bulk tasks | OpenRouter only | Free Nemotron for explorer/librarian; Qwen3-Coder orchestrator; Qwen 3.6 Plus oracle |
+| `deepseek` | DeepSeek-heavy reasoning | DeepSeek API + OpenRouter | DeepSeek V4 Pro for all reasoning roles; Gemini Pro for designer/observer |
+| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator, oracle, council), Claude Sonnet 4.6 (explorer, librarian, fixer), Gemini Pro (designer, observer) |
+| `custom` | Subscription-based | Z.AI + Kimi + DeepSeek + OpenRouter | Z.AI GLM-5.1 (orchestrator, oracle, explorer, librarian), Kimi for Coding (fixer), DeepSeek V4 Pro (council), Gemini Pro (designer, observer) |
 
 **The default `balanced` preset works fully with just an OpenRouter key.** The other presets require additional API keys/subscriptions.
 
@@ -200,18 +192,26 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | **grep_app** | Search code across open-source repos |
 | **websearch** | Exa web search, plugin-built, free tier (set `EXA_API_KEY` for higher quotas) |
 
-**Opt-in (2 — only if you have a Z.AI subscription, installer prompts for the key):**
+**Opt-in (2 — only if you set `Z_AI_API_KEY`):**
 
 | Server | Purpose |
 |--------|---------|
 | **zai_vision** | Image analysis, UI-to-code, OCR, technical diagrams, video |
 | **web-search-prime** | Z.AI web search (alternative to Exa websearch) |
 
-The default repo config does **not** ship Z.AI MCP blocks. The installer asks "Do you have a Z.AI subscription?" — if yes, it injects the blocks via `jq` with your API key. If no, the agent.mcps lists in `oh-my-opencode-slim.json` reference these names harmlessly (they're no-ops without the MCPs declared).
+Both ship in the default `opencode.json` as enabled, but require `Z_AI_API_KEY` to be set in your environment (the config uses `{env:Z_AI_API_KEY}` template). Without the key, they fail silently. The agent-config `mcps` lists in `oh-my-opencode-slim.json` reference these names harmlessly regardless.
 
-### Adding Z.AI Later
+### Setting Up Z.AI
 
-If you skipped Z.AI during install and want to enable it later, see [INSTALL.md → Z.AI MCPs (Opt-in)](INSTALL.md#zai-mcps-opt-in) for the `jq` snippet that injects the blocks.
+The Z.AI MCPs ship in the default config. To activate them, set `Z_AI_API_KEY` in your environment:
+
+```bash
+# Add to ~/.config/secrets/env (or ~/.profile)
+export Z_AI_API_KEY="your-key-here"
+source ~/.profile
+```
+
+The installer also offers to set this up during interactive install.
 
 ## Workflow Principles
 
@@ -245,7 +245,7 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── model-profile.jsonc            # Source-of-truth for model assignments (oc --sync-profile regenerates slim.json)
 ├── bin/oc                         # Launcher script
-├── scripts/                       # 8 Python scripts + transcribe + cleanup-logs.sh
+├── scripts/                       # 10 Python scripts + transcribe + cleanup-logs.sh
 ├── commands/                      # Slash command definitions (6 commands)
 ├── skills/                        # Local skills (codemap, simplify, audio/video/lecture pipeline)
 

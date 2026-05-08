@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
-  "preset": "custom",
+  "preset": "balanced",
   "disabled_agents": [],
   "todoContinuation": {
     "maxContinuations": 15,
@@ -11,7 +11,7 @@
   "presets": {
     "custom": {
       "orchestrator": {
-        "model": "deepseek/deepseek-v4-pro",
+        "model": "zai-coding-plan/glm-5.1",
         "variant": "max",
         "skills": [
           "*"
@@ -19,17 +19,84 @@
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "clear_thinking": false
+          },
+          "reasoningEffort": "max"
+        },
+        "temperature": 0.8
       },
       "oracle": {
-        "model": "deepseek/deepseek-v4-pro",
+        "model": "zai-coding-plan/glm-5.1",
         "variant": "max",
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7"
-        ]
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "clear_thinking": false
+          },
+          "reasoningEffort": "max"
+        },
+        "temperature": 1.0
+      },
+      "explorer": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "context7",
+          "grep_app"
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "clear_thinking": false
+          },
+          "reasoningEffort": "max"
+        },
+        "temperature": 0.8
+      },
+      "librarian": {
+        "model": "zai-coding-plan/glm-5.1",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "grep_app"
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "clear_thinking": false
+          },
+          "reasoningEffort": "max"
+        },
+        "temperature": 0.8
+      },
+      "fixer": {
+        "model": "kimi-for-coding/kimi-for-coding",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "context7"
+        ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 65536
+          }
+        },
+        "temperature": 1.0
       },
       "designer": {
         "model": "openrouter/~google/gemini-pro-latest",
@@ -44,42 +111,6 @@
           "zai_vision"
         ],
         "temperature": 1.0
-      },
-      "explorer": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
-        "skills": [],
-        "mcps": [
-          "context7",
-          "grep_app"
-        ]
-      },
-      "librarian": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
-        "skills": [],
-        "mcps": [
-          "web-search-prime",
-          "websearch",
-          "context7",
-          "grep_app"
-        ]
-      },
-      "fixer": {
-        "model": "zai-coding-plan/glm-5.1",
-        "variant": "max",
-        "skills": [],
-        "mcps": [
-          "context7"
-        ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
-        "temperature": 0.7
       },
       "observer": {
         "model": "openrouter/~google/gemini-pro-latest",
@@ -98,7 +129,8 @@
         "model": "deepseek/deepseek-v4-pro",
         "variant": "max",
         "skills": [],
-        "mcps": []
+        "mcps": [],
+        "temperature": 1.0
       }
     },
     "balanced": {
@@ -112,17 +144,18 @@
           "web-search-prime",
           "websearch"
         ],
-        "temperature": 0.7
+        "temperature": 0.8
       },
       "oracle": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
+        "model": "openrouter/z-ai/glm-5.1",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7"
-        ]
+        ],
+        "temperature": 1.0
       },
       "designer": {
         "model": "openrouter/~google/gemini-flash-latest",
@@ -145,7 +178,8 @@
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.7
       },
       "librarian": {
         "model": "openrouter/qwen/qwen3.6-plus",
@@ -156,7 +190,8 @@
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.7
       },
       "fixer": {
         "model": "openrouter/deepseek/deepseek-v3.2",
@@ -164,7 +199,8 @@
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.7
       },
       "observer": {
         "model": "openrouter/~google/gemini-flash-latest",
@@ -180,10 +216,11 @@
         "temperature": 1.0
       },
       "council": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
+        "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
-        "mcps": []
+        "mcps": [],
+        "temperature": 0.7
       }
     },
     "premium": {
@@ -196,7 +233,8 @@
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 0.6
       },
       "oracle": {
         "model": "anthropic/claude-opus-4-7",
@@ -206,7 +244,8 @@
           "web-search-prime",
           "websearch",
           "context7"
-        ]
+        ],
+        "temperature": 1.0
       },
       "designer": {
         "model": "openrouter/~google/gemini-pro-latest",
@@ -229,7 +268,8 @@
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.6
       },
       "librarian": {
         "model": "anthropic/claude-sonnet-4-6",
@@ -240,7 +280,8 @@
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 0.6
       },
       "fixer": {
         "model": "anthropic/claude-sonnet-4-6",
@@ -248,7 +289,8 @@
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.6
       },
       "observer": {
         "model": "openrouter/~google/gemini-pro-latest",
@@ -267,7 +309,98 @@
         "model": "anthropic/claude-opus-4-7",
         "variant": "max",
         "skills": [],
-        "mcps": []
+        "mcps": [],
+        "temperature": 1.0
+      }
+    },
+    "deepseek": {
+      "orchestrator": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "web-search-prime",
+          "websearch"
+        ],
+        "temperature": 0.8
+      },
+      "oracle": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7"
+        ],
+        "temperature": 1.0
+      },
+      "explorer": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "context7",
+          "grep_app"
+        ],
+        "temperature": 0.8
+      },
+      "librarian": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "grep_app"
+        ],
+        "temperature": 0.8
+      },
+      "fixer": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": [
+          "context7"
+        ],
+        "temperature": 0.8
+      },
+      "designer": {
+        "model": "openrouter/~google/gemini-pro-latest",
+        "variant": "high",
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "zai_vision"
+        ],
+        "temperature": 1.0
+      },
+      "observer": {
+        "model": "openrouter/~google/gemini-pro-latest",
+        "variant": "high",
+        "skills": [
+          "video-analysis",
+          "lecture-notes",
+          "audio-analysis"
+        ],
+        "mcps": [
+          "zai_vision"
+        ],
+        "temperature": 1.0
+      },
+      "council": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": [],
+        "temperature": 1.0
       }
     },
     "cheap": {
@@ -280,17 +413,19 @@
         "mcps": [
           "web-search-prime",
           "websearch"
-        ]
+        ],
+        "temperature": 0.7
       },
       "oracle": {
-        "model": "deepseek/deepseek-v4-pro",
-        "variant": "max",
+        "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
           "websearch",
           "context7"
-        ]
+        ],
+        "temperature": 1.0
       },
       "designer": {
         "model": "openrouter/~google/gemini-flash-latest",
@@ -313,7 +448,8 @@
         "mcps": [
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 1.0
       },
       "librarian": {
         "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
@@ -324,7 +460,8 @@
           "websearch",
           "context7",
           "grep_app"
-        ]
+        ],
+        "temperature": 1.0
       },
       "fixer": {
         "model": "openrouter/deepseek/deepseek-v3.2",
@@ -332,7 +469,8 @@
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.7
       },
       "observer": {
         "model": "openrouter/~google/gemini-flash-latest",
@@ -351,7 +489,8 @@
         "model": "openrouter/qwen/qwen3.6-plus",
         "variant": "high",
         "skills": [],
-        "mcps": []
+        "mcps": [],
+        "temperature": 0.7
       }
     }
   },
@@ -455,8 +594,18 @@
         "reviewer-3": {
           "model": "openrouter/google/gemini-3.1-pro-preview"
         }
+      },
+      "deepseek": {
+        "reviewer-1": {
+          "model": "kimi-for-coding/kimi-for-coding"
+        },
+        "reviewer-2": {
+          "model": "openrouter/z-ai/glm-5.1"
+        },
+        "reviewer-3": {
+          "model": "openrouter/anthropic/claude-sonnet-4.6"
+        }
       }
     }
   }
 }
-

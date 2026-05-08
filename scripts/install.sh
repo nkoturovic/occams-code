@@ -1,917 +1,724 @@
 #!/usr/bin/env bash
 #
-# Occam's Code installer
+# occams-code installer
+# Interactive or unattended installation of scripts, config, wiki, and dependencies.
 #
-# Interactive cross-platform installer for the Occam's Code OpenCode setup.
-#
-# Usage:
-#   ./scripts/install.sh                 # Interactive (recommended)
-#   ./scripts/install.sh --unattended    # Use defaults, no prompts
-#   ./scripts/install.sh --help          # Show this help
-#
-# Unattended mode environment variables (override defaults):
-#   OCCAM_PRESET=balanced                # balanced|cheap|premium|custom
-#   OCCAM_PROVIDERS=openrouter           # csv: openrouter,deepseek,anthropic,zai,kimi
-#   OCCAM_ENABLE_ZAI_MCPS=0              # 0|1  inject zai_vision + web-search-prime blocks
-#   OCCAM_ZAI_API_KEY=                   # required if OCCAM_ENABLE_ZAI_MCPS=1
-#   OCCAM_TRANSCRIBE=skip                # nix|system|openai|skip
-#   OCCAM_INSTALL_DEFUDDLE=1             # 0|1
-#   OCCAM_INSTALL_AGENT_BROWSER=1        # 0|1
-#   OCCAM_INSTALL_OBSIDIAN=1             # 0|1
-#   OCCAM_SETUP_CRON=1                   # 0|1
-#   OCCAM_SETUP_PATH=1                   # 0|1
-#   OCCAM_SETUP_SECRETS=1                # 0|1  write API keys to ~/.config/secrets/env
-#   OCCAM_OPENROUTER_KEY=                # API keys (optional in unattended; prompts hidden interactively)
-#   OCCAM_DEEPSEEK_KEY=
-#   OCCAM_ANTHROPIC_KEY=
-#   OCCAM_KIMI_KEY=
-#   OCCAM_HF_TOKEN=                      # HuggingFace token (optional)
-#   OCCAM_EXA_API_KEY=                   # Exa websearch (optional)
-#   OCCAM_OPENCODE_DIR=$HOME/.config/opencode
-#   OCCAM_WIKI_DIR=$HOME/wiki
-#
-# Defaults are tuned for the most common case: an OpenRouter-only user.
-# The 'balanced' preset works fully with just an OpenRouter API key.
-
 set -euo pipefail
 
-# ─── Constants & colors ─────────────────────────────────────────
-BOLD='\033[1m'; DIM='\033[2m'; GREEN='\033[32m'; YELLOW='\033[33m'
-RED='\033[31m'; CYAN='\033[36m'; RESET='\033[0m'
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+RESET='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_DIR="${OCCAM_OPENCODE_DIR:-$HOME/.config/opencode}"
 WIKI_DIR="${OCCAM_WIKI_DIR:-$HOME/wiki}"
-SKILLS_DIR="$OPENCODE_DIR/skills"
-OBSIDIAN_SKILLS_DIR="$HOME/.opencode/skills"
+SECRETS_DIR="$HOME/.config/secrets"
+SECRETS_FILE="$SECRETS_DIR/env"
 
+# ── Defaults ─────────────────────────────────────────────────────────
 UNATTENDED=0
 DRY_RUN=0
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --help|-h)
-            sed -n '3,28p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
-            exit 0 ;;
-        --unattended)         UNATTENDED=1; shift ;;
-        --dry-run)            DRY_RUN=1; UNATTENDED=1; shift ;;
-        --preset)             OCCAM_PRESET="$2"; shift 2 ;;
-        --providers)          OCCAM_PROVIDERS="$2"; shift 2 ;;
-        --transcribe)         OCCAM_TRANSCRIBE="$2"; shift 2 ;;
-        --no-defuddle)        OCCAM_INSTALL_DEFUDDLE=0; shift ;;
-        --no-agent-browser)   OCCAM_INSTALL_AGENT_BROWSER=0; shift ;;
-        --no-obsidian)        OCCAM_INSTALL_OBSIDIAN=0; shift ;;
-        --no-cron)            OCCAM_SETUP_CRON=0; shift ;;
-        --no-path)            OCCAM_SETUP_PATH=0; shift ;;
-        --enable-zai)         OCCAM_ENABLE_ZAI_MCPS=1; shift ;;
-        --zai-key)            OCCAM_ZAI_API_KEY="$2"; shift 2 ;;
-        *) echo "Unknown flag: $1 (use --help)" >&2; exit 1 ;;
-    esac
-done
-export OCCAM_PRESET OCCAM_PROVIDERS OCCAM_TRANSCRIBE OCCAM_INSTALL_DEFUDDLE \
-       OCCAM_INSTALL_AGENT_BROWSER OCCAM_INSTALL_OBSIDIAN OCCAM_SETUP_CRON \
-       OCCAM_SETUP_PATH OCCAM_ENABLE_ZAI_MCPS OCCAM_ZAI_API_KEY
 
-# ─── Tiny helpers ───────────────────────────────────────────────
-log()      { printf '%b\n' "$*"; }
-ok()       { printf "  ${GREEN}✓${RESET} %b\n" "$*"; }
-warn()     { printf "  ${YELLOW}⚠${RESET} %b\n" "$*"; }
-err()      { printf "  ${RED}✗${RESET} %b\n" "$*" >&2; }
-section()  { printf "\n${BOLD}%b${RESET}\n" "$*"; }
-hr()       { printf "${DIM}%s${RESET}\n" "─────────────────────────────────────────"; }
-
-ask() {
-    # ask "Question?" "default" → returns user input or default
-    local prompt="$1" default="${2:-}" answer
-    if [[ "$UNATTENDED" == 1 ]] || [[ ! -t 0 ]]; then
-        printf '%s' "$default"; return
-    fi
-    if [[ -n "$default" ]]; then
-        read -r -p "$(printf '%b [%b]: ' "$prompt" "$default")" answer < /dev/tty
-    else
-        read -r -p "$(printf '%b: ' "$prompt")" answer < /dev/tty
-    fi
-    printf '%s' "${answer:-$default}"
-}
-
-ask_yn() {
-    # ask_yn "Question?" "Y" → returns 0 (yes) or 1 (no); default Y or N
-    local q="$1" def="${2:-N}" hint ans
-    [[ "$def" =~ ^[Yy]$ ]] && hint="[Y/n]" || hint="[y/N]"
-    if [[ "$UNATTENDED" == 1 ]] || [[ ! -t 0 ]]; then
-        [[ "$def" =~ ^[Yy]$ ]] && return 0 || return 1
-    fi
-    read -r -p "$(printf '%b %s: ' "$q" "$hint")" ans < /dev/tty
-    ans="${ans:-$def}"
-    [[ "$ans" =~ ^[Yy]([Ee][Ss])?$ ]]
-}
-
-is_in_csv() {
-    # is_in_csv "needle" "a,b,c" → 0 if found, 1 otherwise
-    local needle="$1" csv="$2" item
-    IFS=',' read -ra arr <<< "$csv"
-    for item in "${arr[@]}"; do [[ "$item" == "$needle" ]] && return 0; done
-    return 1
-}
-
-# ─── Banner ─────────────────────────────────────────────────────
-log ""
-log "${BOLD}${CYAN}  ▄  Occam's Code  ▄${RESET}"
-log "${DIM}  ─────────────────${RESET}"
-log "${DIM}  OpenCode setup sharpened by Occam's Razor${RESET}"
-log ""
-[[ "$UNATTENDED" == 1 ]] && log "${YELLOW}  (unattended mode — using defaults + env vars + flags)${RESET}"
-[[ "$DRY_RUN"    == 1 ]] && log "${YELLOW}  (dry-run mode — will print summary and exit without writing)${RESET}"
-[[ "$UNATTENDED" == 1 || "$DRY_RUN" == 1 ]] && log ""
-
-# ─── Platform detection ─────────────────────────────────────────
-PLATFORM="$(uname -s)"
-ARCH="$(uname -m)"
-IS_WSL=0
-grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
-
-case "$PLATFORM" in
-    Linux)
-        if [[ "$IS_WSL" == 1 ]]; then PLATFORM_LABEL="WSL ($ARCH)"; else PLATFORM_LABEL="Linux ($ARCH)"; fi ;;
-    Darwin)  PLATFORM_LABEL="macOS ($ARCH)" ;;
-    *)       PLATFORM_LABEL="$PLATFORM ($ARCH) — UNSUPPORTED"; err "Only Linux, WSL, and macOS are supported."; exit 1 ;;
-esac
-log "  Platform: ${GREEN}$PLATFORM_LABEL${RESET}"
-log "  Source:   ${GREEN}$REPO_ROOT${RESET}"
-log "  Target:   ${GREEN}$OPENCODE_DIR${RESET}"
-log "  Wiki:     ${GREEN}$WIKI_DIR${RESET}"
-
-# ─── Bash version gate ──────────────────────────────────────────
-# Installer itself works with bash 3.2; the produced bin/oc requires 4+.
-if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
-    log ""
-    warn "Detected bash ${BASH_VERSION}. The installer will succeed,"
-    warn "but ${BOLD}bin/oc requires bash 4.0+${RESET}."
-    if [[ "$PLATFORM" == "Darwin" ]]; then
-        if command -v brew &>/dev/null; then
-            log "    ${DIM}Tip: 'brew install bash', then run oc with /opt/homebrew/bin/bash${RESET}"
-        else
-            log "    ${DIM}Tip: install Homebrew, then 'brew install bash'${RESET}"
-        fi
-    fi
-fi
-
-# ─── Required dependencies ──────────────────────────────────────
-section "Checking required dependencies"
-DEPS_OK=1
-for cmd in python3 jq curl git; do
-    if command -v "$cmd" &>/dev/null; then ok "$cmd: $(command -v "$cmd")"
-    else err "$cmd: not found"; DEPS_OK=0; fi
-done
-if [[ "$DEPS_OK" != 1 ]]; then
-    err "Missing required dependencies. Install them and re-run."
-    case "$PLATFORM" in
-        Linux)  log "  ${DIM}sudo apt install python3 jq curl git    # Debian/Ubuntu${RESET}"
-                log "  ${DIM}sudo dnf install python3 jq curl git    # Fedora${RESET}"
-                log "  ${DIM}sudo pacman -S python3 jq curl git      # Arch${RESET}" ;;
-        Darwin) log "  ${DIM}brew install python3 jq curl git${RESET}" ;;
-    esac
-    exit 1
-fi
-
-# Optional but recommended
-for cmd in npm bun fzf node; do
-    if command -v "$cmd" &>/dev/null; then ok "$cmd: $(command -v "$cmd") ${DIM}(optional)${RESET}"
-    else warn "$cmd: not found ${DIM}(optional — see notes below)${RESET}"; fi
-done
-
-# ─── Q1: API providers ──────────────────────────────────────────
-section "1. API providers"
-log "${DIM}  Which API provider(s) will you use? Multiple allowed.${RESET}"
-log "${DIM}  OpenRouter is recommended for most users (400+ models, single API key, pay-per-token).${RESET}"
-log ""
-
-PROVIDERS_DEFAULT="${OCCAM_PROVIDERS:-openrouter}"
-log "  ${GREEN}1.${RESET} OpenRouter   ${DIM}— 400+ models incl. GLM, Qwen, Gemini, Sonnet, Kimi   (recommended)${RESET}"
-log "  ${GREEN}2.${RESET} DeepSeek     ${DIM}— direct API for V4 Pro / V4 Flash (best for reasoning)${RESET}"
-log "  ${GREEN}3.${RESET} Anthropic    ${DIM}— direct API for Claude Opus / Sonnet (premium preset)${RESET}"
-log "  ${GREEN}4.${RESET} Z.AI         ${DIM}— GLM-5.1 + zai_vision MCP (subscription, opt-in)${RESET}"
-log "  ${GREEN}5.${RESET} Kimi         ${DIM}— Kimi for Coding K2.6 (subscription, custom preset)${RESET}"
-log ""
-log "${DIM}  Enter comma-separated numbers (e.g., '1,2'). Default: 1 (OpenRouter only).${RESET}"
-
-if [[ "$UNATTENDED" == 1 ]]; then
-    PROVIDERS="$PROVIDERS_DEFAULT"
-else
-    PROVIDERS_INPUT="$(ask "  Choice" "1")"
-    PROVIDERS=""
-    IFS=',' read -ra arr <<< "$PROVIDERS_INPUT"
-    for n in "${arr[@]}"; do
-        n="${n// /}"
-        case "$n" in
-            1) PROVIDERS="${PROVIDERS},openrouter" ;;
-            2) PROVIDERS="${PROVIDERS},deepseek" ;;
-            3) PROVIDERS="${PROVIDERS},anthropic" ;;
-            4) PROVIDERS="${PROVIDERS},zai" ;;
-            5) PROVIDERS="${PROVIDERS},kimi" ;;
-        esac
-    done
-    PROVIDERS="${PROVIDERS#,}"
-    [[ -z "$PROVIDERS" ]] && PROVIDERS="openrouter"
-fi
-ok "Providers: ${BOLD}$PROVIDERS${RESET}"
-
-# ─── Q2: Default preset ─────────────────────────────────────────
-section "2. Default preset"
-log "${DIM}  Which preset should oc use by default? (You can override per-project later.)${RESET}"
-log ""
-
-# Recommend preset based on selected providers
-RECOMMENDED_PRESET="balanced"
-if is_in_csv "anthropic" "$PROVIDERS"; then
-    RECOMMENDED_PRESET="premium"
-elif is_in_csv "kimi" "$PROVIDERS" && is_in_csv "zai" "$PROVIDERS"; then
-    RECOMMENDED_PRESET="custom"
-fi
-
-log "  ${GREEN}1.${RESET} balanced  ${DIM}— OpenRouter-only OOB ($([[ "$RECOMMENDED_PRESET" == "balanced" ]] && echo "recommended for you"))${RESET}"
-log "  ${GREEN}2.${RESET} cheap     ${DIM}— Free / cheapest models (incl. Nemotron free tier)${RESET}"
-log "  ${GREEN}3.${RESET} premium   ${DIM}— Claude Opus orchestrator + oracle ($([[ "$RECOMMENDED_PRESET" == "premium" ]] && echo "recommended" || echo "needs Anthropic key"))${RESET}"
-log "  ${GREEN}4.${RESET} custom    ${DIM}— DeepSeek + Kimi + Z.AI ($([[ "$RECOMMENDED_PRESET" == "custom" ]] && echo "recommended" || echo "needs all 3 subscriptions"))${RESET}"
-log ""
-
-PRESET_DEFAULT="${OCCAM_PRESET:-$RECOMMENDED_PRESET}"
-case "$PRESET_DEFAULT" in
-    balanced) PRESET_NUM=1 ;; cheap) PRESET_NUM=2 ;;
-    premium) PRESET_NUM=3 ;;  custom) PRESET_NUM=4 ;;
-    *) PRESET_NUM=1; PRESET_DEFAULT=balanced ;;
-esac
-
-if [[ "$UNATTENDED" == 1 ]]; then
-    PRESET="$PRESET_DEFAULT"
-else
-    PRESET_INPUT="$(ask "  Choice" "$PRESET_NUM")"
-    case "$PRESET_INPUT" in
-        1|balanced) PRESET=balanced ;;
-        2|cheap)    PRESET=cheap    ;;
-        3|premium)  PRESET=premium  ;;
-        4|custom)   PRESET=custom   ;;
-        *) PRESET="$PRESET_DEFAULT" ;;
-    esac
-fi
-ok "Preset: ${BOLD}$PRESET${RESET}"
-
-# ─── Q3: Z.AI MCPs (only if Z.AI selected) ──────────────────────
+# These will be filled from CLI, env vars, or interactive prompts
+PROVIDERS=""
+PRESET=""
+TRANSCRIBE=""
+INSTALL_DEFUDDLE=1
+INSTALL_AGENT_BROWSER=1
+INSTALL_OBSIDIAN=1
+SETUP_CRON=1
+SETUP_PATH=1
 ENABLE_ZAI_MCPS=0
-ZAI_API_KEY=""
-if is_in_csv "zai" "$PROVIDERS"; then
-    section "3. Z.AI MCPs (zai_vision + web-search-prime)"
-    log "${DIM}  These provide image analysis (OCR, diagrams) and Z.AI web search.${RESET}"
-    log "${DIM}  Both are redundant with the multimodal observer agent + Exa websearch (built-in).${RESET}"
-    log "${DIM}  Enable only if you specifically want Z.AI's tooling on top.${RESET}"
-    log ""
-    if [[ "${OCCAM_ENABLE_ZAI_MCPS:-}" == "1" ]] || ask_yn "  Enable Z.AI MCPs?" "N"; then
-        ENABLE_ZAI_MCPS=1
-        ZAI_API_KEY="${OCCAM_ZAI_API_KEY:-}"
-        # trim whitespace
-        ZAI_API_KEY="${ZAI_API_KEY#"${ZAI_API_KEY%%[![:space:]]*}"}"
-        ZAI_API_KEY="${ZAI_API_KEY%"${ZAI_API_KEY##*[![:space:]]}"}"
-        if [[ -z "$ZAI_API_KEY" && "$UNATTENDED" != 1 ]]; then
-            read -r -p "$(printf '  Paste your Z.AI API key (input hidden): ')" -s ZAI_API_KEY < /dev/tty || true
-            ZAI_API_KEY="${ZAI_API_KEY#"${ZAI_API_KEY%%[![:space:]]*}"}"
-            ZAI_API_KEY="${ZAI_API_KEY%"${ZAI_API_KEY##*[![:space:]]}"}"
-            log ""
-        fi
-        # Validate
-        if [[ -z "$ZAI_API_KEY" ]]; then
-            if [[ "$UNATTENDED" == 1 ]]; then
-                err "OCCAM_ENABLE_ZAI_MCPS=1 set but OCCAM_ZAI_API_KEY is empty. Hard-fail in unattended mode."
-                exit 1
-            fi
-            warn "No Z.AI key provided — MCPs will be added with placeholder 'YOUR_ZAI_API_KEY'."
-            warn "Edit ~/.config/opencode/opencode.json to set the real key before launching oc."
-            ZAI_API_KEY="YOUR_ZAI_API_KEY"
-        elif [[ "${#ZAI_API_KEY}" -lt 32 ]]; then
-            warn "Z.AI key looks short (${#ZAI_API_KEY} chars) — typical Z.AI keys are ≥ 32 chars."
-            warn "Continuing — but verify the key works after install."
-        else
-            ok "Z.AI key length: ${#ZAI_API_KEY} chars (looks valid)"
-        fi
-        ok "Z.AI MCPs will be injected into opencode.json"
-    else
-        ok "Z.AI MCPs not added (default — opt-in later via INSTALL.md jq snippet)"
-    fi
-fi
+ZAI_KEY=""
+SETUP_SECRETS=1
 
-# ─── Q4: Transcription backend ──────────────────────────────────
-section "4. Audio/video transcription backend"
-log "${DIM}  Used by: scripts/transcribe (lecture-notes pipeline, audio-analysis skill).${RESET}"
-log ""
-log "  ${GREEN}1.${RESET} nix flake (whisper.cpp via kotur-nixpkgs, GPU/Vulkan)  ${DIM}— Linux/WSL, requires nix${RESET}"
-log "  ${GREEN}2.${RESET} system whisper-cpp                                     ${DIM}— brew/apt/dnf, CPU only on most setups${RESET}"
-log "  ${GREEN}3.${RESET} OpenAI Whisper API                                     ${DIM}— any platform, ~\$0.006/min, requires OpenAI key${RESET}"
-log "  ${GREEN}4.${RESET} Skip                                                   ${DIM}— lecture-notes/audio-analysis skills disabled${RESET}"
-log ""
-
-TRANSCRIBE_DEFAULT="${OCCAM_TRANSCRIBE:-skip}"
-case "$TRANSCRIBE_DEFAULT" in nix) TR_NUM=1 ;; system) TR_NUM=2 ;; openai) TR_NUM=3 ;; skip|*) TR_NUM=4; TRANSCRIBE_DEFAULT=skip ;; esac
-
-if [[ "$UNATTENDED" == 1 ]]; then
-    TRANSCRIBE="$TRANSCRIBE_DEFAULT"
-else
-    TR_INPUT="$(ask "  Choice" "$TR_NUM")"
-    case "$TR_INPUT" in
-        1|nix)    TRANSCRIBE=nix    ;;
-        2|system) TRANSCRIBE=system ;;
-        3|openai) TRANSCRIBE=openai ;;
-        4|skip|*) TRANSCRIBE=skip   ;;
-    esac
-fi
-ok "Transcription: ${BOLD}$TRANSCRIBE${RESET}"
-
-# ─── Q5: Optional CLIs ──────────────────────────────────────────
-section "5. Optional CLIs"
-log "${DIM}  These are referenced by skills/agents but are optional.${RESET}"
-log ""
-
-INSTALL_DEFUDDLE=0
-if [[ "${OCCAM_INSTALL_DEFUDDLE:-}" == "0" ]]; then :
-elif [[ "${OCCAM_INSTALL_DEFUDDLE:-}" == "1" ]] || ask_yn "  Install ${BOLD}defuddle${RESET} (clean markdown from web pages, used by defuddle skill)?" "Y"; then
-    INSTALL_DEFUDDLE=1
-fi
-
-INSTALL_AGENT_BROWSER=0
-if [[ "${OCCAM_INSTALL_AGENT_BROWSER:-}" == "0" ]]; then :
-elif [[ "${OCCAM_INSTALL_AGENT_BROWSER:-}" == "1" ]] || ask_yn "  Install ${BOLD}agent-browser${RESET} (browser automation, used by designer agent)?" "Y"; then
-    INSTALL_AGENT_BROWSER=1
-fi
-
-INSTALL_OBSIDIAN=0
-if [[ "${OCCAM_INSTALL_OBSIDIAN:-}" == "0" ]]; then :
-elif [[ "${OCCAM_INSTALL_OBSIDIAN:-}" == "1" ]] || ask_yn "  Install ${BOLD}Obsidian${RESET} (visual wiki editor, recommended)?" "Y"; then
-    INSTALL_OBSIDIAN=1
-fi
-
-# ─── Q6: Cron + PATH ────────────────────────────────────────────
-section "6. System integration"
-
-SETUP_CRON=0
-if [[ "${OCCAM_SETUP_CRON:-}" == "0" ]]; then :
-elif [[ "${OCCAM_SETUP_CRON:-}" == "1" ]] || ask_yn "  Set up weekly log cleanup cron (Sun 03:00, 30-day retention)?" "Y"; then
-    SETUP_CRON=1
-fi
-
-SETUP_PATH=0
-if [[ "${OCCAM_SETUP_PATH:-}" == "0" ]]; then :
-elif [[ "${OCCAM_SETUP_PATH:-}" == "1" ]] || ask_yn "  Add 'oc' to your PATH (modifies shell rc)?" "Y"; then
-    SETUP_PATH=1
-fi
-
-# ─── Q7: Shared env-secrets ─────────────────────────────────────
-section "7. API keys + shared env-secrets file"
-log "${DIM}  Several scripts (analyze-video.py, transcribe HF model downloads,${RESET}"
-log "${DIM}  Exa websearch MCP) read API keys from environment variables.${RESET}"
-log "${DIM}  We can write them to ~/.config/secrets/env (chmod 600), sourced from ~/.profile.${RESET}"
-log "${DIM}  This file is SHARED across all shells and scripts on your system.${RESET}"
-log "${DIM}  (Skip if you prefer to manage secrets through OpenCode's auth.json only.)${RESET}"
-log ""
-
-SETUP_SECRETS=0
-if [[ "${OCCAM_SETUP_SECRETS:-}" == "0" ]]; then :
-elif [[ "${OCCAM_SETUP_SECRETS:-}" == "1" ]] || ask_yn "  Create / update ~/.config/secrets/env?" "Y"; then
-    SETUP_SECRETS=1
-fi
-
-# ─── Confirmation ───────────────────────────────────────────────
-section "Summary"
-hr
-printf "  Platform:        %s\n" "$PLATFORM_LABEL"
-printf "  Install path:    %s\n" "$OPENCODE_DIR"
-printf "  Wiki path:       %s\n" "$WIKI_DIR"
-printf "  Providers:       %s\n" "$PROVIDERS"
-printf "  Default preset:  %s\n" "$PRESET"
-printf "  Z.AI MCPs:       %s\n" "$([[ $ENABLE_ZAI_MCPS == 1 ]] && echo "enabled" || echo "disabled (opt-in later)")"
-printf "  Transcription:   %s\n" "$TRANSCRIBE"
-printf "  defuddle:        %s\n" "$([[ $INSTALL_DEFUDDLE == 1 ]] && echo "install" || echo "skip")"
-printf "  agent-browser:   %s\n" "$([[ $INSTALL_AGENT_BROWSER == 1 ]] && echo "install" || echo "skip")"
-printf "  Obsidian:        %s\n" "$([[ $INSTALL_OBSIDIAN == 1 ]] && echo "install" || echo "skip")"
-printf "  Weekly cron:     %s\n" "$([[ $SETUP_CRON == 1 ]] && echo "yes" || echo "no")"
-printf "  Add to PATH:     %s\n" "$([[ $SETUP_PATH == 1 ]] && echo "yes" || echo "no")"
-printf "  Env-secrets:     %s\n" "$([[ $SETUP_SECRETS == 1 ]] && echo "~/.config/secrets/env" || echo "skip")"
-hr
-log ""
-
-if [[ "$DRY_RUN" == 1 ]]; then
-    log "${YELLOW}  Dry-run — exiting without writing anything.${RESET}"
-    exit 0
-fi
-
-if [[ "$UNATTENDED" != 1 ]]; then
-    if ! ask_yn "Proceed with installation?" "Y"; then
-        log "  Aborted."; exit 0
-    fi
-fi
-
-# ═══ EXECUTION ══════════════════════════════════════════════════
-
-# ─── Create directories ─────────────────────────────────────────
-section "Creating directories"
-mkdir -p "$OPENCODE_DIR"/{bin,scripts,commands,skills}
-mkdir -p "$WIKI_DIR"/raw/{articles,papers,repos,docs,forums,assets,_inbox}
-mkdir -p "$WIKI_DIR"/wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}
-mkdir -p "$OBSIDIAN_SKILLS_DIR"
-ok "Directories created"
-
-# ─── Copy configs (skip if already exists) ──────────────────────
-section "Copying core files"
-
-cp_safe() {
-    # cp_safe SRC DEST [LABEL]
-    local src="$1" dest="$2" label="${3:-$2}"
-    if [[ ! -f "$src" ]]; then warn "Source missing: $src"; return; fi
-    if [[ -f "$dest" ]]; then
-        ok "$label ${DIM}(already exists, skipped)${RESET}"
-    else
-        cp "$src" "$dest" && ok "$label"
-    fi
+# ── Helpers ──────────────────────────────────────────────────────────
+_ask_yes_no() {
+  local prompt="$1"
+  local default="${2:-Y}"
+  local answer
+  if [[ "$default" == "Y" ]]; then
+    read -rp "$prompt [Y/n] " answer < /dev/tty
+    answer="${answer:-Y}"
+  else
+    read -rp "$prompt [y/N] " answer < /dev/tty
+    answer="${answer:-N}"
+  fi
+  case "$answer" in
+    [Yy]|[Yy][Ee][Ss]) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
-# bin/oc (always overwrite — script updates should propagate)
-if [[ -f "$REPO_ROOT/bin/oc" ]]; then
-    cp "$REPO_ROOT/bin/oc" "$OPENCODE_DIR/bin/oc"
-    chmod +x "$OPENCODE_DIR/bin/oc"
-    ok "bin/oc"
-fi
+_ask_hidden() {
+  local prompt="$1"
+  local varname="$2"
+  local value
+  read -rsp "$prompt" value < /dev/tty
+  echo "" >&2
+  printf -v "$varname" '%s' "$value"
+}
 
-# Scripts (overwrite — bug fixes should propagate)
-if ls "$REPO_ROOT"/scripts/*.py >/dev/null 2>&1; then
-    cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
-    ok "scripts/*.py ($(ls "$REPO_ROOT"/scripts/*.py | wc -l) files)"
-fi
-for s in "$REPO_ROOT"/scripts/*; do
-    [[ -f "$s" ]] || continue
-    case "$s" in *.py|*/install.sh) continue ;; esac  # skip .py (handled) and self
-    sname="$(basename "$s")"
-    cp "$s" "$OPENCODE_DIR/scripts/$sname"
-    chmod +x "$OPENCODE_DIR/scripts/$sname"
-    ok "scripts/$sname"
+# ── CLI argument parsing ─────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --unattended)      UNATTENDED=1; shift ;;
+    --dry-run)         DRY_RUN=1; shift ;;
+    --preset)          PRESET="$2"; shift 2 ;;
+    --providers)       PROVIDERS="$2"; shift 2 ;;
+    --transcribe)      TRANSCRIBE="$2"; shift 2 ;;
+    --no-defuddle)     INSTALL_DEFUDDLE=0; shift ;;
+    --no-agent-browser) INSTALL_AGENT_BROWSER=0; shift ;;
+    --no-obsidian)     INSTALL_OBSIDIAN=0; shift ;;
+    --no-cron)         SETUP_CRON=0; shift ;;
+    --no-path)         SETUP_PATH=0; shift ;;
+    --enable-zai)      ENABLE_ZAI_MCPS=1; shift ;;
+    --zai-key)         ZAI_KEY="$2"; shift 2 ;;
+    *)
+      echo -e "${RED}Unknown option: $1${RESET}" >&2
+      echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--transcribe MODE] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]" >&2
+      exit 1
+      ;;
+  esac
 done
 
-# Commands (overwrite)
-if ls "$REPO_ROOT"/commands/*.md >/dev/null 2>&1; then
-    cp "$REPO_ROOT"/commands/*.md "$OPENCODE_DIR/commands/"
-    ok "commands/*.md ($(ls "$REPO_ROOT"/commands/*.md | wc -l) files)"
+# ── Unattended: env vars (CLI flags override env vars) ───────────────
+if [[ "$UNATTENDED" -eq 1 ]]; then
+  [[ -z "$PROVIDERS" ]]       && PROVIDERS="${OCCAM_PROVIDERS:-openrouter}"
+  [[ -z "$PRESET" ]]          && PRESET="${OCCAM_PRESET:-balanced}"
+  [[ -z "$TRANSCRIBE" ]]      && TRANSCRIBE="${OCCAM_TRANSCRIBE:-skip}"
+  [[ -z "$ZAI_KEY" ]]         && ZAI_KEY="${OCCAM_ZAI_API_KEY:-}"
+
+  # Booleans: env vars override defaults only if CLI didn't explicitly set
+  # We detect CLI by checking if the value differs from default... but that's fragile.
+  # Instead: in unattended mode, env vars ALWAYS apply unless the corresponding CLI flag was passed.
+  # Since we can't easily distinguish "not passed" from "default value" for booleans,
+  # we use the convention that unattended mode reads all booleans from env vars.
+  INSTALL_DEFUDDLE="${OCCAM_INSTALL_DEFUDDLE:-$INSTALL_DEFUDDLE}"
+  INSTALL_AGENT_BROWSER="${OCCAM_INSTALL_AGENT_BROWSER:-$INSTALL_AGENT_BROWSER}"
+  INSTALL_OBSIDIAN="${OCCAM_INSTALL_OBSIDIAN:-$INSTALL_OBSIDIAN}"
+  SETUP_CRON="${OCCAM_SETUP_CRON:-$SETUP_CRON}"
+  SETUP_PATH="${OCCAM_SETUP_PATH:-$SETUP_PATH}"
+  ENABLE_ZAI_MCPS="${OCCAM_ENABLE_ZAI_MCPS:-$ENABLE_ZAI_MCPS}"
+  SETUP_SECRETS="${OCCAM_SETUP_SECRETS:-$SETUP_SECRETS}"
+
+  if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -z "$ZAI_KEY" ]]; then
+    echo -e "${RED}Error: OCCAM_ZAI_API_KEY is required when OCCAM_ENABLE_ZAI_MCPS=1${RESET}" >&2
+    exit 1
+  fi
+
+  # Deepseek preset needs OpenRouter for designer/observer
+  if [[ "$PRESET" == "deepseek" && "$PROVIDERS" != *"openrouter"* ]]; then
+    echo -e "${YELLOW}Note: deepseek preset requires OpenRouter. Adding to providers.${RESET}" >&2
+    PROVIDERS="${PROVIDERS:+$PROVIDERS,}openrouter"
+  fi
 fi
 
-# AGENTS.md (skip if exists — user may have customized)
-cp_safe "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
+# ── Header ───────────────────────────────────────────────────────────
+echo ""
+echo -e "${BOLD}  Occam's Code installer${RESET}"
+echo -e "  ${DIM}───────────────────${RESET}"
+echo ""
 
-# model-profile.jsonc (skip if exists — user may have customized model assignments)
-cp_safe "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
+# ── Dependency checks ────────────────────────────────────────────────
+for cmd in python3 jq curl git; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo -e "${RED}Error: $cmd is required but not installed.${RESET}" >&2
+    exit 1
+  fi
+done
 
-# opencode.json (skip if exists — has provider keys, MCPs)
-cp_safe "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
-
-# oh-my-opencode-slim.json (skip if exists — preset/agent overrides)
-cp_safe "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
-
-# ─── Set selected preset ────────────────────────────────────────
-if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]] && command -v jq &>/dev/null; then
-    tmp="$(mktemp)"
-    jq --arg p "$PRESET" '.preset = $p' "$OPENCODE_DIR/oh-my-opencode-slim.json" > "$tmp" \
-        && mv "$tmp" "$OPENCODE_DIR/oh-my-opencode-slim.json" \
-        && ok "Default preset → $PRESET"
+# Bash version check (installer works on 3.2+, but bin/oc requires 4+)
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo -e "${YELLOW}Warning: bash ${BASH_VERSION} detected. bin/oc requires bash 4.0+.${RESET}" >&2
+  echo -e "  The installer will succeed, but you must run oc with bash 5:" >&2
+  echo -e "  macOS: /opt/homebrew/bin/bash ~/.config/opencode/bin/oc" >&2
+  echo "" >&2
 fi
 
-# ─── Inject Z.AI MCPs (if opted in) ─────────────────────────────
-if [[ "$ENABLE_ZAI_MCPS" == 1 ]]; then
-    section "Injecting Z.AI MCP blocks"
-    tmp="$(mktemp)"
-    jq --arg key "$ZAI_API_KEY" '
-        .mcp.zai_vision = {
-            "type": "local",
-            "command": ["npx", "-y", "@z_ai/mcp-server"],
-            "environment": { "Z_AI_API_KEY": $key, "Z_AI_MODE": "ZAI" },
-            "enabled": true,
-            "timeout": 600000
-        } |
-        .mcp["web-search-prime"] = {
-            "type": "remote",
-            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": ("Bearer " + $key) },
-            "enabled": true,
-            "timeout": 60000
-        }
-    ' "$OPENCODE_DIR/opencode.json" > "$tmp" && mv "$tmp" "$OPENCODE_DIR/opencode.json"
-    ok "zai_vision + web-search-prime added to opencode.json"
-fi
+# ── Interactive questions ────────────────────────────────────────────
+if [[ "$UNATTENDED" -eq 0 ]]; then
+  echo -e "${BOLD}Interactive setup${RESET} (press Enter for defaults)"
+  echo ""
 
-# ─── Wiki template ──────────────────────────────────────────────
-section "Setting up wiki at $WIKI_DIR"
+  # Q1: API providers
+  echo "Q1. Which API providers will you use?"
+  echo "  1) OpenRouter"
+  echo "  2) DeepSeek"
+  echo "  3) Anthropic"
+  echo "  4) Z.AI"
+  echo "  5) Kimi"
+  read -rp "  Enter space-separated numbers [1]: " _q1 < /dev/tty
+  _q1="${_q1:-1}"
+  PROVIDERS=""
+  for n in $_q1; do
+    case "$n" in
+      1) PROVIDERS="${PROVIDERS:+$PROVIDERS,}openrouter" ;;
+      2) PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek" ;;
+      3) PROVIDERS="${PROVIDERS:+$PROVIDERS,}anthropic" ;;
+      4) PROVIDERS="${PROVIDERS:+$PROVIDERS,}zai" ;;
+      5) PROVIDERS="${PROVIDERS:+$PROVIDERS,}kimi" ;;
+    esac
+  done
+  [[ -z "$PROVIDERS" ]] && PROVIDERS="openrouter"
+  echo -e "  ${GREEN}→${RESET} $PROVIDERS"
+  echo ""
 
-# Top-level wiki files
-for f in AGENTS.md index.md overview.md log.md .gitignore; do
-    [[ -f "$REPO_ROOT/wiki/$f" ]] || continue
-    if [[ ! -f "$WIKI_DIR/$f" ]]; then
-        cp "$REPO_ROOT/wiki/$f" "$WIKI_DIR/$f"
-        ok "wiki/$f"
+  # Auto-recommend preset
+  _rec="balanced"
+  if [[ "$PROVIDERS" == *"anthropic"* ]]; then
+    _rec="premium"
+  elif [[ "$PROVIDERS" == *"deepseek"* && "$PROVIDERS" != *"openrouter"* ]]; then
+    _rec="deepseek"
+  elif [[ "$PROVIDERS" == *"kimi"* && "$PROVIDERS" == *"zai"* ]]; then
+    _rec="custom"
+  fi
+
+  # Q2: Default preset
+  case "$_rec" in
+    cheap)     _def_num=2 ;;
+    deepseek)  _def_num=3 ;;
+    premium)   _def_num=4 ;;
+    custom)    _def_num=5 ;;
+    *)         _def_num=1 ;;
+  esac
+
+  echo "Q2. Select default preset:"
+  echo "  1) balanced  $([[ "$_rec" == "balanced" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
+  echo "  2) cheap"
+  echo "  3) deepseek"
+  echo "  4) premium   $([[ "$_rec" == "premium" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
+  echo "  5) custom    $([[ "$_rec" == "custom" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
+  read -rp "  Enter number [$_def_num]: " _q2 < /dev/tty
+  _q2="${_q2:-$_def_num}"
+  case "$_q2" in
+    2) PRESET="cheap" ;;
+    3) PRESET="deepseek" ;;
+    4) PRESET="premium" ;;
+    5) PRESET="custom" ;;
+    *) PRESET="balanced" ;;
+  esac
+  echo -e "  ${GREEN}→${RESET} $PRESET"
+
+  # Warn if deepseek preset needs OpenRouter but it's not in providers
+  if [[ "$PRESET" == "deepseek" && "$PROVIDERS" != *"openrouter"* ]]; then
+    echo -e "  ${YELLOW}⚠${RESET} The deepseek preset uses OpenRouter for designer/observer. Adding openrouter to providers."
+    PROVIDERS="${PROVIDERS:+$PROVIDERS,}openrouter"
+  fi
+  echo ""
+
+  # Q3: Z.AI MCPs
+  if [[ "$PROVIDERS" == *"zai"* ]]; then
+    if _ask_yes_no "Q3. Enable Z.AI MCPs (zai_vision + web-search-prime)?" "N"; then
+      ENABLE_ZAI_MCPS=1
+      _ask_hidden "  Enter Z.AI API key: " ZAI_KEY
+      echo -e "  ${GREEN}→${RESET} enabled"
     else
-        ok "wiki/$f ${DIM}(exists, skipped)${RESET}"
+      ENABLE_ZAI_MCPS=0
+      echo -e "  ${DIM}→ skipped${RESET}"
     fi
-done
+    echo ""
+  fi
 
-# .obsidian/ (Obsidian vault metadata)
-if [[ -d "$REPO_ROOT/wiki/.obsidian" && ! -d "$WIKI_DIR/.obsidian" ]]; then
-    cp -r "$REPO_ROOT/wiki/.obsidian" "$WIKI_DIR/.obsidian"
-    ok ".obsidian/ (vault metadata)"
+  # Q4: Transcription backend
+  echo "Q4. Select transcription backend:"
+  echo "  1) nix whisper.cpp (Linux/WSL, requires nix)"
+  echo "  2) system whisper-cpp (brew/apt package)"
+  echo "  3) OpenAI Whisper API"
+  echo "  4) skip (default)"
+  read -rp "  Enter number [4]: " _q4 < /dev/tty
+  _q4="${_q4:-4}"
+  case "$_q4" in
+    1) TRANSCRIBE="nix" ;;
+    2) TRANSCRIBE="system" ;;
+    3) TRANSCRIBE="openai" ;;
+    *) TRANSCRIBE="skip" ;;
+  esac
+  echo -e "  ${GREEN}→${RESET} $TRANSCRIBE"
+  echo ""
+
+  # Q5: Optional CLIs
+  echo "Q5. Optional CLIs:"
+  if _ask_yes_no "  Install defuddle (HTML-to-markdown)?" "Y"; then
+    INSTALL_DEFUDDLE=1
+  else
+    INSTALL_DEFUDDLE=0
+  fi
+  if _ask_yes_no "  Install agent-browser (web browsing)?" "Y"; then
+    INSTALL_AGENT_BROWSER=1
+  else
+    INSTALL_AGENT_BROWSER=0
+  fi
+  if _ask_yes_no "  Install Obsidian (wiki viewer)?" "Y"; then
+    INSTALL_OBSIDIAN=1
+  else
+    INSTALL_OBSIDIAN=0
+  fi
+  echo ""
+
+  # Q6: Weekly cron
+  if _ask_yes_no "Q6. Set up weekly log cleanup cron job?" "Y"; then
+    SETUP_CRON=1
+  else
+    SETUP_CRON=0
+  fi
+  echo ""
+
+  # Q7: PATH setup
+  if _ask_yes_no "Q7. Add oc to your shell PATH (~/.bashrc / ~/.zshrc)?" "Y"; then
+    SETUP_PATH=1
+  else
+    SETUP_PATH=0
+  fi
+  echo ""
+
+  # Q8: Shared env-secrets
+  if _ask_yes_no "Q8. Set up API keys in ~/.config/secrets/env?" "Y"; then
+    SETUP_SECRETS=1
+  else
+    SETUP_SECRETS=0
+  fi
+  echo ""
 fi
 
-# All concept pages
-mkdir -p "$WIKI_DIR/wiki/concepts"
-for f in "$REPO_ROOT"/wiki/wiki/concepts/*.md; do
+# ── Summary ──────────────────────────────────────────────────────────
+echo -e "${BOLD}Summary${RESET}"
+echo "  Providers:       $PROVIDERS"
+echo "  Preset:          $PRESET"
+echo "  Z.AI MCPs:       $([[ $ENABLE_ZAI_MCPS -eq 1 ]] && echo "enabled" || echo "disabled")"
+[[ -n "$ZAI_KEY" ]] && echo "  Z.AI key:        ***set***"
+echo "  Transcription:   $TRANSCRIBE"
+echo "  defuddle:        $([[ $INSTALL_DEFUDDLE -eq 1 ]] && echo "yes" || echo "no")"
+echo "  agent-browser:   $([[ $INSTALL_AGENT_BROWSER -eq 1 ]] && echo "yes" || echo "no")"
+echo "  Obsidian:        $([[ $INSTALL_OBSIDIAN -eq 1 ]] && echo "yes" || echo "no")"
+echo "  Cron cleanup:    $([[ $SETUP_CRON -eq 1 ]] && echo "yes" || echo "no")"
+echo "  PATH setup:      $([[ $SETUP_PATH -eq 1 ]] && echo "yes" || echo "no")"
+echo "  Secrets setup:   $([[ $SETUP_SECRETS -eq 1 ]] && echo "yes" || echo "no")"
+echo ""
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo -e "${YELLOW}Dry run — no changes made.${RESET}"
+  exit 0
+fi
+
+if [[ "$UNATTENDED" -eq 0 ]]; then
+  if ! _ask_yes_no "Proceed with installation?" "Y"; then
+    echo -e "${YELLOW}Aborted.${RESET}"
+    exit 0
+  fi
+  echo ""
+fi
+
+# ── Create directories ───────────────────────────────────────────────
+mkdir -p "$OPENCODE_DIR"/{bin,scripts,commands,skills}
+mkdir -p "$WIKI_DIR"/{raw/{articles,papers,repos,docs,forums,assets,_inbox},wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}}
+mkdir -p "$SECRETS_DIR"
+mkdir -p "$HOME/.local/bin"
+
+echo -e "Source: ${GREEN}$REPO_ROOT${RESET}"
+echo -e "Target: ${GREEN}$OPENCODE_DIR${RESET}"
+echo -e "Wiki:   ${GREEN}$WIKI_DIR${RESET}"
+echo ""
+
+# ── Copy files ───────────────────────────────────────────────────────
+echo -e "${BOLD}Copying files...${RESET}"
+
+# bin/oc — always overwrite
+cp "$REPO_ROOT/bin/oc" "$OPENCODE_DIR/bin/oc"
+chmod +x "$OPENCODE_DIR/bin/oc"
+echo -e "  ${GREEN}✓${RESET} bin/oc"
+
+# Scripts — always overwrite
+if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
+  cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
+  echo -e "  ${GREEN}✓${RESET} scripts/*.py ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
+fi
+
+# transcribe — always overwrite
+if [[ -f "$REPO_ROOT/scripts/transcribe" ]]; then
+  cp "$REPO_ROOT/scripts/transcribe" "$OPENCODE_DIR/scripts/transcribe"
+  chmod +x "$OPENCODE_DIR/scripts/transcribe"
+  echo -e "  ${GREEN}✓${RESET} scripts/transcribe"
+fi
+
+# cleanup-logs.sh — always overwrite
+if [[ -f "$REPO_ROOT/scripts/cleanup-logs.sh" ]]; then
+  cp "$REPO_ROOT/scripts/cleanup-logs.sh" "$OPENCODE_DIR/scripts/cleanup-logs.sh"
+  chmod +x "$OPENCODE_DIR/scripts/cleanup-logs.sh"
+  echo -e "  ${GREEN}✓${RESET} scripts/cleanup-logs.sh"
+fi
+
+# Commands — always overwrite
+if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then
+  cp "$REPO_ROOT"/commands/*.md "$OPENCODE_DIR/commands/"
+  echo -e "  ${GREEN}✓${RESET} commands/ ($(ls "$REPO_ROOT"/commands/*.md 2>/dev/null | wc -l) files)"
+fi
+
+# Config files — preserve if exist
+_preserve_copy() {
+  local src="$1"
+  local dst="$2"
+  local label="$3"
+  if [[ -f "$src" ]]; then
+    if [[ ! -f "$dst" ]]; then
+      cp "$src" "$dst"
+      echo -e "  ${GREEN}✓${RESET} $label"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} $label (already exists, skipped)"
+    fi
+  else
+    echo -e "  ${YELLOW}⚠${RESET} $label not found in source"
+  fi
+}
+
+_preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
+_preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
+_preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
+_preserve_copy "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
+
+# ── Set preset in oh-my-opencode-slim.json ───────────────────────────
+if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" && -n "$PRESET" ]]; then
+  jq ".preset = \"$PRESET\"" "$OPENCODE_DIR/oh-my-opencode-slim.json" > /tmp/oc-slim-$$.json \
+    && mv /tmp/oc-slim-$$.json "$OPENCODE_DIR/oh-my-opencode-slim.json"
+  echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in oh-my-opencode-slim.json"
+fi
+
+# ── Z.AI MCP injection ───────────────────────────────────────────────
+if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.json" ]]; then
+  jq --arg key "$ZAI_KEY" '
+    .mcp.zai_vision = {
+      "type": "local",
+      "command": ["npx", "-y", "@z_ai/mcp-server"],
+      "environment": { "Z_AI_API_KEY": $key, "Z_AI_MODE": "ZAI" },
+      "enabled": true,
+      "timeout": 600000
+    } |
+    .mcp["web-search-prime"] = {
+      "type": "remote",
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "headers": { "Authorization": ("Bearer " + $key) },
+      "enabled": true,
+      "timeout": 60000
+    }
+  ' "$OPENCODE_DIR/opencode.json" > /tmp/oc-json-$$.json \
+    && mv /tmp/oc-json-$$.json "$OPENCODE_DIR/opencode.json"
+  echo -e "  ${GREEN}✓${RESET} Z.AI MCPs injected into opencode.json"
+fi
+
+# ── Wiki template ────────────────────────────────────────────────────
+echo ""
+echo -e "${BOLD}Setting up wiki template...${RESET}"
+
+for f in AGENTS.md index.md overview.md log.md .gitignore; do
+  if [[ -f "$REPO_ROOT/wiki/$f" ]]; then
+    if [[ ! -f "$WIKI_DIR/$f" ]]; then
+      cp "$REPO_ROOT/wiki/$f" "$WIKI_DIR/$f"
+      echo -e "  ${GREEN}✓${RESET} wiki/$f"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} wiki/$f (already exists, skipped)"
+    fi
+  fi
+done
+
+# Copy wiki content (with overwrite protection)
+for f in wiki/wiki/concepts/karpathy-llm-wiki.md wiki/wiki/concepts/occams-code-setup.md wiki/wiki/concepts/agent-roles-and-models.md wiki/wiki/concepts/oc-launcher.md wiki/wiki/concepts/troubleshooting.md wiki/wiki/concepts/design-systems.md wiki/wiki/sources/_template-source-summary.md wiki/raw/README.md; do
+  if [[ -f "$REPO_ROOT/$f" ]]; then
+    target="$WIKI_DIR/${f#wiki/}"
+    target_dir="$(dirname "$target")"
+    mkdir -p "$target_dir"
+    if [[ ! -f "$target" ]]; then
+      cp "$REPO_ROOT/$f" "$target"
+      echo -e "  ${GREEN}✓${RESET} $f"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} $f (already exists, skipped)"
+    fi
+  fi
+done
+
+# Copy wiki subdirectory content (with overwrite protection)
+_copy_wiki_subdir() {
+  local subdir="$1"
+  local src_dir="$REPO_ROOT/wiki/wiki/$subdir"
+  [[ -d "$src_dir" ]] || return
+  for f in "$src_dir"/*.md; do
     [[ -f "$f" ]] || continue
-    base="$(basename "$f")"
-    if [[ ! -f "$WIKI_DIR/wiki/concepts/$base" ]]; then
-        cp "$f" "$WIKI_DIR/wiki/concepts/$base"
-        ok "wiki/wiki/concepts/$base"
+    local name="$(basename "$f")"
+    local target="$WIKI_DIR/wiki/$subdir/$name"
+    if [[ ! -f "$target" ]]; then
+      cp "$f" "$target"
+      echo -e "  ${GREEN}✓${RESET} wiki/$subdir/$name"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} wiki/$subdir/$name (already exists, skipped)"
     fi
-done
+  done
+}
+for dir in patterns languages; do _copy_wiki_subdir "$dir"; done
 
-# raw/README.md
-mkdir -p "$WIKI_DIR/raw"
-if [[ -f "$REPO_ROOT/wiki/raw/README.md" && ! -f "$WIKI_DIR/raw/README.md" ]]; then
-    cp "$REPO_ROOT/wiki/raw/README.md" "$WIKI_DIR/raw/README.md"
-    ok "raw/README.md"
-fi
-
-# Source template
-mkdir -p "$WIKI_DIR/wiki/sources"
-src_tpl="$REPO_ROOT/wiki/wiki/sources/_template-source-summary.md"
-if [[ -f "$src_tpl" && ! -f "$WIKI_DIR/wiki/sources/_template-source-summary.md" ]]; then
-    cp "$src_tpl" "$WIKI_DIR/wiki/sources/_template-source-summary.md"
-    ok "wiki/wiki/sources/_template-source-summary.md"
-fi
-
-# Patterns + languages (any *.md present)
-for sub in patterns languages; do
-    if [[ -d "$REPO_ROOT/wiki/wiki/$sub" ]]; then
-        mkdir -p "$WIKI_DIR/wiki/$sub"
-        for f in "$REPO_ROOT"/wiki/wiki/$sub/*.md; do
-            [[ -f "$f" ]] || continue
-            base="$(basename "$f")"
-            [[ -f "$WIKI_DIR/wiki/$sub/$base" ]] && continue
-            cp "$f" "$WIKI_DIR/wiki/$sub/$base"
-            ok "wiki/wiki/$sub/$base"
-        done
-    fi
-done
-
-# .gitkeep in empty subdirs (portable replacement for {x,y,z}/.gitkeep)
+# .gitkeep files
 find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null || true
 
-# ─── Local skills (codemap, simplify, audio/video/lecture) ──────
-section "Installing local skills"
+# ── Install local skills ─────────────────────────────────────────────
+echo ""
+echo -e "${BOLD}Installing local skills...${RESET}"
+SKILLS_DIR="$HOME/.opencode/skills"
+mkdir -p "$SKILLS_DIR"
+
 for skill in codemap simplify audio-analysis video-analysis lecture-notes; do
-    src="$REPO_ROOT/skills/$skill"
-    dest="$SKILLS_DIR/$skill"
-    [[ -d "$src" ]] || continue
-    if [[ -d "$dest" ]]; then
-        ok "$skill ${DIM}(exists, skipped)${RESET}"
+  if [[ -d "$REPO_ROOT/skills/$skill" ]]; then
+    if [[ ! -d "$SKILLS_DIR/$skill" ]]; then
+      cp -r "$REPO_ROOT/skills/$skill" "$SKILLS_DIR/$skill"
+      echo -e "  ${GREEN}✓${RESET} $skill skill installed"
     else
-        cp -r "$src" "$dest"
-        ok "$skill"
+      echo -e "  ${DIM}$skill already installed (skipped)${RESET}"
     fi
+  fi
 done
 
-# ─── Obsidian-skills bundle ─────────────────────────────────────
-section "Installing obsidian-skills bundle"
-if [[ -d "$OBSIDIAN_SKILLS_DIR/obsidian-skills" ]]; then
-    ok "obsidian-skills ${DIM}(exists, skipped)${RESET}"
-elif command -v git &>/dev/null; then
-    if git clone --depth=1 https://github.com/kepano/obsidian-skills "$OBSIDIAN_SKILLS_DIR/obsidian-skills" 2>/dev/null; then
-        ok "obsidian-skills cloned to $OBSIDIAN_SKILLS_DIR/"
-    else
-        warn "obsidian-skills clone failed — skill set incomplete"
-    fi
+# ── Install obsidian-skills plugin ───────────────────────────────────
+echo ""
+echo -e "${BOLD}Installing obsidian-skills plugin...${RESET}"
+if [[ ! -d "$SKILLS_DIR/obsidian-skills" ]]; then
+  if command -v git &>/dev/null; then
+    git clone https://github.com/kepano/obsidian-skills "$SKILLS_DIR/obsidian-skills"
+    echo -e "  ${GREEN}✓${RESET} obsidian-skills cloned"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} git not found. Clone https://github.com/kepano/obsidian-skills manually to $SKILLS_DIR/obsidian-skills"
+  fi
 else
-    warn "git not found — obsidian-skills not installed"
+  echo -e "  ${DIM}obsidian-skills already installed (skipped)${RESET}"
 fi
 
-# ─── oh-my-opencode-slim plugin ─────────────────────────────────
-section "Installing oh-my-opencode-slim plugin"
-PLUGIN_SPEC="oh-my-opencode-slim@^1.0"   # pin to major to avoid surprise breaks
+# ── Install oh-my-opencode-slim ──────────────────────────────────────
+echo ""
+echo -e "${BOLD}Installing oh-my-opencode-slim plugin...${RESET}"
 (
-    cd "$OPENCODE_DIR"
-    if command -v bun &>/dev/null; then
-        bun install "$PLUGIN_SPEC" 2>&1 | tail -3 && ok "Installed via bun ($PLUGIN_SPEC)"
-    elif command -v npm &>/dev/null; then
-        npm install "$PLUGIN_SPEC" 2>&1 | tail -3 && ok "Installed via npm ($PLUGIN_SPEC)"
+  cd "$OPENCODE_DIR"
+  if command -v bun &>/dev/null; then
+    if bun install oh-my-opencode-slim; then
+      echo -e "  ${GREEN}✓${RESET} Installed via bun"
     else
-        warn "Neither bun nor npm — install plugin manually:"
-        log "    cd $OPENCODE_DIR && npm install $PLUGIN_SPEC"
+      echo -e "  ${YELLOW}⚠${RESET} bun install failed — install oh-my-opencode-slim manually"
     fi
+  elif command -v npm &>/dev/null; then
+    if npm install oh-my-opencode-slim; then
+      echo -e "  ${GREEN}✓${RESET} Installed via npm"
+    else
+      echo -e "  ${YELLOW}⚠${RESET} npm install failed — install oh-my-opencode-slim manually"
+    fi
+  else
+    echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found. Install oh-my-opencode-slim manually."
+  fi
 )
 
-# ─── Optional CLIs ──────────────────────────────────────────────
-if [[ "$INSTALL_DEFUDDLE" == 1 ]]; then
-    section "Installing defuddle"
-    if command -v defuddle &>/dev/null; then
-        ok "defuddle: $(defuddle --version 2>&1 | head -1) ${DIM}(already installed)${RESET}"
-    elif command -v npm &>/dev/null; then
-        npm install -g defuddle 2>&1 | tail -1
-        if command -v defuddle &>/dev/null; then
-            ok "defuddle installed"
-        else
-            # npm prefix may not be in PATH
-            NPM_BIN="$(npm config get prefix 2>/dev/null)/bin"
-            if [[ -x "$NPM_BIN/defuddle" ]]; then
-                mkdir -p "$HOME/.local/bin"
-                ln -sf "$NPM_BIN/defuddle" "$HOME/.local/bin/defuddle"
-                ok "defuddle symlinked to ~/.local/bin/ (npm prefix not in PATH)"
-            else
-                warn "defuddle install unclear — check 'which defuddle'"
-            fi
-        fi
-    else
-        warn "npm not available — install manually: npm install -g defuddle"
-    fi
+# ── Optional CLIs: defuddle, agent-browser ───────────────────────────
+_install_npm_cli() {
+  local pkg="$1"
+  local bin="$2"
+  if command -v bun &>/dev/null; then
+    (cd "$OPENCODE_DIR" && bun install "$pkg" &>/dev/null) && \
+      ln -sf "$OPENCODE_DIR/node_modules/.bin/$bin" "$HOME/.local/bin/$bin" 2>/dev/null && \
+      echo -e "  ${GREEN}✓${RESET} $bin installed (bun)" && return 0
+  fi
+  if command -v npm &>/dev/null; then
+    (cd "$OPENCODE_DIR" && npm install "$pkg" &>/dev/null) && \
+      ln -sf "$OPENCODE_DIR/node_modules/.bin/$bin" "$HOME/.local/bin/$bin" 2>/dev/null && \
+      echo -e "  ${GREEN}✓${RESET} $bin installed (npm)" && return 0
+  fi
+  echo -e "  ${YELLOW}⚠${RESET} $bin: no package manager found"
+  return 1
+}
+
+if [[ "$INSTALL_DEFUDDLE" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Installing defuddle...${RESET}"
+  _install_npm_cli "defuddle" "defuddle" || true
 fi
 
-if [[ "$INSTALL_AGENT_BROWSER" == 1 ]]; then
-    section "Installing agent-browser"
-    if command -v agent-browser &>/dev/null; then
-        ok "agent-browser ${DIM}(already installed)${RESET}"
-    elif command -v npm &>/dev/null; then
-        npm install -g agent-browser 2>&1 | tail -1 && ok "agent-browser installed"
-    else
-        warn "npm not available — install manually: npm install -g agent-browser"
-    fi
+if [[ "$INSTALL_AGENT_BROWSER" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Installing agent-browser...${RESET}"
+  _install_npm_cli "agent-browser" "agent-browser" || true
 fi
 
-# ─── Transcription backend ──────────────────────────────────────
-case "$TRANSCRIBE" in
-    nix)
-        section "Setting up transcription (nix flake)"
-        if command -v nix &>/dev/null; then
-            ok "nix found — transcribe script will use github:nkoturovic/kotur-nixpkgs#whisper-cpp-vulkan on first run"
-            log "    ${DIM}(model auto-downloaded to ~/.local/share/opencode/models/whisper/ on first use)${RESET}"
-        else
-            warn "nix not found. Install nix first: https://nixos.org/download.html"
-            warn "Then 'transcribe' will work automatically."
-        fi
-        ;;
-    system)
-        section "Setting up transcription (system whisper-cpp)"
-        if command -v whisper-cli &>/dev/null; then
-            ok "whisper-cli already present: $(command -v whisper-cli)"
-        else
-            log "  Install whisper.cpp via your package manager:"
-            case "$PLATFORM" in
-                Darwin) log "    ${DIM}brew install whisper-cpp${RESET}" ;;
-                Linux)
-                    log "    ${DIM}# Debian/Ubuntu: build from source (no apt package yet)${RESET}"
-                    log "    ${DIM}#   git clone https://github.com/ggerganov/whisper.cpp${RESET}"
-                    log "    ${DIM}#   cd whisper.cpp && make${RESET}"
-                    log "    ${DIM}# Fedora: dnf install whisper-cpp${RESET}"
-                    log "    ${DIM}# Arch:   pacman -S whisper.cpp${RESET}" ;;
-            esac
-            warn "Then edit $OPENCODE_DIR/scripts/transcribe to use 'whisper-cli' instead of 'nix run'."
-        fi
-        ;;
-    openai)
-        section "Setting up transcription (OpenAI Whisper API)"
-        warn "transcribe script currently uses whisper.cpp via nix."
-        warn "For OpenAI API: replace the 'exec nix run ...' line with a curl to https://api.openai.com/v1/audio/transcriptions"
-        log "    ${DIM}Quick reference: https://platform.openai.com/docs/api-reference/audio${RESET}"
-        ;;
-    skip)
-        section "Transcription skipped"
-        log "  ${DIM}lecture-notes and audio-analysis skills will require manual setup.${RESET}"
-        ;;
-esac
-
-# ─── Obsidian install ───────────────────────────────────────────
-if [[ "$INSTALL_OBSIDIAN" == 1 ]]; then
-    section "Installing Obsidian"
-    _obsidian_installed() {
-        command -v obsidian &>/dev/null && return 0
-        [[ -f /Applications/Obsidian.app/Contents/MacOS/Obsidian ]] && return 0
-        [[ -f "${XDG_BIN_HOME:-$HOME/.local/bin}/Obsidian.AppImage" ]] && return 0
-        return 1
-    }
-    if _obsidian_installed; then
-        ok "Obsidian already installed"
-    elif [[ "$PLATFORM" == "Darwin" ]] && command -v brew &>/dev/null; then
-        brew install --cask obsidian 2>&1 | tail -3 && ok "Installed via Homebrew"
-    elif [[ "$IS_WSL" == 1 ]]; then
-        warn "WSL detected — install Obsidian on Windows side: https://obsidian.md"
-    elif [[ "$PLATFORM" == "Linux" ]] && command -v flatpak &>/dev/null; then
-        flatpak install -y flathub md.obsidian.Obsidian 2>&1 | tail -3 && ok "Installed via Flatpak"
-    elif [[ "$PLATFORM" == "Linux" ]]; then
-        # AppImage download
-        TAG=$(curl -fsSI https://github.com/obsidianmd/obsidian-releases/releases/latest 2>/dev/null \
-            | grep -i '^location:' | tr -d '\r' | sed 's|.*/tag/||' || true)
-        if [[ -n "$TAG" ]]; then
-            VER="${TAG#v}"
-            case "$ARCH" in
-                x86_64|amd64) AIMG="Obsidian-$VER.AppImage" ;;
-                aarch64|arm64) AIMG="Obsidian-$VER-arm64.AppImage" ;;
-                *) AIMG="" ;;
-            esac
-            if [[ -n "$AIMG" ]]; then
-                INSTALL_BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
-                mkdir -p "$INSTALL_BIN"
-                if curl -fsSL -o "$INSTALL_BIN/Obsidian.AppImage" "https://github.com/obsidianmd/obsidian-releases/releases/download/$TAG/$AIMG"; then
-                    chmod +x "$INSTALL_BIN/Obsidian.AppImage"
-                    ok "Installed: $INSTALL_BIN/Obsidian.AppImage"
-                else
-                    warn "Download failed — get it from https://obsidian.md"
-                fi
-            else
-                warn "Unsupported architecture: $ARCH"
-            fi
-        fi
+# ── Install Obsidian ─────────────────────────────────────────────────
+if [[ "$INSTALL_OBSIDIAN" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Obsidian (wiki viewer/editor)${RESET}"
+  _obsidian_installed() {
+    command -v obsidian &>/dev/null && return 0
+    [[ -f /Applications/Obsidian.app/Contents/MacOS/Obsidian ]] && return 0
+    [[ -f "${XDG_BIN_HOME:-$HOME/.local/bin}/Obsidian.AppImage" ]] && return 0
+    return 1
+  }
+  if _obsidian_installed; then
+    echo -e "  ${DIM}Already installed (skipped)${RESET}"
+  else
+    echo -e "  ${YELLOW}Not found. Install from https://obsidian.md${RESET}"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      echo -e "  ${DIM}macOS: brew install --cask obsidian${RESET}"
+    elif grep -qi microsoft /proc/version 2>/dev/null; then
+      echo -e "  ${DIM}WSL: download from https://obsidian.md and install on Windows${RESET}"
     else
-        warn "Could not auto-install Obsidian — get it from https://obsidian.md"
+      echo -e "  ${DIM}Linux: flatpak install flathub md.obsidian.Obsidian${RESET}"
+      echo -e "  ${DIM}    or: download AppImage from https://obsidian.md${RESET}"
     fi
+    echo -e "  ${DIM}Then open ~/wiki/ as a vault${RESET}"
+  fi
+  unset -f _obsidian_installed 2>/dev/null || true
 fi
 
-# ─── Cron setup ─────────────────────────────────────────────────
-if [[ "$SETUP_CRON" == 1 ]]; then
-    section "Setting up weekly log cleanup cron"
-    CRON_LINE="0 3 * * 0 $OPENCODE_DIR/scripts/cleanup-logs.sh"
-    if command -v crontab &>/dev/null; then
-        if crontab -l 2>/dev/null | grep -F -q "cleanup-logs.sh"; then
-            ok "cron entry already exists"
-        else
-            (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
-            ok "Added: $CRON_LINE"
-        fi
+# ── Cron setup ───────────────────────────────────────────────────────
+if [[ "$SETUP_CRON" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Setting up weekly cron job...${RESET}"
+  _CRON_CMD="0 0 * * 0 $OPENCODE_DIR/scripts/cleanup-logs.sh"
+  if command -v crontab &>/dev/null; then
+    if crontab -l 2>/dev/null | grep -qF "cleanup-logs.sh"; then
+      echo -e "  ${DIM}Cron job already exists (skipped)${RESET}"
     else
-        warn "crontab not available — run manually weekly: $OPENCODE_DIR/scripts/cleanup-logs.sh"
+      (crontab -l 2>/dev/null; echo "$_CRON_CMD") | crontab -
+      echo -e "  ${GREEN}✓${RESET} Weekly cron job added"
     fi
+  else
+    echo -e "  ${YELLOW}⚠${RESET} crontab not found. Add manually:"
+    echo "    $_CRON_CMD"
+  fi
+  unset _CRON_CMD
 fi
 
-# ─── Shared env-secrets ─────────────────────────────────────────
-if [[ "$SETUP_SECRETS" == 1 ]]; then
-    section "Setting up shared env-secrets at ~/.config/secrets/env"
-    SECRETS_DIR="$HOME/.config/secrets"
-    SECRETS_FILE="$SECRETS_DIR/env"
-    SECRETS_EXAMPLE="$REPO_ROOT/config/secrets-env.example"
-
-    mkdir -p "$SECRETS_DIR"
-    chmod 700 "$SECRETS_DIR" 2>/dev/null || true
-
-    # Bootstrap from template (preserves existing file content)
-    if [[ ! -f "$SECRETS_FILE" ]]; then
-        if [[ -f "$SECRETS_EXAMPLE" ]]; then
-            cp "$SECRETS_EXAMPLE" "$SECRETS_FILE"
-            ok "Created $SECRETS_FILE from template"
-        else
-            cat > "$SECRETS_FILE" <<'EOF'
-# Occam's Code shared API secrets — sourced by ~/.profile.
-# chmod 600 — never commit, never share.
-EOF
-            ok "Created $SECRETS_FILE"
-        fi
-    else
-        ok "$SECRETS_FILE exists — will update in place"
+# ── PATH setup ───────────────────────────────────────────────────────
+if [[ "$SETUP_PATH" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Setting up PATH...${RESET}"
+  _PATH_EXPORT='export PATH="$HOME/.config/opencode/bin:$PATH"'
+  for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+    if [[ -f "$rc" ]]; then
+      if grep -qF "$HOME/.config/opencode/bin" "$rc"; then
+        echo -e "  ${DIM}Already in $rc (skipped)${RESET}"
+      else
+        echo "$_PATH_EXPORT" >> "$rc"
+        echo -e "  ${GREEN}✓${RESET} Added to $rc"
+      fi
     fi
-
-    # Idempotent set: remove any existing 'export VAR=' line, append new value
-    set_secret() {
-        local var="$1" val="$2"
-        [[ -z "$val" ]] && return 0
-        # Strip surrounding whitespace
-        val="${val#"${val%%[![:space:]]*}"}"
-        val="${val%"${val##*[![:space:]]}"}"
-        [[ -z "$val" ]] && return 0
-        # Remove any existing line(s) for this var (commented or not)
-        local tmp; tmp="$(mktemp)"
-        grep -vE "^[[:space:]]*#?[[:space:]]*export[[:space:]]+${var}=" "$SECRETS_FILE" > "$tmp" || true
-        mv "$tmp" "$SECRETS_FILE"
-        # Append using printf %q to escape special characters safely
-        printf 'export %s=%q\n' "$var" "$val" >> "$SECRETS_FILE"
-    }
-
-    # Prompt for selected providers' keys
-    prompt_key() {
-        local label="$1" var="$2" envname="$3"
-        local val="${!envname:-}"
-        if [[ -z "$val" && "$UNATTENDED" != 1 ]]; then
-            read -r -s -p "  $label (input hidden, blank to skip): " val < /dev/tty || true
-            log ""
-        fi
-        set_secret "$var" "$val"
-    }
-
-    is_in_csv "openrouter" "$PROVIDERS" && prompt_key "OpenRouter key"      "OPENROUTER_API_KEY" "OCCAM_OPENROUTER_KEY"
-    is_in_csv "deepseek"   "$PROVIDERS" && prompt_key "DeepSeek key"        "DEEPSEEK_API_KEY"   "OCCAM_DEEPSEEK_KEY"
-    is_in_csv "anthropic"  "$PROVIDERS" && prompt_key "Anthropic key"       "ANTHROPIC_API_KEY"  "OCCAM_ANTHROPIC_KEY"
-    is_in_csv "zai"        "$PROVIDERS" && [[ -n "$ZAI_API_KEY" && "$ZAI_API_KEY" != "YOUR_ZAI_API_KEY" ]] && \
-        set_secret "Z_AI_API_KEY" "$ZAI_API_KEY"
-    is_in_csv "kimi"       "$PROVIDERS" && prompt_key "Kimi for Coding key" "KIMI_API_KEY"       "OCCAM_KIMI_KEY"
-
-    # Always offer HF_TOKEN + EXA_API_KEY (used by transcribe + websearch MCP)
-    log "${DIM}  Optional tokens (used by scripts/MCPs, not by OpenCode itself):${RESET}"
-    prompt_key "HF_TOKEN (HuggingFace, for whisper.cpp model downloads + MCPs)" "HF_TOKEN"     "OCCAM_HF_TOKEN"
-    prompt_key "EXA_API_KEY (websearch MCP higher quotas)"                      "EXA_API_KEY"  "OCCAM_EXA_API_KEY"
-
-    chmod 600 "$SECRETS_FILE"
-    secret_count="$(grep -cE '^export ' "$SECRETS_FILE" 2>/dev/null || echo 0)"
-    ok "$secret_count active env vars in $SECRETS_FILE (mode 600)"
-
-    # Ensure ~/.profile sources the file (sourced by both bash and zsh login shells)
-    PROFILE="$HOME/.profile"
-    if ! grep -F -q '.config/secrets/env' "$PROFILE" 2>/dev/null; then
-        printf '\n# Occam'\''s Code: source shared API secrets\n[ -f "$HOME/.config/secrets/env" ] && . "$HOME/.config/secrets/env"\n' >> "$PROFILE"
-        ok "Added sourcing line to ~/.profile"
-    else
-        ok "~/.profile already sources the secrets file"
-    fi
-    log "    ${DIM}Restart shell or 'source ~/.profile' to load the keys into your session.${RESET}"
+  done
+  unset _PATH_EXPORT
 fi
 
-# ─── PATH setup ─────────────────────────────────────────────────
-if [[ "$SETUP_PATH" == 1 ]]; then
-    section "Adding 'oc' to PATH"
-    PATH_LINE='export PATH="$HOME/.config/opencode/bin:$PATH"'
-    # Determine which shell rc files to write. macOS Terminal launches login shells
-    # which read .bash_profile (not .bashrc); Linux interactive shells read .bashrc.
-    # We append to all relevant ones the user has, creating none.
-    RC_FILES=()
-    [[ -f "$HOME/.zshrc" ]] && RC_FILES+=("$HOME/.zshrc")
-    if [[ "$PLATFORM" == "Darwin" ]]; then
-        [[ -f "$HOME/.bash_profile" ]] && RC_FILES+=("$HOME/.bash_profile")
-        [[ -f "$HOME/.bashrc"        ]] && RC_FILES+=("$HOME/.bashrc")
+# ── Secrets setup ────────────────────────────────────────────────────
+if [[ "$SETUP_SECRETS" -eq 1 ]]; then
+  echo ""
+  echo -e "${BOLD}Setting up API secrets...${RESET}"
+
+  # Build secrets file content
+  _secrets=""
+  _prompt_for_key() {
+    local var_name="$1"
+    local display_name="$2"
+    local key_value=""
+    _ask_hidden "  $display_name API key (Enter to skip): " key_value
+    if [[ -n "$key_value" ]]; then
+      _secrets="${_secrets}export $var_name=\"$key_value\"\n"
+    fi
+  }
+
+  if [[ "$UNATTENDED" -eq 1 ]]; then
+    # In unattended mode, use env vars directly
+    [[ -n "${OCCAM_OPENROUTER_KEY:-}" ]] && _secrets="${_secrets}export OPENROUTER_API_KEY=\"$OCCAM_OPENROUTER_KEY\"\n"
+    [[ -n "${OCCAM_DEEPSEEK_KEY:-}" ]]   && _secrets="${_secrets}export DEEPSEEK_API_KEY=\"$OCCAM_DEEPSEEK_KEY\"\n"
+    [[ -n "${OCCAM_ANTHROPIC_KEY:-}" ]]  && _secrets="${_secrets}export ANTHROPIC_API_KEY=\"$OCCAM_ANTHROPIC_KEY\"\n"
+    [[ -n "${OCCAM_KIMI_KEY:-}" ]]       && _secrets="${_secrets}export KIMI_API_KEY=\"$OCCAM_KIMI_KEY\"\n"
+    [[ -n "$ZAI_KEY" ]]                  && _secrets="${_secrets}export Z_AI_API_KEY=\"$ZAI_KEY\"\n"
+    [[ -n "${OCCAM_HF_TOKEN:-}" ]]       && _secrets="${_secrets}export HF_TOKEN=\"$OCCAM_HF_TOKEN\"\n"
+    [[ -n "${OCCAM_EXA_API_KEY:-}" ]]    && _secrets="${_secrets}export EXA_API_KEY=\"$OCCAM_EXA_API_KEY\"\n"
+  else
+    # Interactive mode: prompt for each selected provider
+    if [[ "$PROVIDERS" == *"openrouter"* ]]; then
+      _prompt_for_key "OPENROUTER_API_KEY" "OpenRouter"
+    fi
+    if [[ "$PROVIDERS" == *"deepseek"* ]]; then
+      _prompt_for_key "DEEPSEEK_API_KEY" "DeepSeek"
+    fi
+    if [[ "$PROVIDERS" == *"anthropic"* ]]; then
+      _prompt_for_key "ANTHROPIC_API_KEY" "Anthropic"
+    fi
+    if [[ "$PROVIDERS" == *"zai"* ]]; then
+      _prompt_for_key "Z_AI_API_KEY" "Z.AI"
+    fi
+    if [[ "$PROVIDERS" == *"kimi"* ]]; then
+      _prompt_for_key "KIMI_API_KEY" "Kimi"
+    fi
+    # Optional keys
+    _opt_hf=""
+    read -rp "  HuggingFace token (optional, for model downloads): " _opt_hf < /dev/tty
+    [[ -n "$_opt_hf" ]] && _secrets="${_secrets}export HF_TOKEN=\"$_opt_hf\"\n"
+    _opt_exa=""
+    read -rp "  Exa API key (optional, for websearch quotas): " _opt_exa < /dev/tty
+    [[ -n "$_opt_exa" ]] && _secrets="${_secrets}export EXA_API_KEY=\"$_opt_exa\"\n"
+  fi
+
+  if [[ -n "$_secrets" ]]; then
+    # Write secrets file (never overwrite existing — append new vars)
+    if [[ -f "$SECRETS_FILE" ]]; then
+      # Append only new variables
+      while IFS= read -r line; do
+        if [[ -n "$line" && "$line" == export\ * ]]; then
+          _varname="${line#export }"
+          _varname="${_varname%%=*}"
+          if ! grep -qF "$_varname=" "$SECRETS_FILE"; then
+            printf '%s\n' "$line" >> "$SECRETS_FILE"
+          fi
+        fi
+      done < <(echo -e "$_secrets")
+      echo -e "  ${GREEN}✓${RESET} Updated $SECRETS_FILE (new keys appended)"
     else
-        [[ -f "$HOME/.bashrc"        ]] && RC_FILES+=("$HOME/.bashrc")
-        [[ -f "$HOME/.bash_profile"  ]] && RC_FILES+=("$HOME/.bash_profile")
+      echo -e "# Occam's Code — shared API secrets\n# Generated by install.sh\n#\n$_secrets" > "$SECRETS_FILE"
+      chmod 600 "$SECRETS_FILE"
+      echo -e "  ${GREEN}✓${RESET} Created $SECRETS_FILE (mode 600)"
     fi
-    if [[ ${#RC_FILES[@]} -eq 0 ]]; then
-        # No existing rc files — create one for the current shell
-        if [[ "${SHELL:-}" == */zsh ]]; then
-            RC_FILES=("$HOME/.zshrc"); touch "$HOME/.zshrc"
-        else
-            RC_FILES=("$HOME/.bashrc"); touch "$HOME/.bashrc"
-        fi
+
+    # Ensure ~/.profile sources it
+    if [[ -f "$HOME/.profile" ]]; then
+      if ! grep -qF '.config/secrets/env' "$HOME/.profile"; then
+        printf '\n[ -f "$HOME/.config/secrets/env" ] && . "$HOME/.config/secrets/env"\n' >> "$HOME/.profile"
+        echo -e "  ${GREEN}✓${RESET} Added source line to ~/.profile"
+      else
+        echo -e "  ${DIM}~/.profile already sources secrets (skipped)${RESET}"
+      fi
+    else
+      printf '[ -f "$HOME/.config/secrets/env" ] && . "$HOME/.config/secrets/env"\n' > "$HOME/.profile"
+      echo -e "  ${GREEN}✓${RESET} Created ~/.profile with secrets source"
     fi
-    for rc in "${RC_FILES[@]}"; do
-        if grep -F -q ".config/opencode/bin" "$rc" 2>/dev/null; then
-            ok "PATH already set in $rc"
-        else
-            printf '\n# Occam'\''s Code launcher\n%s\n' "$PATH_LINE" >> "$rc"
-            ok "Appended to $rc"
-        fi
-    done
-    log "    ${DIM}Restart your shell or 'source ~/.bashrc' (or .zshrc / .bash_profile) to activate.${RESET}"
+  else
+    echo -e "  ${DIM}No secrets provided (skipped)${RESET}"
+  fi
+
+  unset _secrets _varname _opt_hf _opt_exa
 fi
 
-# ═══ POST-INSTALL ═══════════════════════════════════════════════
-section "Verification"
-[[ -f "$OPENCODE_DIR/bin/oc" ]] && ok "bin/oc present" || err "bin/oc MISSING"
-[[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]] && ok "oh-my-opencode-slim.json present" || err "slim.json MISSING"
-[[ -f "$OPENCODE_DIR/opencode.json" ]] && ok "opencode.json present" || err "opencode.json MISSING"
-[[ -f "$OPENCODE_DIR/AGENTS.md" ]] && ok "AGENTS.md present" || err "AGENTS.md MISSING"
-[[ -f "$WIKI_DIR/index.md" ]] && ok "wiki/index.md present" || err "wiki/index.md MISSING"
-[[ -d "$WIKI_DIR/wiki/concepts" ]] && ok "wiki/wiki/concepts/ ($(find "$WIKI_DIR/wiki/concepts" -name '*.md' 2>/dev/null | wc -l) pages)"
-
-# JSON validity
-if jq empty "$OPENCODE_DIR/opencode.json" 2>/dev/null && jq empty "$OPENCODE_DIR/oh-my-opencode-slim.json" 2>/dev/null; then
-    ok "JSON files valid"
+# ── Post-install verification ────────────────────────────────────────
+echo ""
+echo -e "${BOLD}Running post-install verification...${RESET}"
+if command -v oc &>/dev/null || [[ -x "$OPENCODE_DIR/bin/oc" ]]; then
+  if "$OPENCODE_DIR/bin/oc" --doctor 2>/dev/null; then
+    echo -e "  ${GREEN}✓${RESET} oc --doctor passed"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} oc --doctor reported issues (see above)"
+  fi
 else
-    err "Some JSON files have syntax errors"
+  echo -e "  ${YELLOW}⚠${RESET} oc not in PATH yet. After reloading your shell, run: oc --doctor"
 fi
 
-# End-to-end check via oc --doctor (best effort — needs bash 4+)
-if [[ "${BASH_VERSINFO[0]:-0}" -ge 4 && -x "$OPENCODE_DIR/bin/oc" ]]; then
-    log ""
-    log "${DIM}  Running 'oc --doctor' for end-to-end check...${RESET}"
-    if "$OPENCODE_DIR/bin/oc" --doctor 2>&1 | sed 's/^/    /'; then
-        ok "oc --doctor passed"
-    else
-        warn "oc --doctor reported issues (output above) — usually harmless if you haven't set up auth.json yet"
-    fi
-fi
-
-# ─── Done + next steps ──────────────────────────────────────────
-log ""
-hr
-log "${GREEN}${BOLD}  Installation complete!${RESET}"
-hr
-log ""
-log "${BOLD}Next steps:${RESET}"
-[[ "$SETUP_PATH" != 1 ]] && \
-    log "  ${CYAN}1.${RESET} Add to PATH: ${DIM}echo 'export PATH=\"\$HOME/.config/opencode/bin:\$PATH\"' >> ~/.bashrc${RESET}"
-log "  ${CYAN}2.${RESET} Set up API keys at ${BOLD}~/.local/share/opencode/auth.json${RESET}"
-log "     Format: ${DIM}{\"openrouter\":{\"api_key\":\"sk-or-v1-...\"}, ...}${RESET}"
-log "     ${DIM}Or run 'opencode' which guides interactive auth setup.${RESET}"
-log ""
-log "  Get keys from:"
-is_in_csv "openrouter" "$PROVIDERS" && log "     OpenRouter:  ${CYAN}https://openrouter.ai/keys${RESET}"
-is_in_csv "deepseek"   "$PROVIDERS" && log "     DeepSeek:    ${CYAN}https://platform.deepseek.com/api_keys${RESET}"
-is_in_csv "anthropic"  "$PROVIDERS" && log "     Anthropic:   ${CYAN}https://console.anthropic.com${RESET}"
-is_in_csv "zai"        "$PROVIDERS" && log "     Z.AI:        ${CYAN}https://z.ai${RESET}"
-is_in_csv "kimi"       "$PROVIDERS" && log "     Kimi:        ${CYAN}https://platform.moonshot.cn${RESET}"
-log ""
-log "  ${CYAN}3.${RESET} Verify:  ${BOLD}oc --doctor${RESET}"
-log "  ${CYAN}4.${RESET} Open ${BOLD}~/wiki/${RESET} in Obsidian as a vault"
-log "  ${CYAN}5.${RESET} Launch:  ${BOLD}oc${RESET}"
-log ""
-log "${DIM}Documentation: $REPO_ROOT/README.md, $REPO_ROOT/INSTALL.md${RESET}"
-log ""
+# ── Done ─────────────────────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}Installation complete!${RESET}"
+echo ""
+echo "Next steps:"
+[[ "$SETUP_PATH" -eq 1 ]] && echo "  1. Reload your shell: source ~/.profile  (or open a new terminal)"
+echo "  2. Run: oc --doctor"
+echo "  3. Open ~/wiki/ in Obsidian"
+echo "  4. Launch: oc"
+echo ""

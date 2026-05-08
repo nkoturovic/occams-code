@@ -176,6 +176,11 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
         "reviewer-2": {"model": "openrouter/z-ai/glm-5.1"},
         "reviewer-3": {"model": "openrouter/google/gemini-3.1-pro-preview"},
     },
+    "deepseek": {
+        "reviewer-1": {"model": "kimi-for-coding/kimi-for-coding"},
+        "reviewer-2": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
+    },
 }
 
 

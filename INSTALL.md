@@ -65,12 +65,13 @@ cd occams-code
 The installer asks:
 
 1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi — multi-select)
-2. **Default preset** (`balanced` / `cheap` / `premium` / `custom`) — auto-recommended based on providers
+2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom`) — auto-recommended based on providers
 3. **Z.AI MCPs** — only asked if you selected Z.AI; injects `zai_vision` + `web-search-prime` blocks with your API key
 4. **Transcription backend** (nix whisper.cpp / system whisper-cpp / OpenAI API / skip)
 5. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
 6. **Weekly cron** for log cleanup
 7. **PATH setup** — appends `oc` to your shell rc
+8. **API keys** — writes selected provider keys to `~/.config/secrets/env`
 
 It confirms a summary before doing any work, then runs.
 
@@ -81,7 +82,7 @@ After install, set up your API keys. Occam's Code uses **two complementary secre
 | **OpenCode auth** | `~/.local/share/opencode/auth.json` | OpenCode itself (per-provider) | JSON |
 | **Shared env-secrets** | `~/.config/secrets/env` | Scripts (`analyze-video.py`, `transcribe`), MCPs (Exa websearch), HF model downloads | shell `export VAR=...` |
 
-The installer's **step 7** writes both — interactively prompts for each selected provider's API key (input hidden), and writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. If you skipped this step, set them up manually:
+The installer's **step 8** writes both — interactively prompts for each selected provider's API key (input hidden), and writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. If you skipped this step, set them up manually:
 
 **OpenCode auth.json** (per-provider keys for the agent itself):
 
@@ -166,7 +167,7 @@ OCCAM_SETUP_PATH=1 \
 | Variable | Values | Default |
 |----------|--------|---------|
 | `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi` | `openrouter` |
-| `OCCAM_PRESET` | `balanced` / `cheap` / `premium` / `custom` | `balanced` |
+| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
 | `OCCAM_TRANSCRIBE` | `nix` / `system` / `openai` / `skip` | `skip` |
@@ -251,33 +252,19 @@ jq '.preset = "balanced"' ~/.config/opencode/oh-my-opencode-slim.json > /tmp/c.j
 
 ---
 
-## Z.AI MCPs (Opt-in)
+## Z.AI MCPs
 
-The default repo config does **not** include `zai_vision` or `web-search-prime` MCPs — they're redundant with the multimodal observer agent + Exa websearch (built-in plugin) for users without Z.AI subscription.
+The default config ships `zai_vision` and `web-search-prime` MCPs as enabled. They require `Z_AI_API_KEY` to be set in your environment (the config uses `{env:Z_AI_API_KEY}` template). Without the key, they fail silently — the agent falls back to the built-in multimodal observer and Exa websearch.
 
-To enable them after install (or if you skipped them during install):
+To activate, set the key:
 
 ```bash
-ZAI_KEY="your-zai-api-key"
-
-jq --arg key "$ZAI_KEY" '
-  .mcp.zai_vision = {
-    "type": "local",
-    "command": ["npx", "-y", "@z_ai/mcp-server"],
-    "environment": { "Z_AI_API_KEY": $key, "Z_AI_MODE": "ZAI" },
-    "enabled": true,
-    "timeout": 600000
-  } |
-  .mcp["web-search-prime"] = {
-    "type": "remote",
-    "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-    "headers": { "Authorization": ("Bearer " + $key) },
-    "enabled": true,
-    "timeout": 60000
-  }
-' ~/.config/opencode/opencode.json > /tmp/c.json \
-  && mv /tmp/c.json ~/.config/opencode/opencode.json
+# Add to ~/.config/secrets/env
+export Z_AI_API_KEY="your-zai-api-key"
+source ~/.profile
 ```
+
+The installer also offers to set this up during interactive install (Q3).
 
 The agent-config `mcps` lists in `oh-my-opencode-slim.json` already reference these names — no further changes needed.
 
