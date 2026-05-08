@@ -93,6 +93,12 @@
           "zai_vision"
         ],
         "temperature": 1.0
+      },
+      "council": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": []
       }
     },
     "balanced": {
@@ -171,6 +177,12 @@
           "zai_vision"
         ],
         "temperature": 1.0
+      },
+      "council": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+        "skills": [],
+        "mcps": []
       }
     },
     "premium": {
@@ -249,6 +261,12 @@
           "zai_vision"
         ],
         "temperature": 1.0
+      },
+      "council": {
+        "model": "anthropic/claude-opus-4-7",
+        "variant": "max",
+        "skills": [],
+        "mcps": []
       }
     },
     "cheap": {
@@ -327,13 +345,13 @@
           "zai_vision"
         ],
         "temperature": 1.0
+      },
+      "council": {
+        "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
+        "skills": [],
+        "mcps": []
       }
-    }
-  },
-  "agents": {
-    "council": {
-      "model": "deepseek/deepseek-v4-pro",
-      "variant": "max"
     }
   },
   "fallback": {

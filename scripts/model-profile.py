@@ -253,16 +253,12 @@ def build_presets(preset_map: dict[str, dict[str, Any]]) -> dict[str, dict[str, 
     Output:
       { "cheap": { "orchestrator": {...}, ... }, ... }
     """
-    agent_names = list(AGENT_DEFAULTS.keys())
     presets: dict[str, dict[str, Any]] = {}
 
     for preset_name, agents in preset_map.items():
         preset_agents: dict[str, Any] = {}
-        for agent_name in agent_names:
-            if agent_name not in agents:
-                print(f"Warning: {preset_name}.{agent_name} missing from model-map, using defaults", file=sys.stderr)
-                continue
-            preset_agents[agent_name] = build_agent_config(agent_name, agents[agent_name])
+        for agent_name, agent_cfg in agents.items():
+            preset_agents[agent_name] = build_agent_config(agent_name, agent_cfg)
         presets[preset_name] = preset_agents
 
     return presets
@@ -286,13 +282,6 @@ def build_council(council_map: dict[str, Any] | None) -> dict[str, Any]:
 
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
     """Generate the complete oh-my-opencode-slim.json from model-map input."""
-    # Council synthesizer model override — prevents fallback to plugin
-    # hardcoded default (openai/gpt-5.4-mini in constants.ts:78).
-    council_cfg = model_map.get("council_model")
-    agents_override = {}
-    if council_cfg:
-        agents_override["council"] = dict(council_cfg)
-
     return {
         "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
@@ -304,7 +293,6 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
             "autoEnableThreshold": 4,
         }),
         "presets": build_presets(model_map.get("presets", {})),
-        "agents": agents_override,
         "fallback": {
             "enabled": True,
             "timeoutMs": 60000,
