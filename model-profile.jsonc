@@ -14,44 +14,46 @@
     "custom": {
       "orchestrator": { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
-      "designer":     { "model": "openrouter/~google/gemini-pro-latest", "reasoningEffort": "max", "temperature": 1.0 },
+      "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
       "explorer":     { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "librarian":    { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "fixer":        { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 0.7 },
-      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "reasoningEffort": "max", "temperature": 1.0 }
+      // Gemini: variant "high" (default) produces reasoningEffort:"high" — maximum available
+      // through @ai-sdk/openai-compatible + OpenRouter. No need to set reasoningEffort here.
+      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 }
     },
 
     // ============ BALANCED (OpenRouter-first, best cost/quality) ============
     "balanced": {
       "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high" },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
-      "designer":     { "model": "openrouter/~google/gemini-flash-latest", "reasoningEffort": "max", "temperature": 1.0 },
+      "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high" },
       "librarian":    { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high" },
       "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high" },
-      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "reasoningEffort": "max", "temperature": 1.0 }
+      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 }
     },
 
     // ============ PREMIUM (best available, no cost concern) ============
     "premium": {
       "orchestrator": { "model": "anthropic/claude-opus-4-7", "variant": "max" },
       "oracle":       { "model": "anthropic/claude-opus-4-7", "variant": "max" },
-      "designer":     { "model": "openrouter/~google/gemini-pro-latest", "reasoningEffort": "max", "temperature": 1.0 },
+      "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
       "explorer":     { "model": "anthropic/claude-sonnet-4-6", "variant": "high" },
       "librarian":    { "model": "anthropic/claude-sonnet-4-6", "variant": "high" },
       "fixer":        { "model": "anthropic/claude-sonnet-4-6", "variant": "high" },
-      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "reasoningEffort": "max", "temperature": 1.0 }
+      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 }
     },
 
     // ============ CHEAP (budget-optimized, free models where possible) ============
     "cheap": {
       "orchestrator": { "model": "openrouter/qwen/qwen3-coder", "variant": "high" },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
-      "designer":     { "model": "openrouter/~google/gemini-flash-latest", "reasoningEffort": "max", "temperature": 1.0 },
+      "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high" },
       "librarian":    { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high" },
       "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high" },
-      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "reasoningEffort": "max", "temperature": 1.0 }
+      "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 }
     }
   }
 }

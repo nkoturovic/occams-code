@@ -93,7 +93,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Observer skills: `["video-analysis", "lecture-notes", "audio-analysis"]` in all presets — keep `audio-analysis` (resolves AGENTS.md inconsistency).
 - [ ] Custom model table in AGENTS.md → replace with pointer to oh-my-opencode-slim.json
 - [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.jsonc` → strip personal models
-- [ ] **Hardcoded API keys in opencode.json `mcp.*.environment` / `mcp.*.headers`**: live may have real Z.AI keys baked in (lines reference `REDACTED_ZAI_KEY.*`). Repo never has these — Z.AI MCP blocks themselves are removed. If you're forced to keep MCPs in repo with placeholder, use `"YOUR_ZAI_API_KEY"`.
+- [ ] **Hardcoded API keys in opencode.json `mcp.*.environment` / `mcp.*.headers`**: live may have real Z.AI keys baked in. Repo never has these — Z.AI MCP blocks themselves are removed. If you're forced to keep MCPs in repo with placeholder, use `"YOUR_ZAI_API_KEY"`.
 - [ ] Do NOT commit `oh-my-opencode-slim.json` to repo root — only `config/oh-my-opencode-slim.json`
 - [ ] Trim unreferenced models from `provider.opencode.models` (TUI metadata duplicates), unused OpenRouter entries (e.g., `openai/gpt-5.4` if not in any agent/fallback), unused direct deepseek (`deepseek-v3.2` direct version if only `openrouter/deepseek/deepseek-v3.2` is used)
 - [ ] Keep `deepseek-v4-flash` declared (useful Flash-tier option for direct DeepSeek users editing model-profile)

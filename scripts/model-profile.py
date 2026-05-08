@@ -221,11 +221,11 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
             "thinking": {"type": "enabled", "budgetTokens": budget}
         }
     elif is_gemini:
-        # Gemini — reasoningEffort (low/medium/high/max), no budgetTokens
-        effort = override.get("reasoningEffort", "high")
-        config["options"] = {
-            "reasoningEffort": effort
-        }
+        # Gemini through OpenRouter (@ai-sdk/openai-compatible):
+        # variant system auto-generates {reasoningEffort: "high"} from the
+        # "high" variant — the maximum available. No manual options needed.
+        # Any reasoningEffort set here would be overridden by the variant anyway.
+        pass
     elif is_deepseek_v4:
         # DeepSeek V4 Pro — no special options needed
         pass

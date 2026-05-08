@@ -43,9 +43,6 @@
           "context7",
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       },
       "explorer": {
@@ -95,9 +92,6 @@
         "mcps": [
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       }
     },
@@ -135,9 +129,6 @@
           "context7",
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       },
       "explorer": {
@@ -179,9 +170,6 @@
         "mcps": [
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       }
     },
@@ -219,9 +207,6 @@
           "context7",
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       },
       "explorer": {
@@ -263,9 +248,6 @@
         "mcps": [
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       }
     },
@@ -303,9 +285,6 @@
           "context7",
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       },
       "explorer": {
@@ -347,9 +326,6 @@
         "mcps": [
           "zai_vision"
         ],
-        "options": {
-          "reasoningEffort": "max"
-        },
         "temperature": 1.0
       }
     }
@@ -458,3 +434,4 @@
     }
   }
 }
+
