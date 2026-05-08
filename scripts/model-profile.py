@@ -109,7 +109,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/qwen/qwen3-coder:free",
     ],
     "oracle": [
-        "deepseek/deepseek-v3.2",
+        "openrouter/deepseek/deepseek-v3.2",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free",
@@ -158,27 +158,23 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
 
 COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
     "custom": {
-        "master":     {"model": "zai-coding-plan/glm-5.1", "temperature": 0.6},
-        "reviewer-1": {"model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0},
-        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.6},
-        "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6", "temperature": 0.3},
+        "reviewer-1": {"model": "kimi-for-coding/kimi-for-coding"},
+        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus"},
+        "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
     },
     "balanced": {
-        "master":     {"model": "anthropic/claude-sonnet-4-6", "temperature": 0.3},
-        "reviewer-1": {"model": "openrouter/z-ai/glm-5.1", "temperature": 1.0},
-        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.6},
+        "reviewer-1": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus"},
     },
     "cheap": {
-        "master":     {"model": "openrouter/deepseek/deepseek-v3.2", "temperature": 0.3},
-        "reviewer-1": {"model": "openrouter/qwen/qwen3-coder", "temperature": 1.0},
-        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.6},
-        "reviewer-3": {"model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "temperature": 1.0},
+        "reviewer-1": {"model": "openrouter/qwen/qwen3-coder"},
+        "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus"},
+        "reviewer-3": {"model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free"},
     },
     "premium": {
-        "master":     {"model": "anthropic/claude-opus-4-6", "temperature": 0.3},
-        "reviewer-1": {"model": "anthropic/claude-sonnet-4-6", "temperature": 0.6},
-        "reviewer-2": {"model": "openrouter/z-ai/glm-5.1", "temperature": 1.0},
-        "reviewer-3": {"model": "openrouter/google/gemini-3.1-pro-preview", "temperature": 1.0},
+        "reviewer-1": {"model": "anthropic/claude-sonnet-4-6"},
+        "reviewer-2": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-3": {"model": "openrouter/google/gemini-3.1-pro-preview"},
     },
 }
 
@@ -235,9 +231,10 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
         pass
     elif is_glm_zai:
         # GLM 5.1 — explicit thinking config matching model options
+        effort = override.get("reasoningEffort", "max")
         config["options"] = {
             "thinking": {"type": "enabled", "clear_thinking": False},
-            "reasoningEffort": "high"
+            "reasoningEffort": effort
         }
 
     # Temperature applies to ALL models (including thinking-mode ones)
@@ -279,11 +276,8 @@ def build_council(council_map: dict[str, Any] | None) -> dict[str, Any]:
         # Ensure default_preset matches the active preset
         if "default_preset" not in result:
             result["default_preset"] = "custom"
-        if "master" not in result:
-            result["master"] = {"model": "zai-coding-plan/glm-5.1"}
         return result
     return {
-        "master": {"model": "zai-coding-plan/glm-5.1"},
         "default_preset": "custom",
         "councillor_execution_mode": "parallel",
         "presets": COUNCIL_PRESETS,

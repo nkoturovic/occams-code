@@ -12,6 +12,7 @@
         "deepseek-v4-pro": {
           "name": "DeepSeek V4 Pro",
           "reasoning": true,
+          "temperature": true,
           "interleaved": {
             "field": "reasoning_content"
           },
@@ -42,6 +43,7 @@
         "deepseek-v4-flash": {
           "name": "DeepSeek V4 Flash",
           "reasoning": true,
+          "temperature": true,
           "interleaved": {
             "field": "reasoning_content"
           },
@@ -82,6 +84,7 @@
         "kimi-for-coding": {
           "name": "Kimi for Coding (K2.6)",
           "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 262144,
             "output": 262144
@@ -111,6 +114,7 @@
         "glm-5.1": {
           "name": "GLM 5.1 (Z.AI)",
           "reasoning": true,
+          "temperature": true,
           "interleaved": {
             "field": "reasoning_content"
           },
@@ -123,7 +127,7 @@
               "type": "enabled",
               "clear_thinking": false
             },
-            "reasoningEffort": "high"
+            "reasoningEffort": "max"
           },
           "variants": {
             "high": {
@@ -193,13 +197,25 @@
       "models": {
         "z-ai/glm-5.1": {
           "name": "GLM 5.1 (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "interleaved": {
+            "field": "reasoning_content"
+          },
           "limit": {
             "context": 202000,
-            "output": 32768
+            "output": 65535
+          },
+          "options": {
+            "reasoning": {
+              "enabled": true
+            }
           }
         },
         "z-ai/glm-5v-turbo": {
           "name": "GLM 5V Turbo (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 202000,
             "output": 131072
@@ -217,6 +233,8 @@
         },
         "anthropic/claude-sonnet-4.6": {
           "name": "Claude Sonnet 4.6 (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -225,6 +243,7 @@
         "google/gemini-3.1-pro-preview": {
           "name": "Gemini 3.1 Pro Preview (via OpenRouter)",
           "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -241,19 +260,18 @@
             ]
           },
           "variants": {
-            "high": {
-              "temperature": 1.0
-            },
-            "max": {
-              "temperature": 1.0
-            },
-            "low": {
-              "temperature": 0.2
-            }
+            "high": {},
+            "max": {},
+            "low": {}
           }
         },
         "deepseek/deepseek-v3.2": {
           "name": "DeepSeek V3.2 (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "interleaved": {
+            "field": "reasoning_content"
+          },
           "limit": {
             "context": 128000,
             "output": 32768
@@ -261,6 +279,8 @@
         },
         "qwen/qwen3.6-plus": {
           "name": "Qwen 3.6 Plus (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -268,6 +288,8 @@
         },
         "qwen/qwen3-coder:free": {
           "name": "Qwen3 Coder Free (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 40000,
             "output": 16384
@@ -275,6 +297,8 @@
         },
         "nvidia/nemotron-3-super-120b-a12b:free": {
           "name": "Nemotron 3 Super Free (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 32000,
             "output": 16384
@@ -283,6 +307,7 @@
         "google/gemini-3-flash-preview": {
           "name": "Gemini 3 Flash Preview (via OpenRouter)",
           "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -299,19 +324,15 @@
             ]
           },
           "variants": {
-            "high": {
-              "temperature": 1.0
-            },
-            "max": {
-              "temperature": 1.0
-            },
-            "low": {
-              "temperature": 0.2
-            }
+            "high": {},
+            "max": {},
+            "low": {}
           }
         },
         "qwen/qwen3-coder": {
           "name": "Qwen3 Coder (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 131072,
             "output": 32768
@@ -319,6 +340,8 @@
         },
         "moonshotai/kimi-k2.6": {
           "name": "Kimi K2.6 (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 262144,
             "output": 262144
@@ -338,6 +361,7 @@
         "~google/gemini-pro-latest": {
           "name": "Gemini Pro (auto-updating)",
           "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 65536
@@ -354,17 +378,14 @@
             ]
           },
           "variants": {
-            "high": {
-              "temperature": 1.0
-            },
-            "low": {
-              "temperature": 0.2
-            }
+            "high": {},
+            "low": {}
           }
         },
         "~google/gemini-flash-latest": {
           "name": "Gemini Flash (auto-updating)",
           "reasoning": true,
+          "temperature": true,
           "limit": {
             "context": 1000000,
             "output": 65536
@@ -381,12 +402,8 @@
             ]
           },
           "variants": {
-            "high": {
-              "temperature": 1.0
-            },
-            "low": {
-              "temperature": 0.2
-            }
+            "high": {},
+            "low": {}
           }
         }
       }
@@ -405,6 +422,29 @@
       "type": "remote",
       "url": "https://mcp.grep.app",
       "enabled": true
+    },
+    "zai_vision": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@z_ai/mcp-server"
+      ],
+      "environment": {
+        "Z_AI_API_KEY": "${Z_AI_API_KEY}",
+        "Z_AI_MODE": "ZAI"
+      },
+      "enabled": true,
+      "timeout": 600000
+    },
+    "web-search-prime": {
+      "type": "remote",
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "headers": {
+        "Authorization": "Bearer ${Z_AI_API_KEY}"
+      },
+      "enabled": true,
+      "timeout": 60000
     }
   },
   "agent": {

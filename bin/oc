@@ -25,6 +25,9 @@ set -euo pipefail
 
 CONFIG="$HOME/.config/opencode/oh-my-opencode-slim.json"
 CORE_CONFIG="$HOME/.config/opencode/opencode.json"
+# Override 32K output token cap — match model capabilities not a one-size-fits-all floor
+export OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX=131072
+
 # Resolve project config: prefer .jsonc, fall back to .json (matches omo-slim behavior)
 PROJECT_CONFIG=""
 for _pc in ".opencode/oh-my-opencode-slim.jsonc" ".opencode/oh-my-opencode-slim.json"; do
@@ -241,6 +244,15 @@ run_doctor() {
   if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/wiki-lint.py" ]]; then
     echo ""
     python3 "$HOME/.config/opencode/scripts/wiki-lint.py" || true
+  fi
+
+  # Model config validation (opencode.json + slim.json integrity)
+  if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/doctor-model-check.py" ]]; then
+    echo ""
+    python3 "$HOME/.config/opencode/scripts/doctor-model-check.py" \
+      --core-config "$CORE_CONFIG" \
+      --slim-config "$CONFIG" \
+      --auth-config "$HOME/.local/share/opencode/auth.json" || status=1
   fi
 
   echo ""
