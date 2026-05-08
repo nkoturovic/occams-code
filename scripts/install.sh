@@ -380,11 +380,27 @@ _preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
 _preserve_copy "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
 
-# ── Set preset in oh-my-opencode-slim.json ───────────────────────────
-if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" && -n "$PRESET" ]]; then
-  jq ".preset = \"$PRESET\"" "$OPENCODE_DIR/oh-my-opencode-slim.json" > /tmp/oc-slim-$$.json \
-    && mv /tmp/oc-slim-$$.json "$OPENCODE_DIR/oh-my-opencode-slim.json"
-  echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in oh-my-opencode-slim.json"
+# ── Set preset in config files ───────────────────────────────────
+if [[ -n "${PRESET:-}" ]]; then
+  # Validate preset name
+  case "$PRESET" in
+    custom|balanced|cheap|premium|deepseek) ;;
+    *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
+  esac
+
+  # Update oh-my-opencode-slim.json (preset + council.default_preset)
+  if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]]; then
+    jq --arg p "$PRESET" '.preset = $p | .council.default_preset = $p' \
+      "$OPENCODE_DIR/oh-my-opencode-slim.json" > /tmp/oc-slim-$$.json \
+      && mv /tmp/oc-slim-$$.json "$OPENCODE_DIR/oh-my-opencode-slim.json"
+    echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in oh-my-opencode-slim.json"
+  fi
+
+  # Update model-profile.jsonc (sed preserves JSONC comments)
+  if [[ -f "$OPENCODE_DIR/model-profile.jsonc" ]]; then
+    sed -i 's/"preset": "[^"]*"/"preset": "'"$PRESET"'"/' "$OPENCODE_DIR/model-profile.jsonc"
+    echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in model-profile.jsonc"
+  fi
 fi
 
 # ── Z.AI MCP injection ───────────────────────────────────────────────
