@@ -27,7 +27,7 @@
 
     // ============ BALANCED (OpenRouter-first, best cost/quality) ============
     "balanced": {
-      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high" },
+      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 0.7 },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high" },
