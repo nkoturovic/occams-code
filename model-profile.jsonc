@@ -17,7 +17,7 @@
       "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
       "explorer":     { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "librarian":    { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
-      "fixer":        { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 0.7 },
+      "fixer":        { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 0.8 },
       // Gemini: variant "high" (default) produces reasoningEffort:"high" — maximum available
       // through @ai-sdk/openai-compatible + OpenRouter. No need to set reasoningEffort here.
       "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
@@ -27,7 +27,7 @@
 
     // ============ BALANCED (OpenRouter-first, best cost/quality) ============
     "balanced": {
-      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 0.7 },
+      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 0.8 },
       "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
       "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high" },
