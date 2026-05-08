@@ -7,6 +7,7 @@
   // (omo-slim reads this automatically — just set model there)
 
   "preset": "custom",
+  "council_model": { "model": "deepseek/deepseek-v4-pro", "variant": "max" },
 
   "presets": {
 

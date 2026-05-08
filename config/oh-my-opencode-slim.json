@@ -330,6 +330,12 @@
       }
     }
   },
+  "agents": {
+    "council": {
+      "model": "deepseek/deepseek-v4-pro",
+      "variant": "max"
+    }
+  },
   "fallback": {
     "enabled": true,
     "timeoutMs": 60000,
