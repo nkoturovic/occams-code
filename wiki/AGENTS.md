@@ -83,26 +83,46 @@ Rules:
 > vary — some wikis may not need all topic directories, or may add their own.
 > The three-layer pattern (raw → wiki → schema) is what matters.
 
-## Project-Local Workspaces
+## Two-Tier Wiki Architecture
 
-Individual projects can have their own `.agents/` workspace (gitignored) following the same three-layer pattern:
+This is a Karpathy-style LLM Wiki — a persistent, compounding knowledge base.
+On top of that, each project can have its **own** wiki at `.agents/wiki/`, following the same three-layer pattern.
 
 ```
-project-root/.agents/
-├── wiki/           ← Project-specific LLM Wiki
-├── raw/            ← Project-specific sources (docs, repos)
-├── scratch/        ← Project-specific temporary files
-└── skills/         ← Project-specific agent skills (optional)
+Global wiki (~/.agents/wiki/)          Project wiki (.agents/wiki/)
+├── concepts/, domain/, patterns/      ├── project-specific notes
+├── languages/, entities/, sources/    ├── raw/ (project sources)
+├── projects/<name>.md  ←─────bidirectional─────→ .agents/wiki/index.md
+└── index.md (master catalog)          └── index.md (project-local catalog)
 ```
 
-The project workspace is connected bidirectionally to this global wiki via `~/.agents/wiki/projects/<name>.md`.
+**Global wiki** — cross-project knowledge (concepts, patterns, domain facts, language conventions, entities, source summaries). Also catalogs all projects via `projects/*.md` pages.
+
+**Project wiki** — deep project-specific knowledge (architecture, gotchas, tech-specific patterns). Lives at `<project>/.agents/wiki/`, gitignored, connected to global via `projects/<name>.md`.
+
+**Bidirectional links:**
+- `projects/<name>.md` → summarizes the project and lists its local wiki pages with topics
+- `.agents/wiki/index.md` → points back to the global project page
+
+### Cross-Project Discovery
+
+When working on any project, an agent can find relevant knowledge from other projects:
+1. Check global `domain/`, `patterns/`, `languages/` first (promoted cross-project knowledge)
+2. Scan `projects/*.md` for related tech stacks or domains
+3. Read relevant project-local wiki pages at `<project-path>/.agents/wiki/`
+4. Read-only — never modify another project's wiki
+
+When project-specific knowledge proves useful across 2+ projects, promote it to `domain/` or `patterns/` per the Promotion Protocol.
+
+### Project-Local Directory Layout
+
+See `~/.agents/AGENTS.md` → "Project-Level Symmetry" for the full directory spec. The `.agents/` tree mirrors the global `~/.agents/` — same three-layer pattern, same conventions.
 
 ### Layer 2b: Scratch
-- Temporary files generated during agent sessions: drafts, diffs, intermediate outputs
-- No persistence guarantees — can be cleaned between sessions
+- Temporary files: drafts, diffs, intermediate outputs
+- No persistence guarantees — safe to clean between sessions
 - Do NOT put durable knowledge here — that belongs in `wiki/`
-- Useful for: one-off analysis, temp patches, workspace artifacts that don't warrant a wiki page
-- **Note:** `scratch/` is now at `~/.agents/scratch/` (outside the vault)
+- **Note:** `scratch/` is at `~/.agents/scratch/` (outside the vault)
 
 ## Page Conventions
 
@@ -182,16 +202,25 @@ Knowledge starts project-scoped. Promote to global (domain/ or patterns/) ONLY w
 
 ## Navigation Protocol
 
-### When working on a project:
-1. Read index.md first
-2. Match project name to wiki/projects/<name>/
-3. LOAD: project pages + domain/ + languages/ + patterns/
-4. DO NOT LOAD: other projects' pages
+Knowledge is layered by proximity: project-local (closest), global, other projects (on demand).
+
+### When working inside a project:
+1. Read global `index.md` — master catalog
+2. Read `projects/<this-project>.md` — global summary for current project
+3. Read `.agents/wiki/index.md` — project-local knowledge
+4. Load global `domain/` + `languages/` + `patterns/`
+5. Other projects' wikis: read when relevant, never modify
+
+### When working outside any project:
+1. Read global `index.md`
+2. Global wiki is primary — use `concepts/`, `domain/`, `patterns/`, `languages/` directly
+3. Project wikis available via `projects/*.md` pages when needed
 
 ### When maintaining the wiki:
 1. Read everything for health checks
-2. Update index.md after every change
-3. Append to log.md with consistent prefix: `## [YYYY-MM-DD] operation | Title`
+2. Update `index.md` after every change
+3. Append to `log.md`: `## [YYYY-MM-DD] operation | Title`
+4. Keep `projects/*.md` as compiled summaries — not just stubs
 
 ## Log Format
 
