@@ -15,7 +15,8 @@ RESET='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_DIR="${OCCAM_OPENCODE_DIR:-$HOME/.config/opencode}"
-WIKI_DIR="${OCCAM_WIKI_DIR:-$HOME/wiki}"
+AGENTS_DIR="$HOME/.agents"
+WIKI_DIR="${OCCAM_WIKI_DIR:-$AGENTS_DIR/wiki}"
 SECRETS_DIR="$HOME/.config/secrets"
 SECRETS_FILE="$SECRETS_DIR/env"
 
@@ -37,6 +38,10 @@ ZAI_KEY=""
 SETUP_SECRETS=1
 
 # ── Helpers ──────────────────────────────────────────────────────────
+_usage() {
+  echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--transcribe MODE] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]"
+}
+
 _ask_yes_no() {
   local prompt="$1"
   local default="${2:-Y}"
@@ -66,6 +71,7 @@ _ask_hidden() {
 # ── CLI argument parsing ─────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --help|-h)         _usage; exit 0 ;;
     --unattended)      UNATTENDED=1; shift ;;
     --dry-run)         DRY_RUN=1; shift ;;
     --preset)          PRESET="$2"; shift 2 ;;
@@ -80,7 +86,7 @@ while [[ $# -gt 0 ]]; do
     --zai-key)         ZAI_KEY="$2"; shift 2 ;;
     *)
       echo -e "${RED}Unknown option: $1${RESET}" >&2
-      echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--transcribe MODE] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]" >&2
+      _usage >&2
       exit 1
       ;;
   esac
@@ -315,7 +321,8 @@ fi
 
 # ── Create directories ───────────────────────────────────────────────
 mkdir -p "$OPENCODE_DIR"/{bin,scripts,commands,skills}
-mkdir -p "$WIKI_DIR"/{raw/{articles,papers,repos,docs,forums,assets,_inbox},wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}}
+mkdir -p "$AGENTS_DIR"/{repos,scratch,skills}
+mkdir -p "$WIKI_DIR"/{raw/{articles,papers,docs,forums,assets,user,session-reports,_inbox},projects,domain,languages,patterns,concepts,entities,sources,comparisons}
 mkdir -p "$SECRETS_DIR"
 mkdir -p "$HOME/.local/bin"
 
@@ -378,6 +385,7 @@ _preserve_copy() {
 _preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
 _preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
+_preserve_copy "$REPO_ROOT/AGENTS-system.md" "$AGENTS_DIR/AGENTS.md" "~/.agents/AGENTS.md"
 _preserve_copy "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
 
 # ── Set preset in config files ───────────────────────────────────
@@ -440,8 +448,15 @@ for f in AGENTS.md index.md overview.md log.md .gitignore; do
   fi
 done
 
+# Ensure repos live outside the wiki vault but are visible from raw/repos
+if [[ ! -e "$WIKI_DIR/raw/repos" && ! -L "$WIKI_DIR/raw/repos" ]]; then
+  ln -s ../../repos "$WIKI_DIR/raw/repos"
+elif [[ -d "$WIKI_DIR/raw/repos" && ! -L "$WIKI_DIR/raw/repos" ]]; then
+  echo -e "  ${YELLOW}⚠${RESET} $WIKI_DIR/raw/repos exists as a directory; leaving it unchanged"
+fi
+
 # Copy wiki content (with overwrite protection)
-for f in wiki/wiki/concepts/karpathy-llm-wiki.md wiki/wiki/concepts/occams-code-setup.md wiki/wiki/concepts/agent-roles-and-models.md wiki/wiki/concepts/oc-launcher.md wiki/wiki/concepts/troubleshooting.md wiki/wiki/concepts/design-systems.md wiki/wiki/sources/_template-source-summary.md wiki/raw/README.md; do
+for f in wiki/concepts/karpathy-llm-wiki.md wiki/concepts/occams-code-setup.md wiki/concepts/agent-roles-and-models.md wiki/concepts/oc-launcher.md wiki/concepts/troubleshooting.md wiki/concepts/design-systems.md wiki/sources/_template-source-summary.md wiki/raw/README.md; do
   if [[ -f "$REPO_ROOT/$f" ]]; then
     target="$WIKI_DIR/${f#wiki/}"
     target_dir="$(dirname "$target")"
@@ -458,12 +473,12 @@ done
 # Copy wiki subdirectory content (with overwrite protection)
 _copy_wiki_subdir() {
   local subdir="$1"
-  local src_dir="$REPO_ROOT/wiki/wiki/$subdir"
+  local src_dir="$REPO_ROOT/wiki/$subdir"
   [[ -d "$src_dir" ]] || return
   for f in "$src_dir"/*.md; do
     [[ -f "$f" ]] || continue
     local name="$(basename "$f")"
-    local target="$WIKI_DIR/wiki/$subdir/$name"
+    local target="$WIKI_DIR/$subdir/$name"
     if [[ ! -f "$target" ]]; then
       cp "$f" "$target"
       echo -e "  ${GREEN}✓${RESET} wiki/$subdir/$name"
@@ -480,10 +495,10 @@ find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev
 # ── Install local skills ─────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}Installing local skills...${RESET}"
-SKILLS_DIR="$HOME/.opencode/skills"
+SKILLS_DIR="$OPENCODE_DIR/skills"
 mkdir -p "$SKILLS_DIR"
 
-for skill in codemap simplify audio-analysis video-analysis lecture-notes; do
+for skill in codemap simplify clonedeps audio-analysis video-analysis lecture-notes; do
   if [[ -d "$REPO_ROOT/skills/$skill" ]]; then
     if [[ ! -d "$SKILLS_DIR/$skill" ]]; then
       cp -r "$REPO_ROOT/skills/$skill" "$SKILLS_DIR/$skill"
@@ -497,12 +512,14 @@ done
 # ── Install obsidian-skills plugin ───────────────────────────────────
 echo ""
 echo -e "${BOLD}Installing obsidian-skills plugin...${RESET}"
-if [[ ! -d "$SKILLS_DIR/obsidian-skills" ]]; then
+OBSIDIAN_SKILLS_DIR="$HOME/.opencode/skills"
+mkdir -p "$OBSIDIAN_SKILLS_DIR"
+if [[ ! -d "$OBSIDIAN_SKILLS_DIR/obsidian-skills" ]]; then
   if command -v git &>/dev/null; then
-    git clone https://github.com/kepano/obsidian-skills "$SKILLS_DIR/obsidian-skills"
+    git clone https://github.com/kepano/obsidian-skills "$OBSIDIAN_SKILLS_DIR/obsidian-skills"
     echo -e "  ${GREEN}✓${RESET} obsidian-skills cloned"
   else
-    echo -e "  ${YELLOW}⚠${RESET} git not found. Clone https://github.com/kepano/obsidian-skills manually to $SKILLS_DIR/obsidian-skills"
+    echo -e "  ${YELLOW}⚠${RESET} git not found. Clone https://github.com/kepano/obsidian-skills manually to $OBSIDIAN_SKILLS_DIR/obsidian-skills"
   fi
 else
   echo -e "  ${DIM}obsidian-skills already installed (skipped)${RESET}"
@@ -582,7 +599,7 @@ if [[ "$INSTALL_OBSIDIAN" -eq 1 ]]; then
       echo -e "  ${DIM}Linux: flatpak install flathub md.obsidian.Obsidian${RESET}"
       echo -e "  ${DIM}    or: download AppImage from https://obsidian.md${RESET}"
     fi
-    echo -e "  ${DIM}Then open ~/wiki/ as a vault${RESET}"
+    echo -e "  ${DIM}Then open ~/.agents/wiki/ as a vault${RESET}"
   fi
   unset -f _obsidian_installed 2>/dev/null || true
 fi
@@ -735,6 +752,6 @@ echo ""
 echo "Next steps:"
 [[ "$SETUP_PATH" -eq 1 ]] && echo "  1. Reload your shell: source ~/.profile  (or open a new terminal)"
 echo "  2. Run: oc --doctor"
-echo "  3. Open ~/wiki/ in Obsidian"
+echo "  3. Open ~/.agents/wiki/ in Obsidian"
 echo "  4. Launch: oc"
 echo ""

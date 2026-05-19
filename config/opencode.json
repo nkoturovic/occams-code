@@ -159,13 +159,29 @@
             "output": 128000
           },
           "options": {
-            "thinking": { "type": "adaptive" },
-            "output_config": { "effort": "high" }
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "high"
+            }
           },
           "variants": {
-            "high": { "output_config": { "effort": "high" } },
-            "max": { "output_config": { "effort": "max" } },
-            "non-think": { "thinking": { "type": "disabled" } }
+            "high": {
+              "output_config": {
+                "effort": "high"
+              }
+            },
+            "max": {
+              "output_config": {
+                "effort": "max"
+              }
+            },
+            "non-think": {
+              "thinking": {
+                "type": "disabled"
+              }
+            }
           }
         },
         "claude-sonnet-4-6": {
@@ -176,13 +192,29 @@
             "output": 128000
           },
           "options": {
-            "thinking": { "type": "adaptive" },
-            "output_config": { "effort": "high" }
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "high"
+            }
           },
           "variants": {
-            "high": { "output_config": { "effort": "high" } },
-            "max": { "output_config": { "effort": "max" } },
-            "non-think": { "thinking": { "type": "disabled" } }
+            "high": {
+              "output_config": {
+                "effort": "high"
+              }
+            },
+            "max": {
+              "output_config": {
+                "effort": "max"
+              }
+            },
+            "non-think": {
+              "thinking": {
+                "type": "disabled"
+              }
+            }
           }
         }
       }
@@ -431,6 +463,7 @@
         "@z_ai/mcp-server"
       ],
       "environment": {
+        "Z_AI_API_KEY": "{env:Z_AI_API_KEY}",
         "Z_AI_MODE": "ZAI"
       },
       "enabled": true,
@@ -592,5 +625,8 @@
       }
     }
   },
-  "permission": "allow"
+  "permission": "allow",
+  "instructions": [
+    "~/.agents/AGENTS.md"
+  ]
 }

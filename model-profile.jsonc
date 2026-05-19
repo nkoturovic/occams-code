@@ -8,6 +8,14 @@
 
   "preset": "balanced",
 
+  // Tmux multiplexer: live subagent panes (only active inside tmux)
+  // Toggle: "auto" (enable in tmux) | "none" (disable)
+  "multiplexer": {
+    "type": "auto",
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  },
+
   "presets": {
 
     // ============ CUSTOM (subscriptions + DeepSeek API) ============

@@ -315,6 +315,7 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
         "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
+        "multiplexer": model_map.get("multiplexer", {"type": "none"}),
         "todoContinuation": model_map.get("todoContinuation", {
             "maxContinuations": 15,
             "cooldownMs": 5000,

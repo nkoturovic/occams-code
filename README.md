@@ -21,9 +21,9 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **4 MCP servers** — context7 (library docs) + grep_app (code search) + zai_vision (image analysis) + web-search-prime (Z.AI web search). All ship in the default config; zai_vision and web-search-prime require a Z.AI API key set via `Z_AI_API_KEY` env var.
-- **5 local skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify (plus 5 from the obsidian-skills bundle if cloned: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
+- **6 local OpenCode skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify, clonedeps (plus 5 from the obsidian-skills bundle if cloned: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
 - **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
-- **AGENTS.md** — 7 agent roles with specialist instructions, pipeline workflows, and multi-agent delegation rules
+- **AGENTS.md + AGENTS-system.md** — OpenCode-specific agent rules plus a tool-agnostic `~/.agents/` workspace schema
 
 ## Quick Start
 
@@ -52,11 +52,11 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 
 The installer:
 1. Copies scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
-2. Sets up the wiki template at `~/wiki/`
+2. Sets up the unified agent workspace at `~/.agents/` (wiki, repos, scratch, skills)
 3. Installs the oh-my-opencode-slim plugin
 4. Optionally installs Obsidian
 
-Set up your API keys in `~/.local/share/opencode/auth.json`. See [INSTALL.md](INSTALL.md) for the full reference and manual install instructions.
+Set up your API keys in `~/.local/share/opencode/auth.json` and `~/.config/secrets/env`. See [INSTALL.md](INSTALL.md) for the full reference and manual install instructions.
 
 ### First Launch
 
@@ -77,7 +77,7 @@ oc --quick          Skip prompts, use project/global config directly
 oc --preset <name>  Set preset, create project config, launch
 oc --doctor         Run diagnostics (config, wiki, lint)
 oc --sync-profile    Regenerate config from model-profile.jsonc
-oc --init-project   Create project wiki page + AGENTS.md
+oc --init-project   Create project wiki page + AGENTS.md + project .agents workspace
 oc --ingest-repo URL  Snapshot GitHub repo into wiki
 oc -c               Continue last session
 ```
@@ -91,13 +91,13 @@ By default `opencode.json` ships with `"permission": "allow"` — the agent auto
 
 ### The Wiki
 
-The wiki at `~/wiki/` follows Karpathy's LLM Wiki pattern:
+The wiki at `~/.agents/wiki/` follows Karpathy's LLM Wiki pattern:
 
 - **`raw/`** — Immutable source documents (articles, repos, papers). Never modify.
-- **`wiki/`** — LLM-generated knowledge base (summaries, concepts, patterns, project pages)
+- **topic directories** — LLM-generated knowledge base (`concepts/`, `patterns/`, `projects/`, etc.)
 - **`AGENTS.md`** — Schema that tells the LLM how to maintain the wiki
 
-Open `~/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The LLM maintains all content — you provide sources and curate.
+Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experience. The LLM maintains all content — you provide sources and curate.
 
 ### Presets
 
@@ -155,7 +155,7 @@ The plugin deep-merges project config with global config. Edit the file directly
 |--------|---------|
 | `model-profile.py` | **Config generator** — generates oh-my-opencode-slim.json from model-profile.jsonc |
 | `wiki-lint.py` | Wiki health check (dead links, orphans, stale pages) |
-| `project-init.py` | Creates wiki page + project AGENTS.md |
+| `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki |
 | `detect-project-state.py` | Project state detection (used by --doctor) |
 | `analyze-video.py` | Video analysis via OpenRouter (Gemini, multi-provider) |
@@ -240,25 +240,29 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 
 ```
 ~/.config/opencode/
-├── AGENTS.md                      # Agent rules and workflow principles
+├── AGENTS.md                      # OpenCode-specific agent rules and workflows
 ├── opencode.json                  # Core config (providers, MCPs, LSPs)
 ├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
 ├── model-profile.jsonc            # Source-of-truth for model assignments (oc --sync-profile regenerates slim.json)
 ├── bin/oc                         # Launcher script
 ├── scripts/                       # 10 Python scripts + transcribe + cleanup-logs.sh
 ├── commands/                      # Slash command definitions (6 commands)
-├── skills/                        # Local skills (codemap, simplify, audio/video/lecture pipeline)
+├── skills/                        # OpenCode skills (codemap, simplify, clonedeps, audio/video/lecture pipeline)
 
-~/wiki/
-├── AGENTS.md                      # Wiki schema (LLM follows these rules)
-├── index.md                       # Master routing table
-├── log.md                         # Append-only activity log
-├── overview.md                    # High-level wiki synthesis
-├── raw/                           # Immutable source documents
-│   ├── articles/  papers/  repos/ docs/  forums/  assets/  _inbox/
-└── wiki/                          # LLM-generated knowledge base
-    ├── projects/  domain/  languages/ patterns/
-    ├── concepts/  entities/  sources/  comparisons/
+~/.agents/
+├── AGENTS.md                      # Tool-agnostic workspace schema
+├── repos/                         # Cloned repos, outside the wiki vault
+├── scratch/                       # Ephemeral agent workspace
+├── skills/                        # Tool-agnostic ecosystem skills
+└── wiki/
+    ├── AGENTS.md                  # Wiki schema (LLM follows these rules)
+    ├── index.md                   # Master routing table
+    ├── log.md                     # Append-only activity log
+    ├── overview.md                # High-level wiki synthesis
+    ├── raw/                       # Immutable source documents
+    │   ├── articles/ papers/ docs/ forums/ assets/ user/ session-reports/ _inbox/
+    │   └── repos -> ../../repos   # Symlink to cloned repos outside vault
+    └── projects/ domain/ languages/ patterns/ concepts/ entities/ sources/ comparisons/
 ```
 
 ## License

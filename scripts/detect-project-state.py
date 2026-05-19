@@ -70,7 +70,7 @@ def main():
     has_wiki_page = False
     project_wiki_page = ""
     best_wiki_rank = None
-    wiki_projects = Path.home() / "wiki" / "wiki" / "projects"
+    wiki_projects = Path.home() / ".agents" / "wiki" / "projects"
     if wiki_projects.exists():
         for page in wiki_projects.glob("*.md"):
             try:

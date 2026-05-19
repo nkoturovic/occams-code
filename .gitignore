@@ -2,6 +2,10 @@
 .opencode/
 
 # Secrets and auth
+.env
+.env.*
+secrets/
+*.secret
 auth.json
 budget.json
 mcp-oauth.json

@@ -20,9 +20,20 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-WIKI_ROOT = Path.home() / "wiki"
+WIKI_ROOT = Path.home() / ".agents" / "wiki"
 INDEX_FILE = WIKI_ROOT / "index.md"
-WIKI_DIR = WIKI_ROOT / "wiki"
+WIKI_DIR = WIKI_ROOT
+WIKI_TOPIC_DIRS = {
+    "comparisons",
+    "concepts",
+    "domain",
+    "entities",
+    "languages",
+    "patterns",
+    "projects",
+    "sources",
+}
+ROOT_WIKI_PAGES = {"index.md", "overview.md"}
 
 
 @dataclass
@@ -53,14 +64,43 @@ def extract_wikilinks(text: str) -> list[str]:
     return links
 
 
+def is_wiki_page(path: Path) -> bool:
+    """Return True for compiled wiki pages, False for immutable raw sources."""
+    rel = path.relative_to(WIKI_ROOT)
+    if path.name.startswith("_"):
+        return False
+    if len(rel.parts) == 1:
+        return path.name in ROOT_WIKI_PAGES
+    return rel.parts[0] in WIKI_TOPIC_DIRS
+
+
+def get_all_markdown_pages() -> list[Path]:
+    return sorted(p for p in WIKI_DIR.rglob("*.md") if not p.name.startswith("_"))
+
+
 def get_all_pages() -> list[Path]:
-    pages = []
-    for p in WIKI_DIR.rglob("*.md"):
-        # skip internal templates
-        if p.name.startswith("_"):
-            continue
-        pages.append(p)
-    return sorted(pages)
+    return sorted(p for p in get_all_markdown_pages() if is_wiki_page(p))
+
+
+def aliases_for(path: Path) -> set[str]:
+    rel = path.relative_to(WIKI_ROOT).as_posix()
+    rel_no_suffix = rel[:-3] if rel.endswith(".md") else rel
+    return {path.stem, rel, rel_no_suffix}
+
+
+def build_alias_index(paths: list[Path]) -> dict[str, set[Path]]:
+    aliases: dict[str, set[Path]] = {}
+    for path in paths:
+        for alias in aliases_for(path):
+            aliases.setdefault(alias, set()).add(path)
+    return aliases
+
+
+def resolve_wikilink(target: str, aliases: dict[str, set[Path]]) -> set[Path]:
+    normalized = target.strip()
+    if normalized.endswith(".md"):
+        normalized = normalized[:-3]
+    return aliases.get(normalized, set())
 
 
 def get_frontmatter(text: str) -> dict[str, any]:
@@ -106,26 +146,31 @@ def lint() -> list[Finding]:
         return [Finding("error", "index", f"Missing index file: {INDEX_FILE}")]
 
     pages = get_all_pages()
-    slug_to_path = {p.stem: p for p in pages}
+    all_markdown_pages = get_all_markdown_pages()
+    aliases = build_alias_index(all_markdown_pages)
+    path_to_key = {p: p.relative_to(WIKI_ROOT).with_suffix("").as_posix() for p in pages}
 
     # Collect links and inbound map
     outbound: dict[str, list[str]] = {}
-    inbound_count: dict[str, int] = {slug: 0 for slug in slug_to_path}
+    inbound_count: dict[str, int] = {key: 0 for key in path_to_key.values()}
 
     for p in pages:
-        slug = p.stem
+        key = path_to_key[p]
         txt = strip_code_blocks(read_text(p))
         links = extract_wikilinks(txt)
-        outbound[slug] = links
+        outbound[key] = links
         for target in links:
-            if target in inbound_count:
-                inbound_count[target] += 1
+            for resolved in resolve_wikilink(target, aliases):
+                resolved_key = path_to_key.get(resolved)
+                if resolved_key:
+                    inbound_count[resolved_key] += 1
 
     # 1) Dead links
-    for slug, links in outbound.items():
-        src = slug_to_path[slug]
+    key_to_path = {key: path for path, key in path_to_key.items()}
+    for key, links in outbound.items():
+        src = key_to_path[key]
         for target in links:
-            if target not in slug_to_path and target not in {"index", "log"}:
+            if not resolve_wikilink(target, aliases):
                 findings.append(
                     Finding(
                         "warning",
@@ -135,10 +180,18 @@ def lint() -> list[Finding]:
                 )
 
     # 2+3) Index coverage + orphan detection (deduplicated)
-    index_links = set(extract_wikilinks(strip_code_blocks(read_text(INDEX_FILE))))
-    for slug, p in slug_to_path.items():
-        in_index = slug in index_links
-        has_inbound = inbound_count.get(slug, 0) > 0
+    index_links = extract_wikilinks(strip_code_blocks(read_text(INDEX_FILE)))
+    indexed_keys = {
+        path_to_key[resolved]
+        for link in index_links
+        for resolved in resolve_wikilink(link, aliases)
+        if resolved in path_to_key
+    }
+    for p, key in path_to_key.items():
+        if len(p.relative_to(WIKI_ROOT).parts) == 1:
+            continue
+        in_index = key in indexed_keys
+        has_inbound = inbound_count.get(key, 0) > 0
         if not in_index and not has_inbound:
             # True orphan: not discoverable at all
             findings.append(
@@ -160,6 +213,8 @@ def lint() -> list[Finding]:
 
     # 4/5) Frontmatter dates + source traceability
     for p in pages:
+        if len(p.relative_to(WIKI_ROOT).parts) == 1:
+            continue
         txt = read_text(p)
         fm = get_frontmatter(txt)
         rel = p.relative_to(WIKI_ROOT)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Ingest a GitHub repository snapshot into Karpathy-style wiki raw storage.
 
-Creates a digest bundle in ~/wiki/raw/repos/ and a corresponding source-summary
-page in ~/wiki/wiki/sources/.
+Creates a digest bundle in ~/.agents/wiki/raw/repos/ and a corresponding source-summary
+page in ~/.agents/wiki/sources/.
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
-WIKI_ROOT = Path.home() / "wiki"
+WIKI_ROOT = Path.home() / ".agents" / "wiki"
 RAW_REPOS = WIKI_ROOT / "raw" / "repos"
-WIKI_SOURCES = WIKI_ROOT / "wiki" / "sources"
+WIKI_SOURCES = WIKI_ROOT / "sources"
 WIKI_INDEX = WIKI_ROOT / "index.md"
 WIKI_LOG = WIKI_ROOT / "log.md"
 
@@ -950,7 +950,7 @@ date_ingested: {today}
         write_text(source_page, body)
 
     update_index(source_slug, repo_full)
-    append_log(repo_full, f"raw/repos/{bundle_name}", f"wiki/sources/{source_slug}.md")
+    append_log(repo_full, f"raw/repos/{bundle_name}", f"sources/{source_slug}.md")
 
     print(f"[OK] Ingested repository: {repo_full}")
     print(f"[OK] Bundle: {bundle_dir}")

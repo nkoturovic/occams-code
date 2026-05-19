@@ -49,5 +49,5 @@ Edit `.opencode/oh-my-opencode-slim.jsonc`. Only specify the roles to override:
 
 No generator needed — omo-slim reads this at startup. Restart after saving.
 
-Docs: `~/wiki/wiki/concepts/model-profile-guide.md`
+Docs: `~/.agents/wiki/concepts/model-profile-guide.md`
 

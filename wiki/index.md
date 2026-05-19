@@ -2,7 +2,7 @@
 
 Master routing table. Agent: read this first to find relevant pages.
 
-**Architecture:** raw/ → wiki/ (one-way compile). See [[raw/README]] for source discipline.
+**Architecture:** raw/ → compiled wiki pages (one-way compile). See [[raw/README]] for source discipline.
 
 ## Overview
 - [[overview]] — High-level synthesis of the entire wiki: themes, active projects, knowledge gaps
@@ -29,7 +29,7 @@ Master routing table. Agent: read this first to find relevant pages.
 - [[oc-launcher]] — Boot sequence, session modes, permissions
 - [[troubleshooting]] — Common failure modes, diagnostic commands, known-bad models
 - [[design-systems]] — DESIGN.md files: plain-text design systems for pixel-perfect AI-generated UI
-- [[vision-integration]] — Non-text content handling: images, PDFs via @designer MCP tools, delivery paths, future re-evaluation
+- [[vision-integration]] — Non-text content handling: images, PDFs, video, audio via @observer plus skills/scripts
 
 ## Entities
 (none yet — add entity pages for people, orgs, tools you use)
@@ -39,7 +39,7 @@ Master routing table. Agent: read this first to find relevant pages.
 
 ## Raw Sources
 - [[raw/README]] — Immutable source materials (articles, repos, docs, papers). Wiki compiles from here.
-- Raw subfolders: `articles/`, `papers/`, `repos/`, `docs/`, `forums/`, `assets/`, `_inbox/`
+- Raw subfolders: `articles/`, `papers/`, `repos/`, `docs/`, `forums/`, `assets/`, `user/`, `session-reports/`, `_inbox/`
 
 ## Comparisons
 (none yet — add comparison pages when analyzing alternatives)

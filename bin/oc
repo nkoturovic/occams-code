@@ -225,7 +225,7 @@ run_doctor() {
   fi
 
   # Wiki structure
-  if [[ -f "$HOME/wiki/AGENTS.md" && -f "$HOME/wiki/index.md" && -d "$HOME/wiki/raw" && -d "$HOME/wiki/wiki" ]]; then
+  if [[ -f "$HOME/.agents/wiki/AGENTS.md" && -f "$HOME/.agents/wiki/index.md" && -d "$HOME/.agents/wiki/raw" && -d "$HOME/.agents/wiki/concepts" ]]; then
     echo -e "  ${GREEN}✓${RESET} Wiki structure"
   else
     echo -e "  ${YELLOW}⚠${RESET} Wiki structure incomplete"; status=1
@@ -233,7 +233,7 @@ run_doctor() {
 
   # Wiki index
   local index_lines
-  index_lines=$(grep -c '^\- \[\[' "$HOME/wiki/index.md" 2>/dev/null || echo 0)
+  index_lines=$(grep -c '^\- \[\[' "$HOME/.agents/wiki/index.md" 2>/dev/null || echo 0)
   if [[ "$index_lines" -ge 3 ]]; then
     echo -e "  ${GREEN}✓${RESET} Wiki index ($index_lines entries)"
   else
@@ -274,7 +274,7 @@ run_sync_profile() {
   local map_file="$HOME/.config/opencode/model-profile.jsonc"
   if [[ ! -f "$map_file" ]]; then
     echo -e "${YELLOW}~/.config/opencode/model-profile.jsonc not found. Create it first.${RESET}"
-    echo "  See: ~/wiki/wiki/concepts/model-profile-guide.md"
+    echo "  See: ~/.agents/wiki/concepts/model-profile-guide.md"
     return 1
   fi
   python3 "$HOME/.config/opencode/scripts/model-profile.py" "$map_file" "$CONFIG"
@@ -387,6 +387,16 @@ PY
     done
     OPENCODE_ARGS=("${_filtered[@]+"${_filtered[@]}"}")
   fi
+  # Tmux multiplexer: inject --port so subagent panes can attach
+  # Required by omo-slim multiplexer (workaround for opencode#9099)
+  # --port 0: tries 4096 first (backward compatible), auto-assigns if taken.
+  # The real port is passed to subagent panes via Server.url (not env var).
+  # This avoids silent hangs when running multiple opencode instances
+  # across different tmux sessions/windows/panes on the same machine.
+  if [[ -n "${TMUX:-}" ]]; then
+    OPENCODE_ARGS+=("--port" "0")
+  fi
+
   if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
     [[ "$show_banner" == false ]] && echo "" # spacing for non-interactive
     launch_with_permissions "$([[ "$UNSAFE" == true ]] && echo unsafe || echo safe)"

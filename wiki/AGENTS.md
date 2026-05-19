@@ -8,15 +8,17 @@ The human provides sources, asks questions, and curates.
 ## Three-Layer Architecture
 
 ```
-raw/          ← Immutable source documents. NEVER modify.
-wiki/         ← LLM-generated wiki. You own this entirely.
-AGENTS.md     ← This schema. You follow these rules.
+~/.agents/wiki/raw/    ← Immutable source documents. NEVER modify (except git clone/pull in repos/).
+~/.agents/wiki/        ← LLM-generated wiki. You own this entirely.
+~/.agents/scratch/     ← Ephemeral agent files. No persistence guarantees.
+AGENTS.md              ← This schema. You follow these rules.
 ```
 
 ### Layer 1: Raw Sources
 - Articles, papers, repos, data files, images
 - The human drops these in (via Web Clipper, repomix, etc.)
 - You READ from them but NEVER write to them
+- Exception: you MAY `git clone` / `git pull` in `repos/` — adding source material is allowed
 - This is the source of truth — always traceable
 
 #### Raw Taxonomy Policy (Karpathy-aligned)
@@ -34,7 +36,7 @@ Classification rules:
 
 Rules:
 - DO NOT create extra topic subfolders under `raw/`
-- DO NOT edit files in `raw/`
+- DO NOT edit files in `raw/` (except `git clone`/`git pull` in `repos/`)
 - Prefer filenames: `YYYY-MM-DD_slug.ext`
 - Once a source is ingested, keep filename/path stable
 
@@ -52,30 +54,55 @@ Rules:
 ## Directory Structure
 
 ```
-~/wiki/
-├── AGENTS.md              ← This schema (YOU follow these rules)
-├── index.md               ← Master catalog. Update on every change.
-├── log.md                 ← Append-only activity log.
-├── overview.md            ← High-level synthesis of the entire wiki.
-│
-├── raw/                   ← IMMUTABLE source documents
-│   ├── articles/          ← Clipped web articles
-│   ├── papers/            ← Academic papers, PDFs
-│   ├── repos/             ← Repomix dumps, code archives
-│   ├── forums/            ← Forum posts, discussions
-│   ├── docs/              ← Library docs, datasheets
-│   └── assets/            ← Downloaded images, attachments
-│
-└── wiki/                  ← LLM-generated wiki (YOU own this)
-    ├── projects/          ← Per-project knowledge (ISOLATED)
-    ├── domain/            ← Cross-project factual knowledge
-    ├── languages/         ← Coding conventions per language
-    ├── patterns/          ← Proven reusable patterns
-    ├── concepts/          ← Concept pages (general knowledge)
-    ├── entities/          ← Entity pages (people, orgs, tools)
-    ├── sources/           ← Source summaries
-    └── comparisons/       ← Comparison pages
+~/.agents/wiki/
+├── AGENTS.md              ← This schema
+├── index.md               ← Master catalog
+├── log.md                 ← Activity log
+├── overview.md            ← Synthesis
+├── raw/                   ← IMMUTABLE sources (inside vault)
+│   ├── articles/          ← Web articles
+│   ├── papers/            ← Papers, PDFs
+│   ├── repos/ → ../../repos/  ← symlink to cloned repos outside vault
+│   ├── forums/            ← Forum posts
+│   ├── docs/              ← Library docs
+│   ├── assets/            ← Images (Obsidian attachment path)
+│   ├── user/              ← Personal files
+│   ├── session-reports/   ← Agent reports
+│   └── _inbox/            ← Unsorted
+├── concepts/              ← Architectural concepts
+├── entities/              ← People, orgs, tools
+├── projects/              ← Per-project knowledge
+├── domain/                ← Cross-project facts
+├── languages/             ← Coding conventions
+├── patterns/              ← Reusable patterns
+├── sources/               ← Source summaries
+└── comparisons/           ← Comparisons
 ```
+
+> **Note:** This layout is a recommendation. The exact folder structure can
+> vary — some wikis may not need all topic directories, or may add their own.
+> The three-layer pattern (raw → wiki → schema) is what matters.
+
+## Project-Local Workspaces
+
+Individual projects can have their own `.agents/` workspace (gitignored) following the same three-layer pattern:
+
+```
+project-root/.agents/
+├── wiki/           ← Project-specific LLM Wiki
+├── raw/            ← Project-specific sources (docs, repos)
+├── scratch/        ← Project-specific temporary files
+└── skills/         ← Project-specific agent skills (optional)
+```
+
+The project workspace is connected bidirectionally to this global wiki via `~/.agents/wiki/projects/<name>.md`.
+
+### Layer 2b: Scratch
+- Temporary files generated during agent sessions: drafts, diffs, intermediate outputs
+- No persistence guarantees — can be cleaned between sessions
+- Do NOT put durable knowledge here — that belongs in `wiki/`
+- Useful for: one-off analysis, temp patches, workspace artifacts that don't warrant a wiki page
+- **Note:** `scratch/` is now at `~/.agents/scratch/` (outside the vault)
 
 ## Page Conventions
 
@@ -191,26 +218,26 @@ Missing pages: 3
 
 ### defuddle (for web page ingestion)
 ```bash
-defuddle parse <url> --md -o ~/wiki/raw/articles/YYYY-MM-DD_slug.md
+defuddle parse <url> --md -o ~/.agents/wiki/raw/articles/YYYY-MM-DD_slug.md
 ```
 
 ### qmd (when wiki grows beyond ~200 pages)
 ```bash
 npm install -g @tobilu/qmd
-qmd collection add ~/wiki --name my-wiki
+qmd collection add ~/.agents/wiki --name my-wiki
 qmd query "search term"  # Hybrid BM25 + vector + LLM re-ranking
 qmd mcp                  # Start as MCP server
 ```
 
 ### Repomix (for ingesting repos)
 ```bash
-repomix --remote owner/repo -o ~/wiki/raw/repos/repo.xml
+repomix --remote owner/repo -o ~/.agents/wiki/raw/repos/repo.xml
 ```
 
 ### GitHub CLI (for ingesting issues)
 ```bash
 gh issue list --repo owner/repo --state closed --limit 200 \
-  --json number,title,body > ~/wiki/raw/repos/repo-issues.json
+  --json number,title,body > ~/.agents/wiki/raw/repos/repo-issues.json
 ```
 
 ## The Compounding Principle

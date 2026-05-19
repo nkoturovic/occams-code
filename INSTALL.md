@@ -82,7 +82,7 @@ After install, set up your API keys. Occam's Code uses **two complementary secre
 | **OpenCode auth** | `~/.local/share/opencode/auth.json` | OpenCode itself (per-provider) | JSON |
 | **Shared env-secrets** | `~/.config/secrets/env` | Scripts (`analyze-video.py`, `transcribe`), MCPs (Exa websearch), HF model downloads | shell `export VAR=...` |
 
-The installer's **step 8** writes both — interactively prompts for each selected provider's API key (input hidden), and writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. If you skipped this step, set them up manually:
+The installer's **step 8** writes the shared env-secrets file — it prompts for each selected provider's API key (input hidden), writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. OpenCode's own `auth.json` can be created by running `opencode` once or by writing it manually:
 
 **OpenCode auth.json** (per-provider keys for the agent itself):
 
@@ -184,7 +184,7 @@ OCCAM_SETUP_PATH=1 \
 | `OCCAM_HF_TOKEN` | string | (interactive, optional) |
 | `OCCAM_EXA_API_KEY` | string | (interactive, optional) |
 | `OCCAM_OPENCODE_DIR` | path | `$HOME/.config/opencode` |
-| `OCCAM_WIKI_DIR` | path | `$HOME/wiki` |
+| `OCCAM_WIKI_DIR` | path | `$HOME/.agents/wiki` |
 
 **CLI flags** (override env vars): `--preset NAME`, `--providers CSV`, `--transcribe MODE`, `--no-defuddle`, `--no-agent-browser`, `--no-obsidian`, `--no-cron`, `--no-path`, `--enable-zai`, `--zai-key KEY`, `--dry-run` (preview without writing), `--unattended`.
 
@@ -202,8 +202,10 @@ cd occams-code
 
 # Create directories
 mkdir -p ~/.config/opencode/{bin,scripts,commands,skills}
-mkdir -p ~/wiki/raw/{articles,papers,repos,docs,forums,assets,_inbox}
-mkdir -p ~/wiki/wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}
+mkdir -p ~/.agents/{repos,scratch,skills}
+mkdir -p ~/.agents/wiki/raw/{articles,papers,docs,forums,assets,user,session-reports,_inbox}
+mkdir -p ~/.agents/wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}
+ln -sfn ../../repos ~/.agents/wiki/raw/repos
 
 # Core files
 cp bin/oc                            ~/.config/opencode/bin/oc          && chmod +x ~/.config/opencode/bin/oc
@@ -212,21 +214,23 @@ cp scripts/transcribe                ~/.config/opencode/scripts/        && chmod
 cp scripts/cleanup-logs.sh           ~/.config/opencode/scripts/        && chmod +x ~/.config/opencode/scripts/cleanup-logs.sh
 cp commands/*.md                     ~/.config/opencode/commands/
 cp AGENTS.md                         ~/.config/opencode/AGENTS.md
+cp AGENTS-system.md                  ~/.agents/AGENTS.md
 cp model-profile.jsonc               ~/.config/opencode/model-profile.jsonc
 cp config/opencode.json              ~/.config/opencode/opencode.json
 cp config/oh-my-opencode-slim.json   ~/.config/opencode/oh-my-opencode-slim.json
 
 # Wiki template
-cp wiki/AGENTS.md  wiki/index.md  wiki/log.md  wiki/overview.md  wiki/.gitignore  ~/wiki/
-cp -r wiki/.obsidian                                              ~/wiki/
-cp wiki/wiki/concepts/*.md                                        ~/wiki/wiki/concepts/
-cp wiki/raw/README.md                                             ~/wiki/raw/README.md
-cp wiki/wiki/sources/_template-source-summary.md                  ~/wiki/wiki/sources/ 2>/dev/null || true
-find ~/wiki -type d -empty -exec touch {}/.gitkeep \;
+cp wiki/AGENTS.md  wiki/index.md  wiki/log.md  wiki/overview.md  wiki/.gitignore  ~/.agents/wiki/
+cp -r wiki/.obsidian                                              ~/.agents/wiki/
+cp wiki/concepts/*.md                                             ~/.agents/wiki/concepts/
+cp wiki/raw/README.md                                             ~/.agents/wiki/raw/README.md
+cp wiki/sources/_template-source-summary.md                       ~/.agents/wiki/sources/ 2>/dev/null || true
+find ~/.agents/wiki -type d -empty -exec touch {}/.gitkeep \;
 
 # Local skills
 cp -r skills/codemap         ~/.config/opencode/skills/
 cp -r skills/simplify        ~/.config/opencode/skills/
+cp -r skills/clonedeps       ~/.config/opencode/skills/
 cp -r skills/audio-analysis  ~/.config/opencode/skills/
 cp -r skills/video-analysis  ~/.config/opencode/skills/
 cp -r skills/lecture-notes   ~/.config/opencode/skills/
@@ -330,7 +334,7 @@ oc --doctor
 Checks:
 - `opencode.json` and `oh-my-opencode-slim.json` are valid JSON
 - Project config (if `.opencode/oh-my-opencode-slim.jsonc` exists) is valid
-- Wiki structure: `~/wiki/AGENTS.md`, `index.md`, `raw/`, `wiki/` all present
+- Wiki structure: `~/.agents/wiki/AGENTS.md`, `index.md`, `raw/`, topic dirs all present
 - Wiki index has ≥ 3 entries
 - Runs `wiki-lint.py` to check dead links / orphans / stale pages
 
@@ -355,7 +359,7 @@ git pull
 - `oh-my-opencode-slim.json` (your preset / agent / fallback overrides)
 - `model-profile.jsonc` (your model assignments)
 - `~/.config/secrets/env` (your API keys — never overwritten)
-- Wiki content under `~/wiki/` (your knowledge base)
+- Wiki content under `~/.agents/wiki/` (your knowledge base)
 
 To force-update a preserved file, delete it first:
 
@@ -386,7 +390,7 @@ rm -rf ~/.opencode/skills/obsidian-skills
 crontab -l | grep -v cleanup-logs.sh | crontab -
 
 # Wiki (BACK UP FIRST — your knowledge base lives here!)
-# rm -rf ~/wiki/
+# rm -rf ~/.agents/wiki/
 
 # auth.json (your API keys — usually keep)
 # rm ~/.local/share/opencode/auth.json
@@ -410,4 +414,4 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | `transcribe` fails to download model | HuggingFace rate limit | Set `HF_TOKEN` in `~/.config/secrets/env`, then `source ~/.profile` |
 | websearch MCP returns "rate limited" | Free Exa tier exhausted | Set `EXA_API_KEY` in `~/.config/secrets/env` |
 
-For more, see [`wiki/wiki/concepts/troubleshooting.md`](wiki/wiki/concepts/troubleshooting.md).
+For more, see [`wiki/concepts/troubleshooting.md`](wiki/concepts/troubleshooting.md).

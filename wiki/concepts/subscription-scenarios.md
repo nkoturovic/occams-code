@@ -13,7 +13,7 @@ confidence: high
 
 # Subscription Scenarios — Quick-Switch Reference
 
-Quick-reference for reconfiguring the custom preset when subscriptions change. Edit `oh-my-opencode-slim.json` (live: `~/.config/opencode/`, repo: `~/personal/repos/occams-code/config/`).
+Quick-reference for reconfiguring the custom preset when subscriptions change. Edit `oh-my-opencode-slim.json` (live: `~/.config/opencode/`, repo: `<repo>/config/`).
 
 ## Available Models Per Subscription
 

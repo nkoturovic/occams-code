@@ -31,7 +31,7 @@ transcribe /path/to/lecture.mp4 --language sr
 transcribe /path/to/audio.mp3 -otxt -of my-notes
 
 # Custom output path
-transcribe /path/to/audio.mp3 -of /home/user/transcript
+transcribe /path/to/audio.mp3 -of ~/transcript
 ```
 
 **Default output behavior:** SRT file is written to the current working directory using the original filename (e.g. `lecture.mp4` → `./lecture.srt`). The `-of` flag (or `--output-file`) overrides this if passed explicitly. Additional whisper.cpp flags (e.g. `-otxt`, `-lrc`, `--language`, `--max-len`) are forwarded as-is.

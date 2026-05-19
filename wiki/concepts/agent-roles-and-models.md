@@ -161,7 +161,7 @@ OpenCode core may also cap output via `OUTPUT_TOKEN_MAX` (default 32000), which 
 | `websearch` | Orchestrator, oracle, designer, librarian | Exa — fallback web search (HF token for higher quotas) |
 | `context7` | Oracle, librarian, explorer, fixer, designer | Library docs — deep research |
 | `grep_app` | Explorer, librarian | Parallel codebase search across open-source |
-| `zai_vision` | Observer, Designer (premium/custom) | Observer: primary vision agent, Read-first with MCP fallback. Designer: retained on premium/custom for direct delegation. Repo: opt-in per-project. |
+| `zai_vision` | Observer, Designer (premium/custom) | Observer: Read-first with MCP fallback for video/edge cases. Ships without hardcoded secrets and requires `Z_AI_API_KEY` in the environment. |
 
 **Notable:** Orchestrator gets both `web-search-prime` and `websearch` — it delegates specialized research to other agents, but has its own web tools for discovery/decision-making. Visual content is routed to `@observer` (fact extraction), then optionally to `@designer` (creative work). Observer owns `zai_vision` MCP for video and Read fallback.
 

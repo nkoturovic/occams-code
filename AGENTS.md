@@ -1,8 +1,10 @@
 # OpenCode — Agent Rules & Setup
 
+> OpenCode auto-loads this file from `~/.config/opencode/AGENTS.md` and also auto-loads `~/.agents/AGENTS.md` via `opencode.json.instructions`.
+
 ## Session Rules
 - Wait for the user's first message before doing anything.
-- **On session start**, read `~/wiki/index.md` to discover available project pages and knowledge. Apply relevant context silently. **Throughout the session**, consult wiki before starting any task.
+- **On session start**, read `~/.agents/wiki/index.md` to discover available project pages and knowledge. Apply relevant context silently. **Throughout the session**, consult wiki before starting any task.
 - If this is an unfamiliar project (no wiki page, not your own repo), check for instruction files: `CLAUDE.md`, `.github/copilot-instructions.md`, `.copilot/`, `.cursorrules`, `.windsurfrules`. Read them if found. Our `AGENTS.md` takes precedence.
 - Keep changes traceable and update wiki/log when durable knowledge is produced.
 - Respond in English unless the user asks otherwise.
@@ -85,9 +87,9 @@
 - Break tasks into independent subtasks that can execute in parallel via agents.
 
 ### Wiki
-- **On session start**, read `~/wiki/index.md` — the routing table to all project pages, conventions, patterns.
+- **On session start**, read `~/.agents/wiki/index.md` — the routing table to all project pages, conventions, patterns.
 - Check wiki **before** starting any task. Stale wiki is worse than no wiki — update it continuously.
-- When discovering stable facts, proactively persist them to the wiki and append to `~/wiki/log.md`.
+- When discovering stable facts, proactively persist them to the wiki and append to `~/.agents/wiki/log.md`.
 - **Retrieval order:** Wiki → Code search → context7 → grep_app → web-search-prime → websearch (Exa fallback)
 
 ## Workflows
@@ -122,3 +124,47 @@ The orchestrator is text-only. All images, PDFs, video, and audio go through `@o
 ## Current Config
 
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
+
+### Directory Layout
+
+```
+~/.agents/AGENTS.md              ← Tool-agnostic system schema
+~/.agents/wiki/                   ← LLM Wiki (Obsidian vault, raw/, concepts/, etc.)
+~/.agents/repos/                  ← Cloned repos (symlinked from wiki/raw/repos/)
+~/.agents/scratch/                ← Ephemeral workspace
+~/.agents/skills/                 ← Ecosystem skills (agent-browser, code-review, pr-integration)
+~/.config/opencode/               ← OpenCode config
+~/.config/opencode/bin/oc         ← Launcher
+~/.config/opencode/opencode.json  ← Core config
+~/.config/opencode/oh-my-opencode-slim.json ← Plugin config
+~/.config/opencode/model-profile.jsonc ← Model profile
+~/.config/secrets/env             ← API keys
+~/.opencode/skills/obsidian-skills/ ← Git-managed Obsidian skills
+```
+
+Project-level `.agents/` directories (gitignored, per-project workspace):
+- `.agents/wiki/` — project-local LLM knowledge base
+- `.agents/wiki/AGENTS.md` — project-local wiki schema
+- `.agents/wiki/raw/` — immutable project sources
+- `.agents/repos/` — cloned/referenced repos, symlinked from `.agents/wiki/raw/repos/`
+- `.agents/scratch/` — ephemeral files
+- `.agents/skills/` — project-specific skills (discovered by OpenCode, walks up from cwd)
+
+Project `AGENTS.md` stays at project root (sibling to `.agents/`) for tool discovery; `.agents/` mirrors global `~/.agents/` for workspace state. Do not put primary project instructions at `project/.agents/AGENTS.md`.
+
+OpenCode-specific instructions live in `~/.config/opencode/AGENTS.md` (not `~/.opencode/config/AGENTS.md`). OpenCode uses XDG config paths; `~/.opencode/` is used here for external skills such as `obsidian-skills/`.
+
+> The directory structure is a recommendation, not a rigid requirement. Projects vary — some may not need all directories, others may add their own. The three-layer pattern (raw → wiki → schema) is what matters.
+- `.opencode/skills/` — project-specific skills (OpenCode-native, also discovered)
+- See `~/.agents/wiki/concepts/ai-agent-workspaces.md` for full pattern
+
+### Skill directories (global)
+
+| Directory | What lives here | How to add/remove |
+|-----------|----------------|-------------------|
+| `~/.agents/skills/` | Ecosystem skills (agent-browser, code-review, pr-integration) | `npx skills add --global` / `rm -rf` |
+| `~/.config/opencode/skills/` | Plugin-bundled (simplify, codemap, clonedeps) + custom skills | omo-slim installer / manual |
+| `~/.opencode/skills/obsidian-skills/` | Git-managed Obsidian skills (5 skills) | `git pull` |
+| `project/.agents/skills/` | Per-project custom skills | Create `SKILL.md` manually |
+
+omo-slim installs bundled skills by copying to `~/.config/opencode/skills/` — it does NOT modify `skills.paths` in opencode.json. That directory is already in OpenCode's default scan.

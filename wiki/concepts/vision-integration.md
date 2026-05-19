@@ -3,7 +3,7 @@ summary: "Non-text content routing: observer for visual (video) and audio (speec
 type: concept
 tags: [vision, observer, designer, multimodal, mcp, zai, gemini]
 sources:
-  - ~/wiki/raw/user/prompts/20260422-000304-first-vision-report.md
+  - raw/user/prompts/20260422-000304-first-vision-report.md
 related:
   - agent-roles-and-models
   - occams-code-setup
@@ -110,7 +110,7 @@ User's audio/video file → orchestrator delegates to @observer
 - **Model:** `ggml-large-v3-turbo` (1.6 GB, best Serbian accuracy). Stored at `~/.local/share/opencode/models/whisper/` (XDG data, not in git). Auto-downloaded on first use.
 - **Performance:** CPU (Zen 4 AVX-512) ~0.5x realtime, Vulkan GPU (AMD Radeon 860M, RADV) ~8x realtime — confirmed working via `VK_ICD_FILENAMES` and `LD_LIBRARY_PATH` env vars set by the script. GPU successfully detected by whisper.cpp (not blocked by nix sandbox on this machine). Encode time: 6.4x faster on GPU vs CPU.
 - **Discovery:** Load `audio-analysis` skill (`/skill audio-analysis`) or instruct observer directly.
-- **Flake:** `~/personal/repos/kotur-nixpkgs#whisper-cpp-vulkan` (or `github:nkoturovic/kotur-nixpkgs#whisper-cpp-vulkan` for remote)
+- **Flake:** `$OCCAM_WHISPER_FLAKE_LOCAL#whisper-cpp-vulkan` or `~/repos/kotur-nixpkgs#whisper-cpp-vulkan` if present, otherwise `github:nkoturovic/kotur-nixpkgs#whisper-cpp-vulkan`
 
 ### Audio + Video combined pipeline
 
@@ -180,9 +180,7 @@ Caveat: `ORDER BY id DESC LIMIT 1` may extract from a different session if multi
 
 ## Z.ai Vision MCP
 
-**Status varies by config:**
-- **Live (all presets):** `enabled: true` in opencode.json, assigned to observer mcps (all presets). Observer uses Read for images/PDFs; MCP for video and Read fallback. Designer retains MCP on premium/custom for direct delegation.
-- **Repo (all presets):** `enabled: false` in opencode.json. Opt-in per-project: set `enabled: true` in opencode.json AND add `"zai_vision"` to observer's `mcps` array.
+**Status:** ships in `opencode.json` without hardcoded secrets, using `Z_AI_API_KEY` from the environment. Observer uses Read for images/PDFs; MCP remains a fallback for video and image/PDF edge cases when the key is configured.
 
 8 tools, needs API key:
 
@@ -204,10 +202,10 @@ MCP connectivity confirmed. `image_analysis` tested with detailed output. Timeou
 | Component | Z.ai-specific? | Replacement path |
 |-----------|---------------|-----------------|
 | Designer model (varies by preset) | No — OpenRouter | Swap to any multimodal model |
-| zai_vision MCP | **Opt-in** | Disabled by default. Enable per-project for video. Replace with ai-vision-mcp (Gemini) or mcp-vision (Ollama) |
+| zai_vision MCP | Optional by key | Ships without hardcoded secrets; active only when `Z_AI_API_KEY` is configured. Replace with ai-vision-mcp (Gemini) or mcp-vision (Ollama) |
 | Other agents (GLM-5.1) | Model string only | Swap to any model |
 
-**No hard Z.ai dependencies by default.** Vision MCP is opt-in. Everything else is model-string swaps.
+**No hard Z.ai dependency for basic use.** The MCP is inert without `Z_AI_API_KEY`; everything else is model-string swaps.
 
 ## Test Results (2026-04-22)
 

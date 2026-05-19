@@ -9,6 +9,8 @@ Notes: What changed and why
 
 ## [2026-05-06] sync | Production-readiness sweep + cross-platform install hardening
 
+> Note: the Z.AI MCP packaging changed later. Current repo config may ship `zai_vision` and `web-search-prime` enabled with environment placeholders, but never with hardcoded keys.
+
 ### Config sync from live setup
 - **opencode.json:** Anthropic adaptive thinking schema (`thinking.type:"adaptive"` + `output_config.effort`); claude-opus-4-6 → claude-opus-4-7 (3 refs); output 32K → 128K for Anthropic models. Trimmed unused: `provider.opencode.models` block (TUI metadata duplicates), `deepseek-v4-flash`, direct `deepseek-v3.2`, `openrouter/openai/gpt-5.4`. Result: 547 → 429 lines.
 - **oh-my-opencode-slim.json:** Default `preset` and `council.default_preset` set to `"balanced"` (live uses `"custom"` — intentional repo difference). Premium oracle bumped to claude-opus-4-7 (temp 0.1). Council reviewers diversified across 4 distinct lineages per preset.

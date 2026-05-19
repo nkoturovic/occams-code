@@ -2,6 +2,11 @@
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
   "preset": "balanced",
   "disabled_agents": [],
+  "multiplexer": {
+    "type": "auto",
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  },
   "todoContinuation": {
     "maxContinuations": 15,
     "cooldownMs": 5000,
