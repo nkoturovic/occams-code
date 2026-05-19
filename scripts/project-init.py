@@ -53,6 +53,7 @@ confidence: medium
 # {project_name}
 
 - Path: `{project_path}`
+- Local workspace: `{project_path}/.agents/`
 - Purpose: [fill in]
 
 ## Current Context
@@ -244,9 +245,13 @@ def update_index(slug: str, project_name: str) -> bool:
     )
 
     text = WIKI_INDEX.read_text(encoding="utf-8")
-    entry = f"- [[{slug}]] — {project_name}\n"
-    if entry in text:
+
+    # Check for ANY existing entry with this slug (not just exact match).
+    # Existing entries may have custom descriptions after the — separator.
+    if f"[[{slug}]]" in text:
         return False
+
+    entry = f"- [[{slug}]] — {project_name}\n"
 
     projects_header = "## Projects"
     if projects_header not in text:
