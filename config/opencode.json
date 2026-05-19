@@ -437,6 +437,28 @@
             "high": {},
             "low": {}
           }
+        },
+        "deepseek/deepseek-v4-pro": {
+          "name": "DeepSeek V4 Pro (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "interleaved": {
+            "field": "reasoning_content"
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 131072
+          },
+          "options": {
+            "reasoning": {
+              "enabled": true
+            }
+          },
+          "variants": {
+            "high": {},
+            "max": {},
+            "low": {}
+          }
         }
       }
     },
