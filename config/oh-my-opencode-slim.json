@@ -497,6 +497,89 @@
         "mcps": [],
         "temperature": 0.7
       }
+    },
+    "openai": {
+      "orchestrator": {
+        "model": "openai/gpt-5.5",
+        "variant": "xhigh",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ],
+        "temperature": 0.8
+      },
+      "oracle": {
+        "model": "openai/gpt-5.5",
+        "variant": "xhigh",
+        "skills": [
+          "simplify"
+        ],
+        "mcps": [],
+        "temperature": 1.0
+      },
+      "librarian": {
+        "model": "openai/gpt-5.4",
+        "variant": "xhigh",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "grep_app"
+        ],
+        "temperature": 0.8
+      },
+      "explorer": {
+        "model": "openai/gpt-5.3-codex",
+        "variant": "high",
+        "skills": [],
+        "mcps": [],
+        "temperature": 0.8
+      },
+      "fixer": {
+        "model": "openai/gpt-5.3-codex",
+        "variant": "high",
+        "skills": [],
+        "mcps": [],
+        "temperature": 1.0
+      },
+      "designer": {
+        "model": "openrouter/~google/gemini-pro-latest",
+        "variant": "high",
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "zai_vision"
+        ],
+        "temperature": 1.0
+      },
+      "observer": {
+        "model": "openrouter/~google/gemini-pro-latest",
+        "variant": "high",
+        "skills": [
+          "video-analysis",
+          "lecture-notes",
+          "audio-analysis"
+        ],
+        "mcps": [
+          "zai_vision"
+        ],
+        "temperature": 1.0
+      },
+      "council": {
+        "model": "openai/gpt-5.5",
+        "variant": "xhigh",
+        "skills": [],
+        "mcps": [],
+        "temperature": 1.0
+      }
     }
   },
   "fallback": {
@@ -609,6 +692,17 @@
         },
         "reviewer-3": {
           "model": "openrouter/anthropic/claude-sonnet-4.6"
+        }
+      },
+      "openai": {
+        "reviewer-1": {
+          "model": "zai-coding-plan/glm-5.1"
+        },
+        "reviewer-2": {
+          "model": "openrouter/anthropic/claude-sonnet-4.6"
+        },
+        "reviewer-3": {
+          "model": "deepseek/deepseek-v4-pro"
         }
       }
     }
