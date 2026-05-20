@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_DIR="${OCCAM_OPENCODE_DIR:-$HOME/.config/opencode}"
 AGENTS_DIR="$HOME/.agents"
+WIKI_DIR="${OCCAM_WIKI_DIR:-$HOME/.agents/wiki}"
 
 SECRETS_DIR="$HOME/.config/secrets"
 SECRETS_FILE="$SECRETS_DIR/env"
@@ -347,14 +348,6 @@ if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
   cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
   echo -e "  ${GREEN}✓${RESET} scripts/*.py ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
 fi
-
-# transcribe — always overwrite
-if [[ -f "$REPO_ROOT/scripts/transcribe" ]]; then
-  cp "$REPO_ROOT/scripts/transcribe" "$OPENCODE_DIR/scripts/transcribe"
-  chmod +x "$OPENCODE_DIR/scripts/transcribe"
-  echo -e "  ${GREEN}✓${RESET} scripts/transcribe"
-fi
-
 
 # Commands — always overwrite
 if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then

@@ -152,3 +152,17 @@ Universal framework paths (from occams-agentic, at `~/.agents/`):
 - `~/.agents/wiki/` — Karpathy-style LLM Wiki (Obsidian vault, git repo)
 - `~/.agents/plans/` — Kanban task management (backlog/, active/, done/)
 - `~/.agents/repos/` — Cloned reference repos
+
+## Harness-Agnostic Skill Integration
+
+Some skills in `~/.agents/skills/` use generic agent role names. OpenCode maps these as follows:
+
+| Generic Role | OpenCode Agent | Used In |
+|-------------|----------------|---------|
+| Vision-capable agent | `@observer` | lecture-notes (Phases 1, 6, 7) |
+| Strategic review agent | `@oracle` | lecture-notes (Phases 4, 9) |
+| Implementation agent | `@fixer` | lecture-notes (Phase 8) |
+
+When a skill says "delegate to your vision-capable agent", use `@observer`.
+When a skill says "delegate to your strategic review agent", use `@oracle`.
+When a skill says "delegate to your implementation agent", use `@fixer`.
