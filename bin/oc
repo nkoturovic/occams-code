@@ -25,6 +25,7 @@ set -euo pipefail
 
 CONFIG="$HOME/.config/opencode/oh-my-opencode-slim.json"
 CORE_CONFIG="$HOME/.config/opencode/opencode.json"
+STATE_DIR="$HOME/.local/state/opencode"
 # Override 32K output token cap — match model capabilities not a one-size-fits-all floor
 export OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX=131072
 
@@ -87,8 +88,17 @@ done
 # --- Helpers ---
 is_interactive() { [[ -t 0 && -t 1 ]]; }
 has_sessions() {
-  [[ -f "$HOME/.local/share/opencode/opencode.db" ]] &&
-  sqlite3 "$HOME/.local/share/opencode/opencode.db" "SELECT 1 FROM session WHERE directory='$(pwd)' LIMIT 1" 2>/dev/null | grep -q 1
+  [[ -f "$HOME/.local/share/opencode/opencode.db" ]] || return 1
+  python3 - "$HOME/.local/share/opencode/opencode.db" "$(pwd)" <<'PY'
+import sqlite3, sys
+db, cwd = sys.argv[1], sys.argv[2]
+try:
+    conn = sqlite3.connect(db)
+    row = conn.execute("SELECT 1 FROM session WHERE directory=? LIMIT 1", (cwd,)).fetchone()
+    sys.exit(0 if row else 1)
+except Exception:
+    sys.exit(1)
+PY
 }
 
 show_config() {
@@ -105,12 +115,12 @@ show_config() {
     preset=$(jq -r '.preset' "$CONFIG")
   fi
   # Guard: fall back to global default if preset not found
-  if ! jq -e ".presets[\"$preset\"]" "$CONFIG" >/dev/null 2>&1; then
+  if ! jq --arg p "$preset" -e '.presets[$p]' "$CONFIG" >/dev/null 2>&1; then
     echo -e "${YELLOW}Warning: preset '$preset' not found, falling back to global default${RESET}"
     preset=$(jq -r '.preset' "$CONFIG")
     source="global (fallback)"
   fi
-  model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
+  model_count=$(jq --arg p "$preset" -r '.presets[$p] | length' "$CONFIG")
   echo -e "${BOLD}Preset: ${CYAN}$preset${RESET} ${DIM}($model_count agents, $source)${RESET}"
   if [[ -n "$PROJECT_CONFIG" ]] && jq -e '.agents' <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") >/dev/null 2>&1; then
     jq -r --slurpfile proj <(sed '/^\s*\/\//d; s/\/\/.*$//' "$PROJECT_CONFIG") --arg p "$preset" '
@@ -122,7 +132,7 @@ show_config() {
       ) | .[]
     ' "$CONFIG" | column -t -s $'\t'
   else
-    jq -r ".presets[\"$preset\"] | to_entries[] | \"  \\(.key)\\t\\(.value.model)\"" "$CONFIG" \
+    jq --arg p "$preset" -r '.presets[$p] | to_entries[] | "  \(.key)\t\(.value.model)"' "$CONFIG" \
       | column -t -s $'\t'
   fi
 }
@@ -130,7 +140,7 @@ show_config() {
 # --- Set preset (--preset flag) ---
 set_preset() {
   local preset="$1"
-  if ! jq -e ".presets.\"$preset\"" "$CONFIG" >/dev/null 2>&1; then
+  if ! jq --arg p "$preset" -e '.presets[$p]' "$CONFIG" >/dev/null 2>&1; then
     echo -e "${RED}Preset '$preset' not found.${RESET}" >&2
     echo "Available: $(jq -r '.presets | keys | join(", ")' "$CONFIG")" >&2
     exit 1
@@ -283,7 +293,8 @@ run_sync_profile() {
 
 # --- Permission management ---
 launch_with_permissions() {
-  local mode="$1" perm_backup="/tmp/oc-perm-backup-$(id -u)-$$"
+  local mode="$1" perm_backup="$STATE_DIR/oc-perm-backup-$(id -u)-$$"
+  mkdir -p "$STATE_DIR"
 
   # Save + apply
   python3 - "$CORE_CONFIG" "$perm_backup" "$mode" <<'PY'
@@ -333,7 +344,7 @@ main() {
 
   # Crash recovery (before any output)
   local _pb
-  for _pb in /tmp/oc-perm-backup-$(id -u)-*; do
+  for _pb in "$STATE_DIR/oc-perm-backup-$(id -u)-"*; do
     [[ -f "$_pb" ]] || break
     echo -e "${YELLOW}⚠ Recovering permissions from crash...${RESET}"
     python3 - "$CORE_CONFIG" "$_pb" <<'PY'
