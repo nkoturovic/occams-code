@@ -219,7 +219,7 @@ run_doctor() {
   if jq empty "$CONFIG" 2>/dev/null; then
     local preset model_count
     preset=$(jq -r '.preset' "$CONFIG")
-    model_count=$(jq -r ".presets[\"$preset\"] | length" "$CONFIG")
+    model_count=$(jq --arg p "$preset" -r '.presets[$p] | length' "$CONFIG")
     echo -e "  ${GREEN}✓${RESET} Global config (preset: $preset, $model_count agents)"
   else
     echo -e "  ${RED}✗${RESET} Global config invalid JSON"; status=1
