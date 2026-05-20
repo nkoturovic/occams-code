@@ -190,6 +190,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     deepseek)  _def_num=3 ;;
     premium)   _def_num=4 ;;
     custom)    _def_num=5 ;;
+    openai)    _def_num=6 ;;
     *)         _def_num=1 ;;
   esac
 
@@ -199,6 +200,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  3) deepseek"
   echo "  4) premium   $([[ "$_rec" == "premium" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
   echo "  5) custom    $([[ "$_rec" == "custom" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
+  echo "  6) openai    (requires ChatGPT Plus OAuth via /connect)"
   read -rp "  Enter number [$_def_num]: " _q2 < /dev/tty
   _q2="${_q2:-$_def_num}"
   case "$_q2" in
@@ -206,6 +208,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     3) PRESET="deepseek" ;;
     4) PRESET="premium" ;;
     5) PRESET="custom" ;;
+    6) PRESET="openai" ;;
     *) PRESET="balanced" ;;
   esac
   echo -e "  ${GREEN}→${RESET} $PRESET"
@@ -392,7 +395,7 @@ _preserve_copy "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jso
 if [[ -n "${PRESET:-}" ]]; then
   # Validate preset name
   case "$PRESET" in
-    custom|balanced|cheap|premium|deepseek) ;;
+    custom|balanced|cheap|premium|deepseek|openai) ;;
     *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
   esac
 

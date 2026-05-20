@@ -15,7 +15,7 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **5 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`
+- **6 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`, `openai`
 - **10 Python scripts** + `transcribe` + `cleanup-logs.sh` — Config generator, wiki lint, project init, repo ingestion, project state detection, model health check, video analysis, lecture scene detection, lecture audio-visual fusion, lecture clip encoding, speech-to-text, weekly log pruner
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
@@ -158,9 +158,11 @@ The plugin deep-merges project config with global config. Edit the file directly
 | `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
 | `repo-ingest.py` | Snapshots GitHub repo into wiki |
 | `detect-project-state.py` | Project state detection (used by --doctor) |
+| `doctor-model-check.py` | Model health check — verifies API connectivity and model availability (used by `--doctor`) |
 | `analyze-video.py` | Video analysis via OpenRouter (Gemini, multi-provider) |
 | `lecture-scenes.py` | Scene detection + keyframe extraction (ffmpeg) |
 | `lecture-fusion.py` | Audio-visual fusion for lecture notes pipeline |
+| `lecture-clips.py` | Clip encoding — cuts video segments for per-section analysis |
 | `transcribe` | Speech-to-text. Default backend: whisper.cpp via nix flake (Linux/WSL, Vulkan GPU). Installer offers system whisper-cpp / OpenAI API as alternatives |
 | `cleanup-logs.sh` | Weekly log pruner (30-day retention, runs via cron if installer set it up) |
 

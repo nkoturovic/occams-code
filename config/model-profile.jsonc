@@ -79,6 +79,20 @@
       "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.7 },
       "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "council":      { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.7 }
+    },
+
+    // ============ OPENAI (ChatGPT Plus OAuth via /connect) ============
+    "openai": {
+      "orchestrator": { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.8 },
+      "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 },
+      "librarian":    { "model": "openai/gpt-5.4", "variant": "xhigh", "temperature": 0.8 },
+      // Codex models for code-heavy agents — purpose-built beats general-purpose
+      "explorer":     { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 0.8 },
+      "fixer":        { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 1.0 },
+      // Gemini for vision — Codex endpoint doesn't reliably support vision
+      "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
+      "observer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
+      "council":      { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 }
     }
   },
 
@@ -116,6 +130,11 @@
         "reviewer-1": { "model": "openrouter/qwen/qwen3-coder" },
         "reviewer-2": { "model": "openrouter/qwen/qwen3.6-plus" },
         "reviewer-3": { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free" }
+      },
+      "openai": {
+        "reviewer-1": { "model": "zai-coding-plan/glm-5.1" },
+        "reviewer-2": { "model": "openrouter/anthropic/claude-sonnet-4.6" },
+        "reviewer-3": { "model": "deepseek/deepseek-v4-pro" }
       }
     }
   }
