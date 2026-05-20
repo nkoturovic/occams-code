@@ -28,7 +28,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **4 MCP servers** — context7 (library docs) + grep_app (code search) + zai_vision (image analysis) + web-search-prime (Z.AI web search). All ship in the default config; zai_vision and web-search-prime require a Z.AI API key set via `Z_AI_API_KEY` env var.
-- **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
+- **4 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
 
 ### Prerequisites
 

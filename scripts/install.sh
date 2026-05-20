@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_DIR="${OCCAM_OPENCODE_DIR:-$HOME/.config/opencode}"
 AGENTS_DIR="$HOME/.agents"
-WIKI_DIR="${OCCAM_WIKI_DIR:-$AGENTS_DIR/wiki}"
+
 SECRETS_DIR="$HOME/.config/secrets"
 SECRETS_FILE="$SECRETS_DIR/env"
 
@@ -434,64 +434,13 @@ if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.js
   echo -e "  ${GREEN}✓${RESET} Z.AI MCPs injected into opencode.json"
 fi
 
-# ── Wiki template ────────────────────────────────────────────────────
-echo ""
-echo -e "${BOLD}Setting up wiki template...${RESET}"
-
-for f in AGENTS.md index.md overview.md log.md .gitignore; do
-  if [[ -f "$REPO_ROOT/wiki/$f" ]]; then
-    if [[ ! -f "$WIKI_DIR/$f" ]]; then
-      cp "$REPO_ROOT/wiki/$f" "$WIKI_DIR/$f"
-      echo -e "  ${GREEN}✓${RESET} wiki/$f"
-    else
-      echo -e "  ${YELLOW}⊙${RESET} wiki/$f (already exists, skipped)"
-    fi
-  fi
-done
-
-# Ensure repos live outside the wiki vault but are visible from raw/repos
-if [[ ! -e "$WIKI_DIR/raw/repos" && ! -L "$WIKI_DIR/raw/repos" ]]; then
-  ln -s ../../repos "$WIKI_DIR/raw/repos"
-elif [[ -d "$WIKI_DIR/raw/repos" && ! -L "$WIKI_DIR/raw/repos" ]]; then
-  echo -e "  ${YELLOW}⚠${RESET} $WIKI_DIR/raw/repos exists as a directory; leaving it unchanged"
+# ── Wiki (managed by occams-agentic) ──────────────────────────────────
+if [[ -f "$AGENTS_DIR/AGENTS.md" ]]; then
+  echo -e "  ${GREEN}✓${RESET} occams-agentic framework detected (wiki via bootstrap.sh)"
+else
+  echo -e "  ${YELLOW}⚠${RESET} occams-agentic not found at $AGENTS_DIR"
+  echo -e "  ${DIM}  Install it first: git clone occams-agentic && ./bin/bootstrap.sh${RESET}"
 fi
-
-# Copy wiki content (with overwrite protection)
-for f in wiki/concepts/karpathy-llm-wiki.md wiki/concepts/occams-code-setup.md wiki/concepts/agent-roles-and-models.md wiki/concepts/oc-launcher.md wiki/concepts/troubleshooting.md wiki/concepts/design-systems.md wiki/sources/_template-source-summary.md wiki/raw/README.md; do
-  if [[ -f "$REPO_ROOT/$f" ]]; then
-    target="$WIKI_DIR/${f#wiki/}"
-    target_dir="$(dirname "$target")"
-    mkdir -p "$target_dir"
-    if [[ ! -f "$target" ]]; then
-      cp "$REPO_ROOT/$f" "$target"
-      echo -e "  ${GREEN}✓${RESET} $f"
-    else
-      echo -e "  ${YELLOW}⊙${RESET} $f (already exists, skipped)"
-    fi
-  fi
-done
-
-# Copy wiki subdirectory content (with overwrite protection)
-_copy_wiki_subdir() {
-  local subdir="$1"
-  local src_dir="$REPO_ROOT/wiki/$subdir"
-  [[ -d "$src_dir" ]] || return
-  for f in "$src_dir"/*.md; do
-    [[ -f "$f" ]] || continue
-    local name="$(basename "$f")"
-    local target="$WIKI_DIR/$subdir/$name"
-    if [[ ! -f "$target" ]]; then
-      cp "$f" "$target"
-      echo -e "  ${GREEN}✓${RESET} wiki/$subdir/$name"
-    else
-      echo -e "  ${YELLOW}⊙${RESET} wiki/$subdir/$name (already exists, skipped)"
-    fi
-  done
-}
-for dir in patterns languages; do _copy_wiki_subdir "$dir"; done
-
-# .gitkeep files
-find "$WIKI_DIR" -type d -empty -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null || true
 
 # ── Install local skills ─────────────────────────────────────────────
 echo ""
