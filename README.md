@@ -1,14 +1,21 @@
 # Occam's Code
 
-> OpenCode setup sharpened by Occam's Razor.
+> OpenCode integration layer for [occams-agentic](https://github.com/nkoturovic/occams-agentic) — sharpened by Occam's Razor.
 > *The simplest solution that fully solves the problem is the correct solution.*
 
-A shareable, open-source configuration for [OpenCode](https://github.com/sst/opencode) — an AI coding agent with multi-model orchestration, Karpathy-style persistent wiki memory, and a smart launcher.
+The OpenCode-specific configuration layer for the [occams-agentic](https://github.com/nkoturovic/occams-agentic) AI framework. Provides multi-model orchestration, a smart launcher (`oc`), and curated agent presets on top of the universal skills, scripts, and wiki from occams-agentic.
 
-**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys, but you don't need them to start.
+**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi / OpenAI keys, but you don't need them to start.
+
+## Quick Start
 
 ```bash
-git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
+# 1. Install occams-agentic (universal layer)
+git clone https://github.com/nkoturovic/occams-agentic.git && cd occams-agentic
+./bin/bootstrap.sh
+
+# 2. Install occams-code (OpenCode layer)
+cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ./scripts/install.sh                                    # interactive
 ```
 
@@ -16,19 +23,16 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **6 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`, `openai`
-- **10 Python scripts** + `transcribe` + `cleanup-logs.sh` — Config generator, wiki lint, project init, repo ingestion, project state detection, model health check, video analysis, lecture scene detection, lecture audio-visual fusion, lecture clip encoding, speech-to-text, weekly log pruner
+- **4 OpenCode scripts** — Config generator, model health check, weekly log pruner, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **4 MCP servers** — context7 (library docs) + grep_app (code search) + zai_vision (image analysis) + web-search-prime (Z.AI web search). All ship in the default config; zai_vision and web-search-prime require a Z.AI API key set via `Z_AI_API_KEY` env var.
-- **6 local OpenCode skills** — audio-analysis, video-analysis, lecture-notes, codemap, simplify, clonedeps (plus 5 from the obsidian-skills bundle if cloned: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown)
-- **Karpathy-style wiki** — Persistent knowledge base (raw → wiki one-way compile), Obsidian-compatible
-- **AGENTS.md + AGENTS-system.md** — OpenCode-specific agent rules plus a tool-agnostic `~/.agents/` workspace schema
-
-## Quick Start
+- **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
 
 ### Prerequisites
 
+- [**occams-agentic**](https://github.com/nkoturovic/occams-agentic) — must be installed first (provides `~/.agents/` with skills, scripts, and wiki)
 - [OpenCode](https://github.com/sst/opencode) (`npm install -g opencode` or `bun install -g opencode`)
 - Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), git, curl
 - `npm` or `bun` (for installing the oh-my-opencode-slim plugin)
@@ -51,10 +55,12 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ```
 
 The installer:
-1. Copies scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
-2. Sets up the unified agent workspace at `~/.agents/` (wiki, repos, scratch, skills)
-3. Installs the oh-my-opencode-slim plugin
-4. Optionally installs Obsidian
+
+1. Copies OpenCode-specific scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
+2. Installs the oh-my-opencode-slim plugin
+3. Sets up API keys in `~/.local/share/opencode/auth.json` and `~/.config/secrets/env`
+
+> **Note:** `~/.agents/` (skills, scripts, wiki) is set up by occams-agentic's `bootstrap.sh` — run that first.
 
 Set up your API keys in `~/.local/share/opencode/auth.json` and `~/.config/secrets/env`. See [INSTALL.md](INSTALL.md) for the full reference and manual install instructions.
 
