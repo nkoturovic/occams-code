@@ -1,21 +1,8 @@
 # Installation Guide
 
-This guide covers installing Occam's Code on a fresh machine.
+This guide covers installing the occams-code OpenCode integration layer. **If you haven't installed occams-agentic yet, do that first** — it provides the universal `~/.agents/` workspace with skills, scripts, and wiki.
 
 The installer is interactive by default and asks you exactly the right questions to set up the environment correctly. It also supports a fully **non-interactive** mode for automated/agent-driven deployments.
-
----
-
-## Supported Platforms
-
-| Platform | Status | Notes |
-|----------|--------|-------|
-| Linux x86_64 | ✅ Full | Default bash 5+ on most distros |
-| Linux aarch64 | ✅ Full | Tested on Raspberry Pi 5, Asahi |
-| macOS Apple Silicon | ✅ Full | Requires `brew install bash` (system bash 3.2 fails) |
-| macOS Intel | ✅ Full | Requires `brew install bash` |
-| Windows (WSL2) | ✅ Full | Same as Linux inside WSL |
-| Windows native | ❌ | Use WSL2 |
 
 ---
 
@@ -25,6 +12,7 @@ The installer is interactive by default and asks you exactly the right questions
 
 | Tool | Why | How to install |
 |------|-----|----------------|
+| **[occams-agentic](https://github.com/nkoturovic/occams-agentic)** | Universal AI framework (`~/.agents/`) — install BEFORE occams-code | `git clone ... && cd occams-agentic && ./bin/bootstrap.sh` |
 | `python3` ≥ 3.10 | Wiki + project scripts | `apt install python3` / `brew install python3` |
 | `jq` | JSON parsing in `oc` | `apt install jq` / `brew install jq` |
 | `curl` | Downloads, MCP requests | usually preinstalled |
@@ -54,11 +42,21 @@ You need **at least one** provider. The default `balanced` preset works with jus
 
 ---
 
-## Install — Interactive (Recommended)
+## Install — Two-Step (Recommended)
+
+### Step 1: occams-agentic (universal layer)
 
 ```bash
-git clone https://github.com/nkoturovic/occams-code.git
-cd occams-code
+git clone https://github.com/nkoturovic/occams-agentic.git && cd occams-agentic
+./bin/bootstrap.sh
+```
+
+This sets up `~/.agents/` — universal skills, scripts, wiki template, and AGENTS.md workspace schema.
+
+### Step 2: occams-code (OpenCode integration layer)
+
+```bash
+cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 ./scripts/install.sh
 ```
 

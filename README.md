@@ -23,7 +23,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **6 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`, `openai`
-- **4 OpenCode scripts** — Config generator, model health check, weekly log pruner, interactive installer
+- **5 OpenCode scripts** — Config generator, model health check, project init, state detection, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
@@ -158,20 +158,15 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 ### Scripts
 
+OpenCode-specific scripts (universal scripts like `transcribe`, `analyze-video.py`, `wiki-lint.py`, `lecture-*.py`, `repo-ingest.py`, `cleanup-logs.sh` are provided by occams-agentic at `~/.agents/scripts/`):
+
 | Script | Purpose |
 |--------|---------|
 | `model-profile.py` | **Config generator** — generates oh-my-opencode-slim.json from model-profile.jsonc |
-| `wiki-lint.py` | Wiki health check (dead links, orphans, stale pages) |
-| `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
-| `repo-ingest.py` | Snapshots GitHub repo into wiki |
-| `detect-project-state.py` | Project state detection (used by --doctor) |
 | `doctor-model-check.py` | Model health check — verifies API connectivity and model availability (used by `--doctor`) |
-| `analyze-video.py` | Video analysis via OpenRouter (Gemini, multi-provider) |
-| `lecture-scenes.py` | Scene detection + keyframe extraction (ffmpeg) |
-| `lecture-fusion.py` | Audio-visual fusion for lecture notes pipeline |
-| `lecture-clips.py` | Clip encoding — cuts video segments for per-section analysis |
-| `transcribe` | Speech-to-text. Default backend: whisper.cpp via nix flake (Linux/WSL, Vulkan GPU). Installer offers system whisper-cpp / OpenAI API as alternatives |
-| `cleanup-logs.sh` | Weekly log pruner (30-day retention, runs via cron if installer set it up) |
+| `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
+| `detect-project-state.py` | Project state detection (reads `.opencode/` — used by `--doctor`) |
+| `install.sh` | Interactive installer for the occams-code layer |
 
 ### Agents
 
@@ -248,29 +243,30 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ## Directory Structure
 
 ```
-~/.config/opencode/
-├── AGENTS.md                      # OpenCode-specific agent rules and workflows
-├── opencode.json                  # Core config (providers, MCPs, LSPs)
-├── oh-my-opencode-slim.json       # Presets, agents, fallback chains, council
-├── model-profile.jsonc            # Source-of-truth for model assignments (oc --sync-profile regenerates slim.json)
-├── bin/oc                         # Launcher script
-├── scripts/                       # 10 Python scripts + transcribe + cleanup-logs.sh
-├── commands/                      # Slash command definitions (6 commands)
-├── skills/                        # OpenCode skills (codemap, simplify, clonedeps, audio/video/lecture pipeline)
+~/.config/opencode/              ← occams-code (OpenCode integration layer)
+├── AGENTS.md                    # OpenCode-specific agent rules and workflows
+├── opencode.json                # Core config (providers, MCPs, LSPs)
+├── oh-my-opencode-slim.json     # Presets, agents, fallback chains, council
+├── model-profile.jsonc          # Source-of-truth for model assignments
+├── bin/oc                       # Launcher script
+├── scripts/                     # OpenCode-specific scripts
+├── commands/                    # Slash command definitions
+└── skills/                      # OpenCode skills (codemap, simplify, clonedeps)
 
-~/.agents/
-├── AGENTS.md                      # Tool-agnostic workspace schema
-├── repos/                         # Cloned repos, outside the wiki vault
-├── scratch/                       # Ephemeral agent workspace
-├── skills/                        # Tool-agnostic ecosystem skills
-└── wiki/
-    ├── AGENTS.md                  # Wiki schema (LLM follows these rules)
-    ├── index.md                   # Master routing table
-    ├── log.md                     # Append-only activity log
-    ├── overview.md                # High-level wiki synthesis
-    ├── raw/                       # Immutable source documents
-    │   ├── articles/ papers/ docs/ forums/ assets/ user/ session-reports/ _inbox/
-    │   └── repos -> ../../repos   # Symlink to cloned repos outside vault
+~/.agents/                       ← occams-agentic (harness-agnostic framework)
+├── AGENTS.md                    # Tool-agnostic workspace schema
+├── plans/                       # Kanban task management (backlog/, active/, done/)
+├── repos/                       # Cloned repos, outside the wiki vault
+├── scratch/                     # Ephemeral agent workspace
+├── skills/                      # Universal skills (audio-analysis, video-analysis, lecture-notes, etc.)
+├── scripts/                     # Universal scripts (transcribe, analyze-video.py, lecture-*.py, etc.)
+└── wiki/                        # Karpathy-style LLM Wiki (Obsidian-compatible)
+    ├── AGENTS.md                # Wiki schema (LLM follows these rules)
+    ├── index.md                 # Master routing table
+    ├── log.md                   # Append-only activity log
+    ├── raw/                     # Immutable source documents
+    │   ├── articles/ papers/ docs/ forums/ assets/ user/ _inbox/
+    │   └── repos -> ../../repos # Symlink to cloned repos outside vault
     └── projects/ domain/ languages/ patterns/ concepts/ entities/ sources/ comparisons/
 ```
 

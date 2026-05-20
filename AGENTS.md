@@ -1,6 +1,7 @@
 # OpenCode — Agent Rules & Setup
 
 > OpenCode auto-loads this file from `~/.config/opencode/AGENTS.md` and also auto-loads `~/.agents/AGENTS.md` via `opencode.json.instructions`.
+> **Universal skills and scripts live at `~/.agents/`** — installed by [occams-agentic](https://github.com/nkoturovic/occams-agentic). This file covers OpenCode-specific agent roles and delegation.
 
 ## Session Rules
 - Wait for the user's first message before doing anything.
@@ -38,8 +39,8 @@
 **@observer instructions:**
 - Your model natively supports text, image, video, and PDF input.
 - **Images & PDFs:** Use Read tool directly — your model handles both natively.
-- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.config/opencode/scripts/analyze-video.py <path> [prompt]`. Your model handles audio+visual in one call (≤20MB).
-- **Audio/Speech-to-Text:** Use `~/.config/opencode/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
+- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`. Your model handles audio+visual in one call (≤20MB).
+- **Audio/Speech-to-Text:** Use `~/.agents/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
 - **Combined (lectures/talks with slides):** Run both — transcribe for speech, analyze-video for visuals. Merge by timestamp.
 - **Lecture note video analysis:** For lecture-notes pipeline, process pre-clipped per-section videos (≤5 min, ≤15MB, 0.5 FPS, 640px). Audio+visual fusion provides `speaker_emphasis` (vocal cues: tone, pacing, repetition) and `slide_content` (visual progression across frames — not just one snapshot).
 - For lecture note creation, load `/skill lecture-notes` for the complete pipeline spec and expected output fields.
@@ -115,9 +116,9 @@ The orchestrator is text-only. All images, PDFs, video, and audio go through `@o
 **Orchestrator rules:**
 - Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
 - **Images/PDFs:** delegate saying "Read the file at `<path>` using the Read tool — your model handles this natively."
-- **Video (visual only):** delegate saying "Analyze the video at `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py` [optional: add a specific prompt]."
-- **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
-- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.config/opencode/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.config/opencode/scripts/analyze-video.py`." For short clips (≤20MB), analyze-video.py handles both in one call (Gemini audio+visual).
+- **Video (visual only):** delegate saying "Analyze the video at `<path>` using `python3 ~/.agents/scripts/analyze-video.py` [optional: add a specific prompt]."
+- **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
+- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.agents/scripts/analyze-video.py`." For short clips (≤20MB), analyze-video.py handles both in one call (Gemini audio+visual).
 - SVG is text (XML) — you CAN Read it directly
 - Image/PDF/video/audio URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
 
@@ -129,10 +130,25 @@ Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read dir
 
 OpenAI uses `/connect` OAuth, not env API keys. Highest variant is `xhigh`. Observer/designer stay on Gemini; read the active preset before assuming models.
 
+## Principles
+
+### Occam's Code
+**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering.
+
+### Autonomous Agent Delegation
+Autonomous agents (scheduled, background, or general-purpose harnesses) should **not** perform coding tasks directly. Instead, they **delegate** coding work to coding harnesses (OpenCode, Claude Code, Codex, etc.) via their integration APIs. The autonomous agent coordinates; the coding harness executes.
+
 ### Directory Layout
 
 See `~/.agents/AGENTS.md` for the shared workspace layout and project `.agents/` pattern.
 OpenCode-specific paths:
-- `~/.config/opencode/` — config, launcher, model profile, local scripts
+- `~/.config/opencode/` — config, launcher, model profile, OpenCode-specific scripts and skills
 - `~/.opencode/skills/obsidian-skills/` — Git-managed Obsidian skills
 - `~/.config/secrets/env` — API keys sourced by the shell
+
+Universal framework paths (from occams-agentic, at `~/.agents/`):
+- `~/.agents/scripts/` — Universal scripts (transcribe, analyze-video.py, lecture pipeline, wiki-lint.py, etc.)
+- `~/.agents/skills/` — Universal skills (audio-analysis, video-analysis, lecture-notes, agent-browser, code-review, pr-integration)
+- `~/.agents/wiki/` — Karpathy-style LLM Wiki (Obsidian vault, git repo)
+- `~/.agents/plans/` — Kanban task management (backlog/, active/, done/)
+- `~/.agents/repos/` — Cloned reference repos
