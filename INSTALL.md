@@ -66,11 +66,10 @@ The installer asks:
 1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
 2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai`) — auto-recommended based on providers
 3. **Z.AI MCPs** — only asked if you selected Z.AI; injects `zai_vision` + `web-search-prime` blocks with your API key
-4. **Transcription backend** (nix whisper.cpp / system whisper-cpp / OpenAI API / skip)
-5. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
-6. **Weekly cron** for log cleanup
-7. **PATH setup** — appends `oc` to your shell rc
-8. **API keys** — writes selected provider keys to `~/.config/secrets/env`
+4. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
+5. **Weekly cron** for log cleanup
+6. **PATH setup** — appends `oc` to your shell rc
+7. **API keys** — writes selected provider keys to `~/.config/secrets/env`
 
 It confirms a summary before doing any work, then runs.
 
@@ -81,7 +80,7 @@ After install, set up your API keys. Occam's Code uses **two complementary secre
 | **OpenCode auth** | `~/.local/share/opencode/auth.json` | OpenCode itself (per-provider) | JSON |
 | **Shared env-secrets** | `~/.config/secrets/env` | Scripts (`analyze-video.py`, `transcribe`), MCPs (Exa websearch), HF model downloads | shell `export VAR=...` |
 
-The installer's **step 8** writes the shared env-secrets file — it prompts for each selected provider's API key (input hidden), writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. OpenCode's own `auth.json` can be created by running `opencode` once or by writing it manually:
+The installer's **step 7** writes the shared env-secrets file — it prompts for each selected provider's API key (input hidden), writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. OpenCode's own `auth.json` can be created by running `opencode` once or by writing it manually:
 
 **OpenCode auth.json** (per-provider keys for the agent itself):
 
@@ -152,7 +151,6 @@ Set environment variables, then run with `--unattended`:
 ```bash
 OCCAM_PROVIDERS=openrouter \
 OCCAM_PRESET=balanced \
-OCCAM_TRANSCRIBE=skip \
 OCCAM_INSTALL_DEFUDDLE=1 \
 OCCAM_INSTALL_AGENT_BROWSER=1 \
 OCCAM_INSTALL_OBSIDIAN=0 \
@@ -169,7 +167,6 @@ OCCAM_SETUP_PATH=1 \
 | `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
-| `OCCAM_TRANSCRIBE` | `nix` / `system` / `openai` / `skip` | `skip` |
 | `OCCAM_INSTALL_DEFUDDLE` | `0` / `1` | `1` |
 | `OCCAM_INSTALL_AGENT_BROWSER` | `0` / `1` | `1` |
 | `OCCAM_INSTALL_OBSIDIAN` | `0` / `1` | `1` |
@@ -183,9 +180,8 @@ OCCAM_SETUP_PATH=1 \
 | `OCCAM_HF_TOKEN` | string | (interactive, optional) |
 | `OCCAM_EXA_API_KEY` | string | (interactive, optional) |
 | `OCCAM_OPENCODE_DIR` | path | `$HOME/.config/opencode` |
-| `OCCAM_WIKI_DIR` | path | `$HOME/.agents/wiki` |
 
-**CLI flags** (override env vars): `--preset NAME`, `--providers CSV`, `--transcribe MODE`, `--no-defuddle`, `--no-agent-browser`, `--no-obsidian`, `--no-cron`, `--no-path`, `--enable-zai`, `--zai-key KEY`, `--dry-run` (preview without writing), `--unattended`.
+**CLI flags** (override env vars): `--preset NAME`, `--providers CSV`, `--no-defuddle`, `--no-agent-browser`, `--no-obsidian`, `--no-cron`, `--no-path`, `--enable-zai`, `--zai-key KEY`, `--dry-run` (preview without writing), `--unattended`.
 
 The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
 
@@ -263,38 +259,6 @@ source ~/.profile
 The installer also offers to set this up during interactive install (Q3).
 
 The agent-config `mcps` lists in `oh-my-opencode-slim.json` already reference these names — no further changes needed.
-
----
-
-## Transcription backends
-
-The `transcribe` script ships expecting nix-built whisper.cpp from `kotur-nixpkgs`. Other paths:
-
-### Linux/WSL with nix (default if you select option 1)
-
-Already works after install. The flake `github:nkoturovic/kotur-nixpkgs#whisper-cpp-vulkan` is fetched on first run; the model is auto-downloaded to `~/.local/share/opencode/models/whisper/`.
-
-### macOS or Linux without nix — system whisper-cpp
-
-```bash
-# macOS
-brew install whisper-cpp
-
-# Then edit ~/.agents/scripts/transcribe and replace the last line:
-#   exec nix run "${FLAKE}#whisper-cpp-vulkan" -- "${WHISPER_ARGS[@]}" "$@"
-# with:
-#   exec whisper-cli "${WHISPER_ARGS[@]}" "$@"
-```
-
-### OpenAI Whisper API (any platform, ~$0.006/min)
-
-Replace the body of `~/.agents/scripts/transcribe` with a `curl` call to `https://api.openai.com/v1/audio/transcriptions`. Reference: https://platform.openai.com/docs/api-reference/audio
-
-### Skip
-
-If you don't need lecture notes / audio transcription, just leave `OCCAM_TRANSCRIBE=skip`. The `transcribe` script remains in place but won't work without one of the above.
-
----
 
 ## macOS Bash 5
 
@@ -399,11 +363,9 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | `jq: command not found` | jq missing | `apt install jq` / `brew install jq` |
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
 | `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |
-| `transcribe` fails with "nix not found" | Selected nix backend without nix installed | Install nix, OR re-run installer and pick `system`/`openai`/`skip` |
 | `defuddle` not in PATH after install | npm prefix not in PATH | Installer auto-symlinks to `~/.local/bin/`; ensure that's in your PATH |
 | Z.AI MCPs show as "disabled" in `oc` | You opted in but the API key is wrong | Edit `~/.config/opencode/opencode.json` `Z_AI_API_KEY` |
 | `analyze-video.py: OPENROUTER_API_KEY not set` | Shell hasn't sourced `~/.config/secrets/env` | `source ~/.profile` in current shell, or open a new terminal |
-| `transcribe` fails to download model | HuggingFace rate limit | Set `HF_TOKEN` in `~/.config/secrets/env`, then `source ~/.profile` |
 | websearch MCP returns "rate limited" | Free Exa tier exhausted | Set `EXA_API_KEY` in `~/.config/secrets/env` |
 
 For more, see `~/.agents/wiki/concepts/troubleshooting.md` if your wiki includes the troubleshooting page.

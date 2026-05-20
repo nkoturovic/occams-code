@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # occams-code installer
-# Interactive or unattended installation of scripts, config, wiki, and dependencies.
+# Interactive or unattended installation of OpenCode scripts, config, and dependencies.
 #
 set -euo pipefail
 
@@ -16,7 +16,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_DIR="${OCCAM_OPENCODE_DIR:-$HOME/.config/opencode}"
 AGENTS_DIR="$HOME/.agents"
-WIKI_DIR="${OCCAM_WIKI_DIR:-$HOME/.agents/wiki}"
 
 SECRETS_DIR="$HOME/.config/secrets"
 SECRETS_FILE="$SECRETS_DIR/env"
@@ -28,7 +27,6 @@ DRY_RUN=0
 # These will be filled from CLI, env vars, or interactive prompts
 PROVIDERS=""
 PRESET=""
-TRANSCRIBE=""
 INSTALL_DEFUDDLE=1
 INSTALL_AGENT_BROWSER=1
 INSTALL_OBSIDIAN=1
@@ -40,7 +38,7 @@ SETUP_SECRETS=1
 
 # ── Helpers ──────────────────────────────────────────────────────────
 _usage() {
-  echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--transcribe MODE] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]"
+  echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]"
 }
 
 _ask_yes_no() {
@@ -77,7 +75,6 @@ while [[ $# -gt 0 ]]; do
     --dry-run)         DRY_RUN=1; shift ;;
     --preset)          PRESET="$2"; shift 2 ;;
     --providers)       PROVIDERS="$2"; shift 2 ;;
-    --transcribe)      TRANSCRIBE="$2"; shift 2 ;;
     --no-defuddle)     INSTALL_DEFUDDLE=0; shift ;;
     --no-agent-browser) INSTALL_AGENT_BROWSER=0; shift ;;
     --no-obsidian)     INSTALL_OBSIDIAN=0; shift ;;
@@ -97,7 +94,6 @@ done
 if [[ "$UNATTENDED" -eq 1 ]]; then
   [[ -z "$PROVIDERS" ]]       && PROVIDERS="${OCCAM_PROVIDERS:-openrouter}"
   [[ -z "$PRESET" ]]          && PRESET="${OCCAM_PRESET:-balanced}"
-  [[ -z "$TRANSCRIBE" ]]      && TRANSCRIBE="${OCCAM_TRANSCRIBE:-skip}"
   [[ -z "$ZAI_KEY" ]]         && ZAI_KEY="${OCCAM_ZAI_API_KEY:-}"
 
   # Booleans: env vars override defaults only if CLI didn't explicitly set
@@ -238,25 +234,8 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     echo ""
   fi
 
-  # Q4: Transcription backend
-  echo "Q4. Select transcription backend:"
-  echo "  1) nix whisper.cpp (Linux/WSL, requires nix)"
-  echo "  2) system whisper-cpp (brew/apt package)"
-  echo "  3) OpenAI Whisper API"
-  echo "  4) skip (default)"
-  read -rp "  Enter number [4]: " _q4 < /dev/tty
-  _q4="${_q4:-4}"
-  case "$_q4" in
-    1) TRANSCRIBE="nix" ;;
-    2) TRANSCRIBE="system" ;;
-    3) TRANSCRIBE="openai" ;;
-    *) TRANSCRIBE="skip" ;;
-  esac
-  echo -e "  ${GREEN}→${RESET} $TRANSCRIBE"
-  echo ""
-
-  # Q5: Optional CLIs
-  echo "Q5. Optional CLIs:"
+  # Q4: Optional CLIs
+  echo "Q4. Optional CLIs:"
   if _ask_yes_no "  Install defuddle (HTML-to-markdown)?" "Y"; then
     INSTALL_DEFUDDLE=1
   else
@@ -274,24 +253,24 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   fi
   echo ""
 
-  # Q6: Weekly cron
-  if _ask_yes_no "Q6. Set up weekly log cleanup cron job?" "Y"; then
+  # Q5: Weekly cron
+  if _ask_yes_no "Q5. Set up weekly log cleanup cron job?" "Y"; then
     SETUP_CRON=1
   else
     SETUP_CRON=0
   fi
   echo ""
 
-  # Q7: PATH setup
-  if _ask_yes_no "Q7. Add oc to your shell PATH (~/.bashrc / ~/.zshrc)?" "Y"; then
+  # Q6: PATH setup
+  if _ask_yes_no "Q6. Add oc to your shell PATH (~/.bashrc / ~/.zshrc)?" "Y"; then
     SETUP_PATH=1
   else
     SETUP_PATH=0
   fi
   echo ""
 
-  # Q8: Shared env-secrets
-  if _ask_yes_no "Q8. Set up API keys in ~/.config/secrets/env?" "Y"; then
+  # Q7: Shared env-secrets
+  if _ask_yes_no "Q7. Set up API keys in ~/.config/secrets/env?" "Y"; then
     SETUP_SECRETS=1
   else
     SETUP_SECRETS=0
@@ -305,7 +284,6 @@ echo "  Providers:       $PROVIDERS"
 echo "  Preset:          $PRESET"
 echo "  Z.AI MCPs:       $([[ $ENABLE_ZAI_MCPS -eq 1 ]] && echo "enabled" || echo "disabled")"
 [[ -n "$ZAI_KEY" ]] && echo "  Z.AI key:        ***set***"
-echo "  Transcription:   $TRANSCRIBE"
 echo "  defuddle:        $([[ $INSTALL_DEFUDDLE -eq 1 ]] && echo "yes" || echo "no")"
 echo "  agent-browser:   $([[ $INSTALL_AGENT_BROWSER -eq 1 ]] && echo "yes" || echo "no")"
 echo "  Obsidian:        $([[ $INSTALL_OBSIDIAN -eq 1 ]] && echo "yes" || echo "no")"
@@ -329,14 +307,11 @@ fi
 
 # ── Create directories ───────────────────────────────────────────────
 mkdir -p "$OPENCODE_DIR"/{bin,scripts,commands,skills}
-mkdir -p "$AGENTS_DIR"/{repos,scratch,skills}
-mkdir -p "$WIKI_DIR"/{raw/{articles,papers,docs,forums,assets,user,session-reports,_inbox},projects,domain,languages,patterns,concepts,entities,sources,comparisons}
 mkdir -p "$SECRETS_DIR"
 mkdir -p "$HOME/.local/bin"
 
 echo -e "Source: ${GREEN}$REPO_ROOT${RESET}"
 echo -e "Target: ${GREEN}$OPENCODE_DIR${RESET}"
-echo -e "Wiki:   ${GREEN}$WIKI_DIR${RESET}"
 echo ""
 
 # ── Copy files ───────────────────────────────────────────────────────
