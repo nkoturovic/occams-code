@@ -159,6 +159,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  3) Anthropic"
   echo "  4) Z.AI"
   echo "  5) Kimi"
+  echo "  6) OpenAI (ChatGPT Plus OAuth via /connect)"
   read -rp "  Enter space-separated numbers [1]: " _q1 < /dev/tty
   _q1="${_q1:-1}"
   PROVIDERS=""
@@ -169,6 +170,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
       3) PROVIDERS="${PROVIDERS:+$PROVIDERS,}anthropic" ;;
       4) PROVIDERS="${PROVIDERS:+$PROVIDERS,}zai" ;;
       5) PROVIDERS="${PROVIDERS:+$PROVIDERS,}kimi" ;;
+      6) PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai" ;;
     esac
   done
   [[ -z "$PROVIDERS" ]] && PROVIDERS="openrouter"
@@ -177,7 +179,9 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
 
   # Auto-recommend preset
   _rec="balanced"
-  if [[ "$PROVIDERS" == *"anthropic"* ]]; then
+  if [[ "$PROVIDERS" == *"openai"* ]]; then
+    _rec="openai"
+  elif [[ "$PROVIDERS" == *"anthropic"* ]]; then
     _rec="premium"
   elif [[ "$PROVIDERS" == *"deepseek"* && "$PROVIDERS" != *"openrouter"* ]]; then
     _rec="deepseek"
@@ -348,6 +352,11 @@ if ls "$REPO_ROOT"/scripts/*.py &>/dev/null; then
   cp "$REPO_ROOT"/scripts/*.py "$OPENCODE_DIR/scripts/"
   echo -e "  ${GREEN}✓${RESET} scripts/*.py ($(ls "$REPO_ROOT"/scripts/*.py 2>/dev/null | wc -l) files)"
 fi
+if [[ -f "$REPO_ROOT/scripts/cleanup-logs.sh" ]]; then
+  cp "$REPO_ROOT/scripts/cleanup-logs.sh" "$OPENCODE_DIR/scripts/cleanup-logs.sh"
+  chmod +x "$OPENCODE_DIR/scripts/cleanup-logs.sh"
+  echo -e "  ${GREEN}✓${RESET} cleanup-logs.sh"
+fi
 
 # Commands — always overwrite
 if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then
@@ -375,11 +384,7 @@ _preserve_copy() {
 _preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
 _preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
-# Note: ~/.agents/AGENTS.md is managed by occams-agentic bootstrap.sh
-# Only create if missing (for backwards compatibility with pre-occams-agentic installs)
-if [[ ! -f "$AGENTS_DIR/AGENTS.md" ]]; then
-  _preserve_copy "$REPO_ROOT/AGENTS-system.md" "$AGENTS_DIR/AGENTS.md" "~/.agents/AGENTS.md"
-fi
+# Note: ~/.agents/AGENTS.md is managed by occams-agentic bootstrap.sh.
 _preserve_copy "$REPO_ROOT/config/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
 
 # ── Set preset in config files ───────────────────────────────────
@@ -551,7 +556,7 @@ fi
 if [[ "$SETUP_CRON" -eq 1 ]]; then
   echo ""
   echo -e "${BOLD}Setting up weekly cron job...${RESET}"
-  _CRON_CMD="0 0 * * 0 $HOME/.agents/scripts/cleanup-logs.sh"
+  _CRON_CMD="0 0 * * 0 $OPENCODE_DIR/scripts/cleanup-logs.sh"
   if command -v crontab &>/dev/null; then
     if crontab -l 2>/dev/null | grep -qF "cleanup-logs.sh"; then
       echo -e "  ${DIM}Cron job already exists (skipped)${RESET}"

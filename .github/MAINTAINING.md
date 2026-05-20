@@ -23,7 +23,7 @@ There are three directions:
 | File | Live location | Repo location | Notes |
 |------|--------------|---------------|-------|
 | Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~409 lines |
-| OpenCode scripts | `~/.config/opencode/scripts/` | `scripts/` | 5 files: model-profile.py, doctor-model-check.py, project-init.py, detect-project-state.py, install.sh (install.sh is repo-only, not synced to live) |
+| OpenCode scripts | `~/.config/opencode/scripts/` | `scripts/` | 5 synced files: model-profile.py, doctor-model-check.py, project-init.py, detect-project-state.py, cleanup-logs.sh. Installer: scripts/install.sh (repo-only, not synced to live) |
 | Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 6 files: model-switch.md, permissions.md, preset.md, remember.md, wiki.md, wiki-lint.md |
 | OpenCode skills | `~/.config/opencode/skills/` | `skills/` | 3 OpenCode-specific skills: codemap, clonedeps, simplify |
 | model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `config/model-profile.jsonc` | Model assignment source of truth (default preset = `balanced` in repo) |
@@ -51,7 +51,7 @@ There are three directions:
 
 Universal files that live in `~/.agents/` and sync to the occams-agentic repo:
 - Skills: agent-browser, audio-analysis, code-review, lecture-notes, pr-integration, video-analysis
-- Scripts: analyze-video.py, transcribe, lecture-scenes.py, lecture-fusion.py, lecture-clips.py, wiki-lint.py, repo-ingest.py, cleanup-logs.sh
+- Scripts: analyze-video.py, transcribe, lecture-scenes.py, lecture-fusion.py, lecture-clips.py, wiki-lint.py, repo-ingest.py
 - AGENTS.md (tool-agnostic schema) → occams-agentic root
 - wiki-template/ → occams-agentic
 - conventions/ → occams-agentic
@@ -104,7 +104,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Per-project overrides in `.opencode/oh-my-opencode-slim.jsonc` → strip personal models
 - [ ] **Hardcoded API keys in opencode.json `mcp.*.environment` / `mcp.*.headers`**: live may have real Z.AI keys baked in. Repo never has real keys. `{env:Z_AI_API_KEY}` is safe and should be preserved; literal key values must be removed.
 - [ ] Do NOT commit `oh-my-opencode-slim.json` to repo root — only `config/oh-my-opencode-slim.json`
-- [ ] Do NOT sync AGENTS-system.md — this is now occams-agentic's AGENTS.md (managed separately)
+- [ ] Do NOT add a repo-owned copy of occams-agentic's root AGENTS.md — it is managed separately
 - [ ] Do NOT sync wiki-template/ — now in occams-agentic repo
 - [ ] Trim unreferenced models from `provider.opencode.models` (TUI metadata duplicates), unused OpenRouter entries (e.g., `openai/gpt-5.4` if not in any agent/fallback), unused direct deepseek (`deepseek-v3.2` direct version if only `openrouter/deepseek/deepseek-v3.2` is used)
 - [ ] Keep `deepseek-v4-flash` declared (useful Flash-tier option for direct DeepSeek users editing model-profile)
@@ -161,6 +161,7 @@ diff ~/.config/opencode/scripts/model-profile.py /path/to/occams-code/scripts/mo
 diff ~/.config/opencode/scripts/doctor-model-check.py /path/to/occams-code/scripts/doctor-model-check.py
 diff ~/.config/opencode/scripts/project-init.py /path/to/occams-code/scripts/project-init.py
 diff ~/.config/opencode/scripts/detect-project-state.py /path/to/occams-code/scripts/detect-project-state.py
+diff ~/.config/opencode/scripts/cleanup-logs.sh /path/to/occams-code/scripts/cleanup-logs.sh
 # OpenCode-specific skills only
 diff ~/.config/opencode/skills/codemap/SKILL.md /path/to/occams-code/skills/codemap/SKILL.md
 diff ~/.config/opencode/skills/clonedeps/SKILL.md /path/to/occams-code/skills/clonedeps/SKILL.md

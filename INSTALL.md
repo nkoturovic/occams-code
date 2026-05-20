@@ -39,6 +39,7 @@ You need **at least one** provider. The default `balanced` preset works with jus
 | Anthropic | https://console.anthropic.com | `premium` preset (Claude Opus 4.7) |
 | Z.AI | https://z.ai | `custom` preset + Z.AI MCPs (subscription) |
 | Kimi for Coding | https://platform.moonshot.cn | `custom` preset (subscription) |
+| OpenAI | `/connect` inside OpenCode | `openai` preset (ChatGPT Plus OAuth) |
 
 ---
 
@@ -62,8 +63,8 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 
 The installer asks:
 
-1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi — multi-select)
-2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom`) — auto-recommended based on providers
+1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
+2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai`) — auto-recommended based on providers
 3. **Z.AI MCPs** — only asked if you selected Z.AI; injects `zai_vision` + `web-search-prime` blocks with your API key
 4. **Transcription backend** (nix whisper.cpp / system whisper-cpp / OpenAI API / skip)
 5. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
@@ -164,8 +165,8 @@ OCCAM_SETUP_PATH=1 \
 
 | Variable | Values | Default |
 |----------|--------|---------|
-| `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi` | `openrouter` |
-| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` | `balanced` |
+| `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi,openai` | `openrouter` |
+| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
 | `OCCAM_TRANSCRIBE` | `nix` / `system` / `openai` / `skip` | `skip` |
@@ -214,6 +215,7 @@ mkdir -p ~/.config/opencode/{bin,scripts,commands,skills}
 # Core files
 cp bin/oc                            ~/.config/opencode/bin/oc          && chmod +x ~/.config/opencode/bin/oc
 cp scripts/*.py                      ~/.config/opencode/scripts/
+cp scripts/cleanup-logs.sh           ~/.config/opencode/scripts/        && chmod +x ~/.config/opencode/scripts/cleanup-logs.sh
 cp commands/*.md                     ~/.config/opencode/commands/
 cp AGENTS.md                         ~/.config/opencode/AGENTS.md
 cp config/model-profile.jsonc        ~/.config/opencode/model-profile.jsonc
@@ -396,7 +398,7 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim` |
 | `jq: command not found` | jq missing | `apt install jq` / `brew install jq` |
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
-| `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run `./scripts/install.sh --unattended` |
+| `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |
 | `transcribe` fails with "nix not found" | Selected nix backend without nix installed | Install nix, OR re-run installer and pick `system`/`openai`/`skip` |
 | `defuddle` not in PATH after install | npm prefix not in PATH | Installer auto-symlinks to `~/.local/bin/`; ensure that's in your PATH |
 | Z.AI MCPs show as "disabled" in `oc` | You opted in but the API key is wrong | Edit `~/.config/opencode/opencode.json` `Z_AI_API_KEY` |
@@ -404,4 +406,4 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | `transcribe` fails to download model | HuggingFace rate limit | Set `HF_TOKEN` in `~/.config/secrets/env`, then `source ~/.profile` |
 | websearch MCP returns "rate limited" | Free Exa tier exhausted | Set `EXA_API_KEY` in `~/.config/secrets/env` |
 
-For more, see [`wiki/concepts/troubleshooting.md`](wiki/concepts/troubleshooting.md).
+For more, see `~/.agents/wiki/concepts/troubleshooting.md` if your wiki includes the troubleshooting page.

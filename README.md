@@ -5,7 +5,7 @@
 
 The OpenCode-specific configuration layer for the [occams-agentic](https://github.com/nkoturovic/occams-agentic) AI framework. Provides multi-model orchestration, a smart launcher (`oc`), and curated agent presets on top of the universal skills, scripts, and wiki from occams-agentic.
 
-**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi / OpenAI keys, but you don't need them to start.
+**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys or OpenAI OAuth, but you don't need them to start.
 
 ## Quick Start
 
@@ -23,11 +23,11 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **6 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`, `openai`
-- **5 OpenCode scripts** — Config generator, model health check, project init, state detection, interactive installer
+- **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
-- **4 MCP servers** — context7 (library docs) + grep_app (code search) + zai_vision (image analysis) + web-search-prime (Z.AI web search). All ship in the default config; zai_vision and web-search-prime require a Z.AI API key set via `Z_AI_API_KEY` env var.
+- **5 MCP servers** — context7 (library docs), grep_app (code search), websearch (Exa), zai_vision (image analysis), and web-search-prime (Z.AI web search). Z.AI MCPs require `Z_AI_API_KEY`.
 - **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
 
 ### Prerequisites
@@ -158,7 +158,7 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 ### Scripts
 
-OpenCode-specific scripts (universal scripts like `transcribe`, `analyze-video.py`, `wiki-lint.py`, `lecture-*.py`, `repo-ingest.py`, `cleanup-logs.sh` are provided by occams-agentic at `~/.agents/scripts/`):
+OpenCode-specific scripts (universal scripts like `transcribe`, `analyze-video.py`, `wiki-lint.py`, `lecture-*.py`, and `repo-ingest.py` are provided by occams-agentic at `~/.agents/scripts/`):
 
 | Script | Purpose |
 |--------|---------|
@@ -166,6 +166,7 @@ OpenCode-specific scripts (universal scripts like `transcribe`, `analyze-video.p
 | `doctor-model-check.py` | Model health check — verifies API connectivity and model availability (used by `--doctor`) |
 | `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
 | `detect-project-state.py` | Project state detection (reads `.opencode/` — used by `--doctor`) |
+| `cleanup-logs.sh` | Weekly cleanup for OpenCode core and oh-my-opencode-slim logs |
 | `install.sh` | Interactive installer for the occams-code layer |
 
 ### Agents
@@ -229,7 +230,7 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 - All TODOs are completed
 - It asks you a question
 - You press Esc
-- Max iterations reached (configurable, default 50)
+- Max iterations reached (configurable, default 15)
 
 **Best practice:** Write a design doc with clear TODOs before enabling. Descriptive TODOs help the agent recover context after long sessions.
 

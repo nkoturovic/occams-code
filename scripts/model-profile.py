@@ -12,8 +12,8 @@ Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 (the plugin already reads this and deep-merges at startup).
 
 Why this exists:
-  - 61% of the 457-line config is repetitive boilerplate
-  - Editing 4 presets × 7 agents by hand is error-prone
+  - Most of the generated config is repetitive boilerplate
+  - Editing 6 presets × 8 role entries by hand is error-prone
   - When models change, you update one mapping file, regenerate, deploy
 
 Design (Occam's Code):

@@ -25,7 +25,7 @@ Kimi models additionally require `"thinking"`: 32000 (or 16000 for minimum).
 
 ## Global model switch (applies everywhere)
 
-Valid presets: `custom`, `balanced`, `premium`, `cheap`.  
+Valid presets: `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`.  
 Valid agents: `orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`, `observer`.
 
 1. **Edit** `~/.config/opencode/model-profile.jsonc` — change `model` and `temperature`/`thinking` for the target agent in the target preset using values found above.
@@ -44,10 +44,9 @@ python3 ~/.config/opencode/scripts/model-profile.py \
 Edit `.opencode/oh-my-opencode-slim.jsonc`. Only specify the roles to override:
 
 ```jsonc
-{"presets":{"custom":{"explorer":{"model":"openrouter/qwen/qwen3.6-plus","variant":"high"}}}}
+{"agents":{"explorer":{"model":"openrouter/qwen/qwen3.6-plus","variant":"high","temperature":0.7}}}
 ```
 
 No generator needed — omo-slim reads this at startup. Restart after saving.
 
 Docs: `~/.agents/wiki/concepts/model-profile-guide.md`
-
