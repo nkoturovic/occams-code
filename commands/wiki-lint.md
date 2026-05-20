@@ -4,7 +4,7 @@ description: Run wiki content health check
 Run the wiki lint script and summarize results:
 
 ```bash
-python3 ~/.config/opencode/scripts/wiki-lint.py
+python3 ~/.agents/scripts/wiki-lint.py
 ```
 
 Then provide:

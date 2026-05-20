@@ -355,12 +355,6 @@ if [[ -f "$REPO_ROOT/scripts/transcribe" ]]; then
   echo -e "  ${GREEN}✓${RESET} scripts/transcribe"
 fi
 
-# cleanup-logs.sh — always overwrite
-if [[ -f "$REPO_ROOT/scripts/cleanup-logs.sh" ]]; then
-  cp "$REPO_ROOT/scripts/cleanup-logs.sh" "$OPENCODE_DIR/scripts/cleanup-logs.sh"
-  chmod +x "$OPENCODE_DIR/scripts/cleanup-logs.sh"
-  echo -e "  ${GREEN}✓${RESET} scripts/cleanup-logs.sh"
-fi
 
 # Commands — always overwrite
 if ls "$REPO_ROOT"/commands/*.md &>/dev/null; then
@@ -388,7 +382,11 @@ _preserve_copy() {
 _preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
 _preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
-_preserve_copy "$REPO_ROOT/AGENTS-system.md" "$AGENTS_DIR/AGENTS.md" "~/.agents/AGENTS.md"
+# Note: ~/.agents/AGENTS.md is managed by occams-agentic bootstrap.sh
+# Only create if missing (for backwards compatibility with pre-occams-agentic installs)
+if [[ ! -f "$AGENTS_DIR/AGENTS.md" ]]; then
+  _preserve_copy "$REPO_ROOT/AGENTS-system.md" "$AGENTS_DIR/AGENTS.md" "~/.agents/AGENTS.md"
+fi
 _preserve_copy "$REPO_ROOT/config/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
 
 # ── Set preset in config files ───────────────────────────────────
@@ -501,7 +499,7 @@ echo -e "${BOLD}Installing local skills...${RESET}"
 SKILLS_DIR="$OPENCODE_DIR/skills"
 mkdir -p "$SKILLS_DIR"
 
-for skill in codemap simplify clonedeps audio-analysis video-analysis lecture-notes; do
+for skill in codemap simplify clonedeps; do
   if [[ -d "$REPO_ROOT/skills/$skill" ]]; then
     if [[ ! -d "$SKILLS_DIR/$skill" ]]; then
       cp -r "$REPO_ROOT/skills/$skill" "$SKILLS_DIR/$skill"
@@ -611,7 +609,7 @@ fi
 if [[ "$SETUP_CRON" -eq 1 ]]; then
   echo ""
   echo -e "${BOLD}Setting up weekly cron job...${RESET}"
-  _CRON_CMD="0 0 * * 0 $OPENCODE_DIR/scripts/cleanup-logs.sh"
+  _CRON_CMD="0 0 * * 0 $HOME/.agents/scripts/cleanup-logs.sh"
   if command -v crontab &>/dev/null; then
     if crontab -l 2>/dev/null | grep -qF "cleanup-logs.sh"; then
       echo -e "  ${DIM}Cron job already exists (skipped)${RESET}"

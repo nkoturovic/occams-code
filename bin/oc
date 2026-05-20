@@ -241,9 +241,9 @@ run_doctor() {
   fi
 
   # Wiki lint
-  if command -v python3 &>/dev/null && [[ -f "$HOME/.config/opencode/scripts/wiki-lint.py" ]]; then
+  if command -v python3 &>/dev/null && [[ -f "$HOME/.agents/scripts/wiki-lint.py" ]]; then
     echo ""
-    python3 "$HOME/.config/opencode/scripts/wiki-lint.py" || true
+    python3 "$HOME/.agents/scripts/wiki-lint.py" || true
   fi
 
   # Model config validation (opencode.json + slim.json integrity)
@@ -323,7 +323,7 @@ PY
 main() {
   # Standalone commands: skip everything, run, exit
   if [[ -n "$INGEST_REPO" ]]; then
-    python3 "$HOME/.config/opencode/scripts/repo-ingest.py" "$INGEST_REPO" \
+    python3 "$HOME/.agents/scripts/repo-ingest.py" "$INGEST_REPO" \
       && echo -e "${GREEN}✓ Ingested${RESET}" || exit 1
     exit 0
   fi
