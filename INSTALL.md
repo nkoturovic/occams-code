@@ -192,7 +192,17 @@ The installer is idempotent: re-running skips files that already exist (no destr
 
 ## Manual Install (Advanced / Troubleshooting)
 
-If you'd rather control every step:
+If you'd rather control every step, follow the two-repo manual install:
+
+### Step 1: occams-agentic (universal layer)
+
+```bash
+git clone https://github.com/nkoturovic/occams-agentic.git
+cd occams-agentic
+./bin/bootstrap.sh   # creates ~/.agents/ with skills, scripts, wiki template, and AGENTS.md
+```
+
+### Step 2: occams-code (OpenCode layer)
 
 ```bash
 git clone https://github.com/nkoturovic/occams-code.git
@@ -200,38 +210,20 @@ cd occams-code
 
 # Create directories
 mkdir -p ~/.config/opencode/{bin,scripts,commands,skills}
-mkdir -p ~/.agents/{repos,scratch,skills}
-mkdir -p ~/.agents/wiki/raw/{articles,papers,docs,forums,assets,user,session-reports,_inbox}
-mkdir -p ~/.agents/wiki/{projects,domain,languages,patterns,concepts,entities,sources,comparisons}
-ln -sfn ../../repos ~/.agents/wiki/raw/repos
 
 # Core files
 cp bin/oc                            ~/.config/opencode/bin/oc          && chmod +x ~/.config/opencode/bin/oc
 cp scripts/*.py                      ~/.config/opencode/scripts/
-cp scripts/transcribe                ~/.config/opencode/scripts/        && chmod +x ~/.config/opencode/scripts/transcribe
-cp scripts/cleanup-logs.sh           ~/.config/opencode/scripts/        && chmod +x ~/.config/opencode/scripts/cleanup-logs.sh
 cp commands/*.md                     ~/.config/opencode/commands/
 cp AGENTS.md                         ~/.config/opencode/AGENTS.md
-cp AGENTS-system.md                  ~/.agents/AGENTS.md
-cp model-profile.jsonc               ~/.config/opencode/model-profile.jsonc
+cp config/model-profile.jsonc        ~/.config/opencode/model-profile.jsonc
 cp config/opencode.json              ~/.config/opencode/opencode.json
 cp config/oh-my-opencode-slim.json   ~/.config/opencode/oh-my-opencode-slim.json
 
-# Wiki template
-cp wiki/AGENTS.md  wiki/index.md  wiki/log.md  wiki/overview.md  wiki/.gitignore  ~/.agents/wiki/
-cp -r wiki/.obsidian                                              ~/.agents/wiki/
-cp wiki/concepts/*.md                                             ~/.agents/wiki/concepts/
-cp wiki/raw/README.md                                             ~/.agents/wiki/raw/README.md
-cp wiki/sources/_template-source-summary.md                       ~/.agents/wiki/sources/ 2>/dev/null || true
-find ~/.agents/wiki -type d -empty -exec touch {}/.gitkeep \;
-
-# Local skills
+# OpenCode-specific skills
 cp -r skills/codemap         ~/.config/opencode/skills/
 cp -r skills/simplify        ~/.config/opencode/skills/
 cp -r skills/clonedeps       ~/.config/opencode/skills/
-cp -r skills/audio-analysis  ~/.config/opencode/skills/
-cp -r skills/video-analysis  ~/.config/opencode/skills/
-cp -r skills/lecture-notes   ~/.config/opencode/skills/
 
 # Plugin
 cd ~/.config/opencode && npm install oh-my-opencode-slim   # or 'bun install ...'
@@ -286,7 +278,7 @@ Already works after install. The flake `github:nkoturovic/kotur-nixpkgs#whisper-
 # macOS
 brew install whisper-cpp
 
-# Then edit ~/.config/opencode/scripts/transcribe and replace the last line:
+# Then edit ~/.agents/scripts/transcribe and replace the last line:
 #   exec nix run "${FLAKE}#whisper-cpp-vulkan" -- "${WHISPER_ARGS[@]}" "$@"
 # with:
 #   exec whisper-cli "${WHISPER_ARGS[@]}" "$@"
@@ -294,7 +286,7 @@ brew install whisper-cpp
 
 ### OpenAI Whisper API (any platform, ~$0.006/min)
 
-Replace the body of `scripts/transcribe` with a `curl` call to `https://api.openai.com/v1/audio/transcriptions`. Reference: https://platform.openai.com/docs/api-reference/audio
+Replace the body of `~/.agents/scripts/transcribe` with a `curl` call to `https://api.openai.com/v1/audio/transcriptions`. Reference: https://platform.openai.com/docs/api-reference/audio
 
 ### Skip
 
@@ -348,7 +340,7 @@ git pull
 
 **What gets overwritten on update:**
 - `bin/oc` — always (script bug fixes should propagate)
-- `scripts/*` — always (the Python utilities + transcribe + cleanup-logs.sh)
+- `scripts/*` — always (the OpenCode-specific Python utilities)
 - `commands/*` — always (slash command docs)
 
 **What is preserved if it exists:**
