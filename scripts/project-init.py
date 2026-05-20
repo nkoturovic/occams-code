@@ -90,15 +90,47 @@ def project_agents_md(slug: str, project_name: str) -> str:
   - `.agents/scratch/` — ephemeral files
   - `.agents/skills/` — project-specific skills
 - Global rules: `~/.config/opencode/AGENTS.md`
+- Universal framework: `~/.agents/AGENTS.md` (harness-agnostic schema)
 
-OpenCode auto-loads this file when working in the project. It also auto-loads
-global rules from `~/.config/opencode/AGENTS.md` and the system schema from
-`~/.agents/AGENTS.md`.
+## Two-Layer Architecture
 
-Before starting, read the global project wiki page. If `.agents/wiki/index.md`
-exists, read it for project-local notes. When maintaining project-local notes,
-follow `.agents/wiki/AGENTS.md`. When you discover stable cross-session facts,
-update the global project wiki page and `~/.agents/wiki/log.md`.
+This project uses the occams-agentic framework:
+
+1. **Universal layer** (`~/.agents/`) — harness-agnostic skills, scripts, conventions, wiki, kanban
+2. **OpenCode layer** (`~/.config/opencode/`) — harness-specific config, presets, model profiles
+
+The universal layer works with any AI harness (OpenCode, Claude Code, Cursor, Codex).
+The OpenCode layer adds harness-specific features on top. See `~/.agents/wiki/concepts/occams-agentic-vs-occams-code.md` for details.
+
+## Quick Reference: Agent Capabilities
+
+| Agent | Role | Best For |
+|-------|------|----------|
+| orchestrator | Coordination, planning, delegation | Complex multi-step tasks |
+| explorer | Code search, discovery | Finding files, symbols, patterns |
+| fixer | Implementation | Writing/updating code, tests |
+| oracle | Architecture review, debugging | Design decisions, complex bugs |
+| designer | UI/UX, CSS, layouts | Visual polish, responsive design |
+| observer | Visual/audio analysis | Images, video, PDFs, screenshots |
+| librarian | Documentation research | Library docs, API references |
+| council | Multi-model consensus | High-stakes decisions |
+
+## Session Protocol
+
+1. Read global project wiki: `~/.agents/wiki/projects/{slug}.md`
+2. Check `~/.agents/plans/active/` for in-progress work
+3. Read `.agents/wiki/index.md` for project-local notes
+4. Follow `.agents/wiki/AGENTS.md` for wiki maintenance conventions
+5. Update global project wiki + `~/.agents/wiki/log.md` with stable findings
+
+## Kanban
+
+Project tasks live in `~/.agents/plans/`:
+- `backlog/` — Ideas, not yet actionable
+- `active/` — Currently being worked on
+- `done/` — Completed with outcome
+
+Plan format: `YYYY-MM-DD_slug.md` with Goal, Scope, Acceptance Criteria, Tasks, Review Checklist, Outcome.
 """
 
 
@@ -106,7 +138,7 @@ def project_wiki_agents_md(project_name: str) -> str:
     return f"""# {project_name} Local Wiki Schema
 
 This project-local wiki follows the same three-layer pattern as the global
-`~/.agents/` workspace:
+`~/.agents/` workspace (Karpathy LLM-Wiki architecture):
 
 1. `.agents/wiki/raw/` — immutable source material. Read, don't edit.
 2. `.agents/wiki/` — durable project-local notes. Agents maintain this.
@@ -117,16 +149,52 @@ This project-local wiki follows the same three-layer pattern as the global
 ```
 .agents/
 ├── wiki/
-│   ├── AGENTS.md
-│   ├── index.md
-│   ├── log.md
-│   ├── overview.md
+│   ├── AGENTS.md          ← This file (local wiki schema)
+│   ├── index.md           ← Project-local routing table
+│   ├── log.md             ← Append-only activity log
+│   ├── overview.md        ← High-level synthesis
+│   ├── concepts/          ← Architectural concepts
+│   ├── patterns/          ← Proven reusable patterns
 │   └── raw/
-│       └── repos/ -> ../../repos/
-├── repos/
-├── scratch/
-└── skills/
+│       ├── repos/ -> ../../repos/
+│       ├── articles/
+│       ├── docs/
+│       ├── papers/
+│       └── user/
+├── repos/                 ← Cloned reference repos
+├── scratch/               ← Ephemeral workspace
+└── skills/                ← Project-specific skills
 ```
+
+## Global Conventions
+
+Follow the global framework conventions:
+- **Kanban:** `~/.agents/conventions/kanban.md` — filesystem-native task management
+- **Skill authoring:** `~/.agents/conventions/skill-authoring.md` — how to write SKILL.md files
+- **Wiki maintenance:** `~/.agents/wiki/AGENTS.md` — global wiki schema
+
+## Kanban Usage
+
+This project uses the global kanban at `~/.agents/plans/`:
+
+**Coding agents:**
+1. Check `~/.agents/plans/active/` at session start for in-progress work
+2. Create plan files in `backlog/` before starting large tasks
+3. Move plans to `active/` when starting, to `done/` when complete
+4. Update plan files with progress markers (`- [x]` for completed tasks)
+
+**Autonomous agents:**
+1. Poll `~/.agents/plans/backlog/` periodically for new work
+2. Read `active/` for context on current work
+3. Execute tasks and update plan files
+4. Move completed plans to `done/` with outcome
+
+## Boundary Rules
+
+- **raw/** — immutable. Agent reads, never writes.
+- **wiki/** — durable. Agent owns this layer. Write synthesized notes here.
+- **scratch/** — ephemeral. No persistence guarantees. Clean up after use.
+- **skills/** — project-specific SKILL.md files. Discovered by harness automatically.
 
 The exact folder layout may evolve. Keep the boundary clear: raw sources are
 immutable, wiki notes are durable, scratch is ephemeral.
