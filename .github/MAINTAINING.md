@@ -26,7 +26,7 @@ There are three directions:
 | OpenCode scripts | `~/.config/opencode/scripts/` | `scripts/` | 5 synced files: model-profile.py, doctor-model-check.py, project-init.py, detect-project-state.py, cleanup-logs.sh. Installer: scripts/install.sh (repo-only, not synced to live) |
 | Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 6 files: model-switch.md, permissions.md, preset.md, remember.md, wiki.md, wiki-lint.md |
 | OpenCode skills | `~/.config/opencode/skills/` | `skills/` | 3 OpenCode-specific skills: codemap, clonedeps, simplify |
-| model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `config/model-profile.jsonc` | Model assignment source of truth (default preset = `balanced` in repo) |
+| model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `config/model-profile.jsonc` | Model assignment source of truth (default preset = `balanced` in repo). Live stays at root for backward compat with `oc --sync-profile`; repo uses `config/` subdir for cleaner structure — both are valid and intentionally different. |
 | opencode.json | `~/.config/opencode/opencode.json` | `config/opencode.json` | Copied as-is (no generation step) |
 
 ### Files that SYNC with SCRUBBING (live → repo only)
