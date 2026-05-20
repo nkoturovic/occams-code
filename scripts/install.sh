@@ -389,7 +389,7 @@ _preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "
 _preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
 _preserve_copy "$REPO_ROOT/AGENTS-system.md" "$AGENTS_DIR/AGENTS.md" "~/.agents/AGENTS.md"
-_preserve_copy "$REPO_ROOT/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
+_preserve_copy "$REPO_ROOT/config/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
 
 # ── Set preset in config files ───────────────────────────────────
 if [[ -n "${PRESET:-}" ]]; then
