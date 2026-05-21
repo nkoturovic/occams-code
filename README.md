@@ -158,13 +158,13 @@ The plugin deep-merges project config with global config. Edit the file directly
 
 ### Scripts
 
-OpenCode-specific scripts (universal scripts like `transcribe`, `analyze-video.py`, `wiki-lint.py`, `lecture-*.py`, and `repo-ingest.py` are provided by occams-agentic at `~/.agents/scripts/`):
+OpenCode-specific scripts (universal scripts like `project-init.py`, `transcribe`, `analyze-video.py`, `wiki-lint.py`, `lecture-*.py`, and `repo-ingest.py` are provided by occams-agentic at `~/.agents/scripts/`):
 
 | Script | Purpose |
 |--------|---------|
 | `model-profile.py` | **Config generator** — generates oh-my-opencode-slim.json from model-profile.jsonc |
 | `doctor-model-check.py` | Model health check — verifies API connectivity and model availability (used by `--doctor`) |
-| `project-init.py` | Creates global project wiki page + project-root AGENTS.md + project `.agents/` workspace |
+| `project-init.py` | Compatibility wrapper → `~/.agents/scripts/project-init.py` |
 | `detect-project-state.py` | Project state detection (reads `.opencode/` — used by `--doctor`) |
 | `cleanup-logs.sh` | Weekly cleanup for OpenCode core and oh-my-opencode-slim logs |
 | `install.sh` | Interactive installer for the occams-code layer |
