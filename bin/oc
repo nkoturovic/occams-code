@@ -363,6 +363,14 @@ main() {
   [[ "$SYNC_PROFILE" == true ]] && { run_sync_profile; exit $?; }
   [[ "$INIT_PROJECT" == true ]] && { run_project_init; exit $?; }
 
+  # Verify opencode is available before interactive prompts.
+  if ! command -v opencode &>/dev/null; then
+    echo -e "${RED}Error: opencode not found in PATH.${RESET}" >&2
+    echo "  Install OpenCode first: https://opencode.ai/docs/install" >&2
+    echo "  Or if already installed, ensure it's in your PATH." >&2
+    exit 1
+  fi
+
   # Crash recovery (before any output)
   local _pb
   for _pb in "$STATE_DIR/oc-perm-backup-$(id -u)-"*; do
@@ -430,14 +438,6 @@ PY
   # across different tmux sessions/windows/panes on the same machine.
   if [[ -n "${TMUX:-}" ]]; then
     OPENCODE_ARGS+=("--port" "0")
-  fi
-
-  # Verify opencode is available before trying to exec
-  if ! command -v opencode &>/dev/null; then
-    echo -e "${RED}Error: opencode not found in PATH.${RESET}" >&2
-    echo "  Install OpenCode first: https://opencode.ai/docs/install" >&2
-    echo "  Or if already installed, ensure it's in your PATH." >&2
-    exit 1
   fi
 
   if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
