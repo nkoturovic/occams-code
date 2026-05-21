@@ -223,26 +223,15 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     model = config["model"]
 
     # Variant (defaults only exist for explorer/librarian/fixer/observer)
-    # Skip variant for models known to have no variant support, unless
-    # explicitly overridden by the user.
-    MODELS_WITHOUT_VARIANTS = [
-        "kimi-for-coding",
-        "openrouter/qwen",
-        "openrouter/deepseek-v3",
-        "openrouter/z-ai/glm",
-    ]
-    model_has_no_variants = any(p in model for p in MODELS_WITHOUT_VARIANTS)
+    # OpenCode silently ignores variants for models that don't support them
+    # (transform.variants() returns {} → variant lookup yields undefined).
+    # So it's safe and portable to always include the variant — if you later
+    # switch to a model that supports variants, it Just Works.
     if "variant" in override:
-        # User explicitly specified variant — honor it
         config["variant"] = override["variant"]
-    elif model_has_no_variants:
-        # Model doesn't support variants — omit the field entirely
-        pass
     elif "variant" in defaults:
-        # Use default variant for this agent role
         config["variant"] = defaults["variant"]
     else:
-        # Fallback default
         config["variant"] = "high"
 
     # Skills and MCPs (from defaults, override can't change these)

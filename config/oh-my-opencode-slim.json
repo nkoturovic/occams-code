@@ -90,6 +90,7 @@
       },
       "fixer": {
         "model": "kimi-for-coding/kimi-for-coding",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "context7"
@@ -140,6 +141,7 @@
     "balanced": {
       "orchestrator": {
         "model": "openrouter/z-ai/glm-5.1",
+        "variant": "high",
         "skills": [
           "*"
         ],
@@ -151,6 +153,7 @@
       },
       "oracle": {
         "model": "openrouter/z-ai/glm-5.1",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -185,6 +188,7 @@
       },
       "librarian": {
         "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -218,6 +222,7 @@
       },
       "council": {
         "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
         "mcps": [],
         "temperature": 0.7
@@ -406,6 +411,7 @@
     "cheap": {
       "orchestrator": {
         "model": "openrouter/qwen/qwen3-coder",
+        "variant": "high",
         "skills": [
           "*"
         ],
@@ -417,6 +423,7 @@
       },
       "oracle": {
         "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -485,6 +492,7 @@
       },
       "council": {
         "model": "openrouter/qwen/qwen3.6-plus",
+        "variant": "high",
         "skills": [],
         "mcps": [],
         "temperature": 0.7
