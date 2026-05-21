@@ -89,7 +89,7 @@ oc --ingest-repo URL  Snapshot GitHub repo into wiki
 oc -c               Continue last session
 ```
 
-Project workspace init (`AGENTS.md` + `.agents/` + wiki page) asks for confirmation in interactive mode. Defaults are conservative for temp/empty dirs and affirmative for project roots with markers like `.git`, `package.json`, or `Cargo.toml`. `--quick` keeps non-prompting auto-init behavior when a project config already exists; `--no-init` disables both project config setup and workspace init.
+Project workspace init (`AGENTS.md` + `.agents/` + wiki page) asks for confirmation in interactive mode. It defaults to yes (`[Y/n]`) for normal directories, including empty folders with sensible names, and defaults to no (`[y/N]`) only for obvious temp/scratch dirs. `--quick` keeps non-prompting auto-init behavior when a project config already exists; `--no-init` disables both project config setup and workspace init.
 
 ### Permissions
 

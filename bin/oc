@@ -113,13 +113,6 @@ has_project_markers() {
   [[ -f "flake.nix" ]]
 }
 
-# Check if directory is empty or only contains .opencode/
-is_empty_or_config_only() {
-  local files
-  files=$(find . -maxdepth 1 -not -path '.' -not -path './.opencode' 2>/dev/null | wc -l)
-  [[ "$files" -eq 0 ]]
-}
-
 has_sessions() {
   [[ -f "$HOME/.local/share/opencode/opencode.db" ]] || return 1
   python3 - "$HOME/.local/share/opencode/opencode.db" "$(pwd)" <<'PY'
@@ -197,12 +190,12 @@ first_run_setup() {
   [[ -n "$PROJECT_CONFIG" ]] && return 0
   [[ "$PWD" == "$HOME" ]] && return 0
 
-  if is_ephemeral_dir || is_empty_or_config_only; then
+  if is_ephemeral_dir; then
     echo ""
     echo -e "${YELLOW}No project config.${RESET}"
-    echo -e "  ${DIM}Path looks temporary or empty: $PWD${RESET}"
+    echo -e "  ${DIM}Path looks temporary: $PWD${RESET}"
     local create_config
-    read -r -p "$(echo -e "${BOLD}Create .opencode project config here? [n]:${RESET} ")" create_config || return 0
+    read -r -p "$(echo -e "${BOLD}Create .opencode project config here? [y/N]:${RESET} ")" create_config || return 0
     create_config="${create_config:-n}"
     is_yes "$create_config" || return 0
   fi
@@ -403,23 +396,22 @@ maybe_auto_init() {
   # Non-interactive: skip auto-init to avoid unwanted side effects
   is_interactive || return 0
 
-  # Determine default based on directory characteristics
-  # Ephemeral/empty dirs always default to N, even if they have project markers
-  local default_answer="n" prompt_suffix=""
-  if is_ephemeral_dir || is_empty_or_config_only; then
+  # Determine default: YES for most dirs, NO only for ephemeral
+  local default_answer="y" prompt_suffix=""
+  if is_ephemeral_dir; then
     default_answer="n"
-    prompt_suffix=""
   elif has_project_markers; then
-    default_answer="y"
-    prompt_suffix=" (project markers detected)"
+    prompt_suffix=" (project detected)"
   fi
+  local yn_hint="Y/n"
+  [[ "$default_answer" == "n" ]] && yn_hint="y/N"
 
   echo ""
   echo -e "${YELLOW}Project workspace not initialized.${RESET}"
   echo -e "  ${DIM}Path: $PWD${RESET}"
   echo -e "  ${DIM}Creates: AGENTS.md, .agents/, global wiki project page${RESET}"
   local answer
-  read -r -p "$(echo -e "${BOLD}Initialize project workspace? [${default_answer}]${prompt_suffix}:${RESET} ")" answer || return 0
+  read -r -p "$(echo -e "${BOLD}Initialize project workspace? [${yn_hint}]${prompt_suffix}:${RESET} ")" answer || return 0
   answer="${answer:-$default_answer}"
   is_yes "$answer" || return 0
 
