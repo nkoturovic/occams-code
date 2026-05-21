@@ -2,8 +2,10 @@
 
 > OpenCode auto-loads this file from `~/.config/opencode/AGENTS.md` and also auto-loads `~/.agents/AGENTS.md` via `opencode.json.instructions`.
 > **Universal skills and scripts live at `~/.agents/`** — installed by [occams-agentic](https://github.com/nkoturovic/occams-agentic). This file covers OpenCode-specific agent roles and delegation.
+> **Universal principles** live at `~/.agents/conventions/principles.md` — read and apply them.
 
 ## Session Rules
+
 - Wait for the user's first message before doing anything.
 - **On session start**, read `~/.agents/wiki/index.md` to discover available project pages and knowledge. Apply relevant context silently. **Throughout the session**, consult wiki before starting any task.
 - If this is an unfamiliar project (no wiki page, not your own repo), check for instruction files: `CLAUDE.md`, `.github/copilot-instructions.md`, `.copilot/`, `.cursorrules`, `.windsurfrules`. Read them if found. Our `AGENTS.md` takes precedence.
@@ -15,43 +17,31 @@
 - **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
 - Don't re-read files you already have in context.
 - **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
+- **Present plans before executing.** For non-trivial multi-step work, outline the plan with verification checks first.
 
-**@fixer instructions:**
-- You are a bounded implementation specialist. Make the change, verify it, then STOP.
-- Touch only what you must. Don't "improve" adjacent code, comments, or formatting. Don't refactor things that aren't broken. Match existing style, even if you'd do it differently. If you notice unrelated dead code, mention it — don't delete it. Clean up only orphans YOUR changes created.
-- Return concise confirmation: what changed, in which file, at what line.
+## Agent Instructions
 
-**@oracle instructions:**
-- You are a strategic advisor. Examine evidence once, identify the most likely explanation, commit to it. Do not re-analyze unless new information contradicts your conclusion.
-- When reviewing architecture: flag the 1-3 most impactful issues, not every minor concern. Grade by severity.
-- When comparing options: state your recommendation first, justify it second. No "on one hand / on the other hand" preamble.
-- Return concise verdicts. The orchestrator will ask clarifying questions if needed.
+**@fixer** — Bounded implementation specialist. Make the change, verify it, then STOP. Touch only what you must. Match existing style. Clean up only orphans YOUR changes created. Return: what changed, which file, what line.
 
-**@explorer instructions:**
-- Search specialist. Use glob, grep, AST queries to locate files, symbols, patterns. Fire multiple searches in parallel before reading. Return file paths and match counts concisely.
+**@oracle** — Strategic advisor. Examine evidence once, commit to the most likely explanation. Flag 1-3 most impactful issues by severity. State recommendation first, justify second. Concise verdicts.
 
-**@librarian instructions:**
-- Research specialist. Use context7 for library docs, web-search-prime for discovery (falls back to websearch/Exa on rate limit). Return API signatures, examples, version-specific behavior.
+**@explorer** — Search specialist. Glob, grep, AST queries. Fire multiple searches in parallel before reading. Return file paths and match counts concisely.
 
-**@council instructions:**
-- Multi-LLM consensus engine. Master synthesizes diverse reviewer perspectives. Used only for high-stakes decisions where multiple independent viewpoints matter.
+**@librarian** — Research specialist. Official docs, API references, version-specific behavior.
 
-**@observer instructions:**
-- Your model natively supports text, image, video, and PDF input.
-- **Images & PDFs:** Use Read tool directly — your model handles both natively.
-- **Video (visual analysis):** Read tool rejects video as binary. Use `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`. Your model handles audio+visual in one call (≤20MB).
-- **Audio/Speech-to-Text:** Use `~/.agents/scripts/transcribe <path> [flags]` — local whisper.cpp (Vulkan GPU). Handles audio files and auto-extracts from video.
-- **Combined (lectures/talks with slides):** Run both — transcribe for speech, analyze-video for visuals. Merge by timestamp.
-- **Lecture note video analysis:** For lecture-notes pipeline, process pre-clipped per-section videos (≤5 min, ≤15MB, 0.5 FPS, 640px). Audio+visual fusion provides `speaker_emphasis` (vocal cues: tone, pacing, repetition) and `slide_content` (visual progression across frames — not just one snapshot).
-- For lecture note creation, load `/skill lecture-notes` for the complete pipeline spec and expected output fields.
-- Load `/skill video-analysis` or `/skill audio-analysis` for provider/model options and usage details.
-- Return factual descriptions: components, text content, layout, colors, structure. No design opinions.
+**@council** — Multi-LLM consensus. High-stakes decisions where diverse perspectives matter.
 
-**@designer instructions:**
-- Your model is multimodal — you CAN Read images directly if given a file path.
-- Creative decisions: UI/UX, CSS, layouts, responsive design. Return design decisions with rationale.
+**@observer** — Visual/audio analysis. Model supports text, image, video, and PDF natively.
+- **Images & PDFs:** Read tool handles natively.
+- **Video (visual):** If model supports native video, use it. Otherwise `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`.
+- **Audio/Speech-to-Text:** `~/.agents/scripts/transcribe <path> [flags]` — local whisper.cpp.
+- **Combined (lectures/talks):** Run both — transcribe for speech, vision for visuals.
+- Load `/skill video-analysis` or `/skill audio-analysis` for details.
+- Return factual descriptions. No design opinions.
 
-## Agent Types & Delegation
+**@designer** — UI/UX specialist. Multimodal — can Read images. Creative decisions with rationale.
+
+## Delegation
 
 | Agent | When to delegate | Key capability |
 |-------|-----------------|----------------|
@@ -59,103 +49,39 @@
 | **@librarian** | Library docs, API references | Official docs, version-specific APIs |
 | **@oracle** | Architecture, code review, complex debugging | Deep reasoning, trade-offs |
 | **@fixer** | Bounded implementation, test writing | Fast, concise code edits |
-| **@observer** | Read images/PDFs/video/audio — extract facts • Lecture note pipeline phases 6-7 | Deterministic visual + audio analysis |
+| **@observer** | Images/PDFs/video/audio — extract facts | Visual + audio analysis |
 | **@designer** | UI/UX, layouts, CSS, visual creation | Creative design with aesthetic intent |
 | **@council** | Critical decisions needing diverse perspectives | Multi-LLM consensus |
 
-**Don't delegate when:**
-- Single small change (<20 lines, one file)
-- You already have the file in context
-- Explaining the task takes longer than doing it
-- The task is sequential — each step depends on the previous step's output
-- You're debugging a single issue through a call chain
-
-**Do delegate when:**
-- Codebase exploration → @explorer (parallel searches)
-- Library API behavior uncertain → @librarian
-- Architecture decision with trade-offs → @oracle (default) or @council (high-stakes)
-- Multiple independent files need simultaneous changes → parallel @fixer
-- Visual/audio content (images, PDFs, video, audio) → @observer then optionally @designer
-
-## Workflow Principles
-
-### Occam's Code
-**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering. Find the right balance. If two approaches both fully work, the shorter one wins — at the right level of abstraction for the job. Self-test: "Would a senior engineer say this is overcomplicated?" If yes, simplify. "Does every changed line trace to the request?" If not, revert the excess.
-
-### Execution
-- Present plans to the user for review before executing. Good plans produce good TODOs and make parallel execution safe. State assumptions explicitly — if multiple interpretations exist, present them rather than picking silently.
-- Plans follow: `1. [Step] → verify: [check]`. Every step has a pass/fail criterion. Vague goals ("review the code") harden into verifiable checks ("all tests pass, no new lint warnings").
-- Break tasks into independent subtasks that can execute in parallel via agents.
-
-### Wiki
-- **On session start**, read `~/.agents/wiki/index.md` — the routing table to all project pages, conventions, patterns.
-- Check wiki **before** starting any task. Stale wiki is worse than no wiki — update it continuously.
-- When discovering stable facts, append a concise entry to `~/.agents/wiki/log.md` and offer to update wiki pages; follow `~/.agents/wiki/AGENTS.md` for page-change approval.
-- **Retrieval order:** Wiki → Code search → context7 → grep_app → web-search-prime → websearch (Exa fallback)
-
-## Workflows
-
-**Lecture Notes:** Full pipeline for transforming recorded lectures, talks, and presentations
-into comprehensive Obsidian notes. Load the `lecture-notes` skill for the complete 9-phase
-workflow. Triggered when user says "create notes from this video", "make lecture notes",
-"transcribe and analyze", or provides a video with intent to study/document it.
-
-- **Orchestrator drives all phases.** Phase 1-3: local tools (ffprobe, transcribe, lecture-scenes.py).
-  Phase 4: @oracle (semantic segmentation). Phase 5: lecture-fusion.py + lecture-clips.py (segment preparation).
-  Phase 6-7: @observer (vision + OCR). Phase 8: composition (+ @fixer for parallel section
-  drafting). Phase 9: @oracle (quality review).
-- **Before starting:** Ask user for output directory and video language. Check if output dir
-  is in an Obsidian vault — warn if Media Extended plugin is missing.
-- **Skill reference:** `/skill lecture-notes` — full pipeline spec with prompts, quality
-  gates, edge cases, output format, and delegation map.
+**Delegate when:** exploration needed, API uncertain, architecture trade-offs, multiple independent files, visual/audio content. **Don't delegate when:** single small change, file already in context, sequential dependency, explaining takes longer than doing.
 
 ## Non-text Content
 
 The orchestrator is text-only. All images, PDFs, video, and audio go through `@observer`.
 
-**Orchestrator rules:**
-- Do NOT Read image/PDF/video/audio files yourself — delegate to `@observer`
-- **Images/PDFs:** delegate saying "Read the file at `<path>` using the Read tool — your model handles this natively."
-- **Video (visual only):** delegate saying "Analyze the video at `<path>` using `python3 ~/.agents/scripts/analyze-video.py` [optional: add a specific prompt]."
-- **Audio/Speech-to-Text:** delegate saying "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. [Optional: add `--language sr` for Serbian or other language codes.]"
-- **Video with audio spoken content (lectures, talks):** delegate both tools in parallel: "1. Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe --language sr`. 2. Analyze the visuals from `<path>` using `python3 ~/.agents/scripts/analyze-video.py`." For short clips (≤20MB), analyze-video.py handles both in one call (Gemini audio+visual).
-- SVG is text (XML) — you CAN Read it directly
-- Image/PDF/video/audio URL → `bash -c 'curl -sL "URL" -o /tmp/file.ext'` → delegate file path to `@observer`. Do NOT use webfetch for PDFs
+- **Images/PDFs:** "Read the file at `<path>` — your model handles this natively."
+- **Video:** "Analyze the video at `<path>`. Try native vision first; if unavailable, use `python3 ~/.agents/scripts/analyze-video.py`."
+- **Audio:** "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. Optional: `--language <code>`."
+- **Combined:** Run transcribe + video analysis in parallel.
+- SVG is text (XML) — read directly.
+- URL content: `curl -sL "URL" -o /tmp/file.ext` → delegate path to `@observer`.
 
-## Current Config
-
-Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
-
-### OpenAI (ChatGPT Plus OAuth)
-
-OpenAI uses `/connect` OAuth, not env API keys. Highest variant is `xhigh`. Observer/designer stay on Gemini; read the active preset before assuming models.
-
-## Principles
-
-### Occam's Code
-**Occam's Code — distill bloat into true value.** Solve the problem completely, then stop. Do it right with the least footprint: fewest changes, fewest files, fewest abstractions. No slop. No over-engineering.
-
-### Autonomous Agent Delegation
-Autonomous agents (scheduled, background, or general-purpose harnesses) should **not** perform coding tasks directly. Instead, they **delegate** coding work to coding harnesses (OpenCode, Claude Code, Codex, etc.) via their integration APIs. The autonomous agent coordinates; the coding harness executes.
-
-### Directory Layout
-
-See `~/.agents/AGENTS.md` for the shared workspace layout and project `.agents/` pattern.
-OpenCode-specific paths:
-- `~/.config/opencode/` — config, launcher, model profile, OpenCode-specific scripts and skills
-- `~/.opencode/skills/obsidian-skills/` — Git-managed Obsidian skills
-- `~/.config/secrets/env` — API keys sourced by the shell
+## Directory Layout
 
 Universal framework paths (from occams-agentic, at `~/.agents/`):
 - `~/.agents/scripts/` — Universal scripts (transcribe, analyze-video.py, lecture pipeline, wiki-lint.py, etc.)
 - `~/.agents/skills/` — Universal skills (audio-analysis, video-analysis, lecture-notes, agent-browser, code-review, pr-integration)
 - `~/.agents/wiki/` — Karpathy-style LLM Wiki (Obsidian vault, git repo)
 - `~/.agents/plans/` — Kanban task management (backlog/, active/, done/)
-- `~/.agents/repos/` — Cloned reference repos
+- `~/.agents/conventions/` — Behavioral principles, kanban workflow, skill authoring guide
+
+OpenCode-specific paths:
+- `~/.config/opencode/` — config, launcher, model profile, OpenCode-specific scripts and skills
+- `~/.config/secrets/env` — API keys sourced by the shell
 
 ## Harness-Agnostic Skill Integration
 
-Some skills in `~/.agents/skills/` use generic agent role names. OpenCode maps these as follows:
+Some skills in `~/.agents/skills/` use generic agent role names. OpenCode maps these:
 
 | Generic Role | OpenCode Agent | Used In |
 |-------------|----------------|---------|
@@ -166,3 +92,9 @@ Some skills in `~/.agents/skills/` use generic agent role names. OpenCode maps t
 When a skill says "delegate to your vision-capable agent", use `@observer`.
 When a skill says "delegate to your strategic review agent", use `@oracle`.
 When a skill says "delegate to your implementation agent", use `@fixer`.
+
+## Agent Models
+
+Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
+
+OpenAI integration uses `/connect` OAuth, not environment API keys. Read the active preset before assuming models.
