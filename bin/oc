@@ -5,6 +5,7 @@
 # Usage:
 #   oc                    Interactive: pick preset (first run), session, launch
 #   oc --quick            Skip prompts, use project/global config directly
+#   oc --no-init          Skip project config setup and workspace init
 #   oc --preset cheap     Set preset (writes project config), launch
 #   oc --doctor           Run diagnostics (config, wiki, lint)
 #   oc --sync-profile     Regenerate config from model-profile.jsonc
@@ -50,11 +51,12 @@ fi
 
 # --- Parse arguments ---
 QUICK=false; PRESET_ARG=""; INIT_PROJECT=false; DOCTOR=false
-INGEST_REPO=""; SAFE=false; UNSAFE=false; SYNC_PROFILE=false; OPENCODE_ARGS=()
+INGEST_REPO=""; SAFE=false; UNSAFE=false; SYNC_PROFILE=false; NO_INIT=false; OPENCODE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --quick|-q)    QUICK=true; shift ;;
+    --no-init|-n)  NO_INIT=true; shift ;;
     --preset|-p)   PRESET_ARG="$2"; shift 2 ;;
     --sync-profile) SYNC_PROFILE=true; shift ;;
     --safe)        SAFE=true; shift ;;
@@ -68,6 +70,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage:"
       echo "  oc                    Interactive launch (first run picks preset)"
       echo "  oc --quick            Skip prompts, use project/global config"
+      echo "  oc --no-init          Skip project config setup and workspace init"
       echo "  oc --preset <name>    Set preset, create project config, launch"
       echo "  oc --doctor           Run diagnostics (config, wiki, lint)"
       echo "  oc --sync-profile     Regenerate config from model-profile.jsonc"
@@ -87,6 +90,34 @@ done
 
 # --- Helpers ---
 is_interactive() { [[ -t 0 && -t 1 ]]; }
+
+# Detect directories that are likely temporary/scratch
+is_ephemeral_dir() {
+  case "$PWD" in
+    /tmp/*|/var/tmp/*) return 0 ;;
+  esac
+  local base="${PWD##*/}"
+  [[ "$base" =~ ^(tmp|temp|scratch|dummy|test|playground|sandbox)([-_].*)?$ ]]
+}
+
+# Detect common project root markers
+has_project_markers() {
+  [[ -d ".git" ]] ||
+  [[ -f "package.json" ]] ||
+  [[ -f "pyproject.toml" ]] ||
+  [[ -f "Cargo.toml" ]] ||
+  [[ -f "go.mod" ]] ||
+  [[ -f "CMakeLists.txt" ]] ||
+  [[ -f "flake.nix" ]]
+}
+
+# Check if directory is empty or only contains .opencode/
+is_empty_or_config_only() {
+  local files
+  files=$(find . -maxdepth 1 -not -path '.' -not -path './.opencode' 2>/dev/null | wc -l)
+  [[ "$files" -eq 0 ]]
+}
+
 has_sessions() {
   [[ -f "$HOME/.local/share/opencode/opencode.db" ]] || return 1
   python3 - "$HOME/.local/share/opencode/opencode.db" "$(pwd)" <<'PY'
@@ -336,12 +367,36 @@ PY
 
 # --- Auto-initialize project workspace ---
 maybe_auto_init() {
+  # Skip if explicitly disabled
+  [[ "$NO_INIT" == true ]] && return 0
   # Need a project config to consider this a managed project
   [[ -n "$PROJECT_CONFIG" ]] || return 0
   # Already initialized — skip
   [[ -f "AGENTS.md" ]] && return 0
   # Don't init in home directory
   [[ "$PWD" == "$HOME" ]] && return 0
+  # Non-interactive: skip auto-init to avoid unwanted side effects
+  is_interactive || return 0
+
+  # Determine default based on directory characteristics
+  local default_answer="n" prompt_suffix=""
+  if has_project_markers; then
+    default_answer="y"
+    prompt_suffix=" (project markers detected)"
+  elif is_ephemeral_dir || is_empty_or_config_only; then
+    default_answer="n"
+    prompt_suffix=""
+  fi
+
+  echo ""
+  echo -e "${YELLOW}Project workspace not initialized.${RESET}"
+  echo -e "  ${DIM}Path: $PWD${RESET}"
+  echo -e "  ${DIM}Creates: AGENTS.md, .agents/, global wiki project page${RESET}"
+  local answer
+  read -r -p "$(echo -e "${BOLD}Initialize project workspace? [${default_answer}]${prompt_suffix}:${RESET} ")" answer
+  answer="${answer:-$default_answer}"
+  [[ "$answer" =~ ^[Yy]$ ]] || return 0
+
   # Find the init script (prefer universal, fallback to OpenCode-specific)
   local init_script="$HOME/.agents/scripts/project-init.py"
   [[ -f "$init_script" ]] || init_script="$HOME/.config/opencode/scripts/project-init.py"
@@ -398,7 +453,7 @@ PY
   fi
 
   # First-run setup (before show_config, so config reflects the final state)
-  [[ "$QUICK" == false ]] && first_run_setup || true
+  [[ "$QUICK" == false && "$NO_INIT" == false ]] && first_run_setup || true
 
   # Auto-initialize project workspace (after preset selection)
   maybe_auto_init
