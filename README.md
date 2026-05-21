@@ -80,6 +80,7 @@ oc --sync-profile        # Regenerate oh-my-opencode-slim.json from model-profil
 ```
 oc                  Interactive launch (first run picks preset)
 oc --quick          Skip prompts, use project/global config directly
+oc --no-init        Skip project config setup and workspace init
 oc --preset <name>  Set preset, create project config, launch
 oc --doctor         Run diagnostics (config, wiki, lint)
 oc --sync-profile    Regenerate config from model-profile.jsonc
@@ -87,6 +88,8 @@ oc --init-project   Create project wiki page + AGENTS.md + project .agents works
 oc --ingest-repo URL  Snapshot GitHub repo into wiki
 oc -c               Continue last session
 ```
+
+Project workspace init (`AGENTS.md` + `.agents/` + wiki page) asks for confirmation in interactive mode. Defaults are conservative for temp/empty dirs and affirmative for project roots with markers like `.git`, `package.json`, or `Cargo.toml`. `--quick` keeps non-prompting auto-init behavior when a project config already exists; `--no-init` disables both project config setup and workspace init.
 
 ### Permissions
 

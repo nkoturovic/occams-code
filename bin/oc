@@ -91,6 +91,8 @@ done
 # --- Helpers ---
 is_interactive() { [[ -t 0 && -t 1 ]]; }
 
+is_yes() { [[ "$1" =~ ^[Yy]([Ee][Ss])?$ ]]; }
+
 # Detect directories that are likely temporary/scratch
 is_ephemeral_dir() {
   case "$PWD" in
@@ -102,7 +104,7 @@ is_ephemeral_dir() {
 
 # Detect common project root markers
 has_project_markers() {
-  [[ -d ".git" ]] ||
+  [[ -e ".git" ]] ||
   [[ -f "package.json" ]] ||
   [[ -f "pyproject.toml" ]] ||
   [[ -f "Cargo.toml" ]] ||
@@ -193,6 +195,17 @@ set_preset() {
 first_run_setup() {
   is_interactive || return 0
   [[ -n "$PROJECT_CONFIG" ]] && return 0
+  [[ "$PWD" == "$HOME" ]] && return 0
+
+  if is_ephemeral_dir || is_empty_or_config_only; then
+    echo ""
+    echo -e "${YELLOW}No project config.${RESET}"
+    echo -e "  ${DIM}Path looks temporary or empty: $PWD${RESET}"
+    local create_config
+    read -r -p "$(echo -e "${BOLD}Create .opencode project config here? [n]:${RESET} ")" create_config || return 0
+    create_config="${create_config:-n}"
+    is_yes "$create_config" || return 0
+  fi
 
   local current_preset presets
   current_preset=$(jq -r '.preset' "$CONFIG")
@@ -213,7 +226,7 @@ first_run_setup() {
 
   local selected="$current_preset"
   while true; do
-    read -r -p "$(echo -e "${BOLD}Select [${default_num}]:${RESET} ")" input
+    read -r -p "$(echo -e "${BOLD}Select [${default_num}]:${RESET} ")" input || return 0
     input="${input:-$default_num}"
     if [[ "$input" =~ ^[0-9]+$ ]] && [ "$input" -ge 1 ] && [ "$input" -le "$total" ]; then
       selected=$(echo "$presets" | sed -n "${input}p")
@@ -366,6 +379,16 @@ PY
 }
 
 # --- Auto-initialize project workspace ---
+run_project_workspace_init() {
+  # Find the init script (prefer universal, fallback to OpenCode-specific)
+  local init_script="$HOME/.agents/scripts/project-init.py"
+  [[ -f "$init_script" ]] || init_script="$HOME/.config/opencode/scripts/project-init.py"
+  [[ -f "$init_script" ]] || return 0
+  command -v python3 &>/dev/null || return 0
+  echo -e "${DIM}  Initializing project workspace...${RESET}"
+  python3 "$init_script" --project-path "$PWD" --quiet 2>&1 | sed 's/^/  /'
+}
+
 maybe_auto_init() {
   # Skip if explicitly disabled
   [[ "$NO_INIT" == true ]] && return 0
@@ -375,17 +398,20 @@ maybe_auto_init() {
   [[ -f "AGENTS.md" ]] && return 0
   # Don't init in home directory
   [[ "$PWD" == "$HOME" ]] && return 0
+  # Quick mode preserves historical behavior: auto-init without prompting.
+  [[ "$QUICK" == true ]] && { run_project_workspace_init; return 0; }
   # Non-interactive: skip auto-init to avoid unwanted side effects
   is_interactive || return 0
 
   # Determine default based on directory characteristics
+  # Ephemeral/empty dirs always default to N, even if they have project markers
   local default_answer="n" prompt_suffix=""
-  if has_project_markers; then
-    default_answer="y"
-    prompt_suffix=" (project markers detected)"
-  elif is_ephemeral_dir || is_empty_or_config_only; then
+  if is_ephemeral_dir || is_empty_or_config_only; then
     default_answer="n"
     prompt_suffix=""
+  elif has_project_markers; then
+    default_answer="y"
+    prompt_suffix=" (project markers detected)"
   fi
 
   echo ""
@@ -393,17 +419,11 @@ maybe_auto_init() {
   echo -e "  ${DIM}Path: $PWD${RESET}"
   echo -e "  ${DIM}Creates: AGENTS.md, .agents/, global wiki project page${RESET}"
   local answer
-  read -r -p "$(echo -e "${BOLD}Initialize project workspace? [${default_answer}]${prompt_suffix}:${RESET} ")" answer
+  read -r -p "$(echo -e "${BOLD}Initialize project workspace? [${default_answer}]${prompt_suffix}:${RESET} ")" answer || return 0
   answer="${answer:-$default_answer}"
-  [[ "$answer" =~ ^[Yy]$ ]] || return 0
+  is_yes "$answer" || return 0
 
-  # Find the init script (prefer universal, fallback to OpenCode-specific)
-  local init_script="$HOME/.agents/scripts/project-init.py"
-  [[ -f "$init_script" ]] || init_script="$HOME/.config/opencode/scripts/project-init.py"
-  [[ -f "$init_script" ]] || return 0
-  command -v python3 &>/dev/null || return 0
-  echo -e "${DIM}  Initializing project workspace...${RESET}"
-  python3 "$init_script" --project-path "$PWD" --quiet 2>&1 | sed 's/^/  /'
+  run_project_workspace_init
 }
 
 # --- Main ---
