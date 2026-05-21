@@ -25,7 +25,7 @@
       "oracle":       { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 1.0 },
       "explorer":     { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 0.8 },
       "librarian":    { "model": "zai-coding-plan/glm-5.1", "variant": "max", "temperature": 0.8 },
-      "fixer":        { "model": "kimi-for-coding/kimi-for-coding", "variant": "max", "thinking": 65536, "temperature": 1.0 },
+      "fixer":        { "model": "kimi-for-coding/kimi-for-coding", "thinking": 65536, "temperature": 1.0 },
       // Gemini Pro/Flash via OpenRouter: variant system returns {} for these models
       // (only gemini-3 gets variants). No variant needed — designer/observer don't use reasoning.
       "designer":     { "model": "openrouter/~google/gemini-pro-latest", "temperature": 1.0 },
@@ -35,14 +35,14 @@
 
     // ============ BALANCED (OpenRouter-only, works with just one API key) ============
     "balanced": {
-      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 0.8 },
-      "oracle":       { "model": "openrouter/z-ai/glm-5.1", "variant": "high", "temperature": 1.0 },
+      "orchestrator": { "model": "openrouter/z-ai/glm-5.1", "temperature": 0.8 },
+      "oracle":       { "model": "openrouter/z-ai/glm-5.1", "temperature": 1.0 },
       "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
-      "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.7 },
-      "librarian":    { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.7 },
-      "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.7 },
+      "explorer":     { "model": "openrouter/deepseek/deepseek-v3.2", "temperature": 0.7 },
+      "librarian":    { "model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.7 },
+      "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "temperature": 0.7 },
       "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
-      "council":      { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.7 }
+      "council":      { "model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.7 }
     },
 
     // ============ PREMIUM (best available, no cost concern) ============
@@ -71,14 +71,14 @@
 
     // ============ CHEAP (budget-optimized, free models where possible) ============
     "cheap": {
-      "orchestrator": { "model": "openrouter/qwen/qwen3-coder", "variant": "high", "temperature": 0.7 },
-      "oracle":       { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 1.0 },
+      "orchestrator": { "model": "openrouter/qwen/qwen3-coder", "temperature": 0.7 },
+      "oracle":       { "model": "openrouter/qwen/qwen3.6-plus", "temperature": 1.0 },
       "designer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
       "librarian":    { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
-      "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "variant": "high", "temperature": 0.7 },
+      "fixer":        { "model": "openrouter/deepseek/deepseek-v3.2", "temperature": 0.7 },
       "observer":     { "model": "openrouter/~google/gemini-flash-latest", "temperature": 1.0 },
-      "council":      { "model": "openrouter/qwen/qwen3.6-plus", "variant": "high", "temperature": 0.7 }
+      "council":      { "model": "openrouter/qwen/qwen3.6-plus", "temperature": 0.7 }
     },
 
     // ============ OPENAI (ChatGPT Plus OAuth via /connect) ============

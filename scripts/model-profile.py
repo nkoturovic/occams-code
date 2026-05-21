@@ -220,17 +220,36 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
 
     # Required fields
     config["model"] = override["model"]
+    model = config["model"]
 
     # Variant (defaults only exist for explorer/librarian/fixer/observer)
-    variant = override.get("variant", defaults.get("variant", "high"))
-    config["variant"] = variant
+    # Skip variant for models known to have no variant support, unless
+    # explicitly overridden by the user.
+    MODELS_WITHOUT_VARIANTS = [
+        "kimi-for-coding",
+        "openrouter/qwen",
+        "openrouter/deepseek-v3",
+        "openrouter/z-ai/glm",
+    ]
+    model_has_no_variants = any(p in model for p in MODELS_WITHOUT_VARIANTS)
+    if "variant" in override:
+        # User explicitly specified variant — honor it
+        config["variant"] = override["variant"]
+    elif model_has_no_variants:
+        # Model doesn't support variants — omit the field entirely
+        pass
+    elif "variant" in defaults:
+        # Use default variant for this agent role
+        config["variant"] = defaults["variant"]
+    else:
+        # Fallback default
+        config["variant"] = "high"
 
     # Skills and MCPs (from defaults, override can't change these)
     config["skills"] = defaults.get("skills", [])
     config["mcps"] = defaults.get("mcps", [])
 
     # Temperature — always from override if set (including thinking-mode models)
-    model = config["model"]
     is_kimi = "kimi-for-coding" in model
     is_deepseek_v4 = "deepseek-v4-pro" in model
     is_glm_zai = "zai-coding-plan/glm" in model

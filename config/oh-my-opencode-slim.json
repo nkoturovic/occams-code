@@ -90,7 +90,6 @@
       },
       "fixer": {
         "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "max",
         "skills": [],
         "mcps": [
           "context7"
@@ -141,7 +140,6 @@
     "balanced": {
       "orchestrator": {
         "model": "openrouter/z-ai/glm-5.1",
-        "variant": "high",
         "skills": [
           "*"
         ],
@@ -153,7 +151,6 @@
       },
       "oracle": {
         "model": "openrouter/z-ai/glm-5.1",
-        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -188,7 +185,6 @@
       },
       "librarian": {
         "model": "openrouter/qwen/qwen3.6-plus",
-        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -222,7 +218,6 @@
       },
       "council": {
         "model": "openrouter/qwen/qwen3.6-plus",
-        "variant": "high",
         "skills": [],
         "mcps": [],
         "temperature": 0.7
@@ -411,7 +406,6 @@
     "cheap": {
       "orchestrator": {
         "model": "openrouter/qwen/qwen3-coder",
-        "variant": "high",
         "skills": [
           "*"
         ],
@@ -423,7 +417,6 @@
       },
       "oracle": {
         "model": "openrouter/qwen/qwen3.6-plus",
-        "variant": "high",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -492,7 +485,6 @@
       },
       "council": {
         "model": "openrouter/qwen/qwen3.6-plus",
-        "variant": "high",
         "skills": [],
         "mcps": [],
         "temperature": 0.7
@@ -506,18 +498,20 @@
           "*"
         ],
         "mcps": [
-          "*",
-          "!context7"
+          "web-search-prime",
+          "websearch"
         ],
         "temperature": 0.8
       },
       "oracle": {
         "model": "openai/gpt-5.5",
         "variant": "xhigh",
-        "skills": [
-          "simplify"
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7"
         ],
-        "mcps": [],
         "temperature": 1.0
       },
       "librarian": {
@@ -536,14 +530,19 @@
         "model": "openai/gpt-5.3-codex",
         "variant": "high",
         "skills": [],
-        "mcps": [],
+        "mcps": [
+          "context7",
+          "grep_app"
+        ],
         "temperature": 0.8
       },
       "fixer": {
         "model": "openai/gpt-5.3-codex",
         "variant": "high",
         "skills": [],
-        "mcps": [],
+        "mcps": [
+          "context7"
+        ],
         "temperature": 1.0
       },
       "designer": {
