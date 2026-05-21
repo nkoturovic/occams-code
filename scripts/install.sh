@@ -387,24 +387,24 @@ fi
 
 # ── Z.AI MCP injection ───────────────────────────────────────────────
 if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.json" ]]; then
-  jq --arg key "$ZAI_KEY" '
+  jq '
     .mcp.zai_vision = {
       "type": "local",
       "command": ["npx", "-y", "@z_ai/mcp-server"],
-      "environment": { "Z_AI_API_KEY": $key, "Z_AI_MODE": "ZAI" },
+      "environment": { "Z_AI_API_KEY": "{env:Z_AI_API_KEY}", "Z_AI_MODE": "ZAI" },
       "enabled": true,
       "timeout": 600000
     } |
     .mcp["web-search-prime"] = {
       "type": "remote",
       "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-      "headers": { "Authorization": ("Bearer " + $key) },
+      "headers": { "Authorization": "Bearer {env:Z_AI_API_KEY}" },
       "enabled": true,
       "timeout": 60000
     }
   ' "$OPENCODE_DIR/opencode.json" > /tmp/oc-json-$$.json \
     && mv /tmp/oc-json-$$.json "$OPENCODE_DIR/opencode.json"
-  echo -e "  ${GREEN}✓${RESET} Z.AI MCPs injected into opencode.json"
+  echo -e "  ${GREEN}✓${RESET} Z.AI MCPs added to opencode.json (key via {env:Z_AI_API_KEY} placeholder)"
 fi
 
 # ── Wiki (managed by occams-agentic) ──────────────────────────────────

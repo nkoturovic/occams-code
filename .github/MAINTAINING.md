@@ -23,7 +23,7 @@ There are three directions:
 | File | Live location | Repo location | Notes |
 |------|--------------|---------------|-------|
 | Launcher | `~/.config/opencode/bin/oc` | `bin/oc` | ~409 lines |
-| OpenCode scripts | `~/.config/opencode/scripts/` | `scripts/` | 5 synced files: model-profile.py, doctor-model-check.py, project-init.py (compat wrapper), detect-project-state.py, cleanup-logs.sh. Installer: scripts/install.sh (repo-only, not synced to live) |
+| OpenCode scripts | `~/.config/opencode/scripts/` | `scripts/` | 5 synced files: model-profile.py, doctor-model-check.py, project-init.py (compat wrapper), detect-project-state.py, cleanup-logs.sh. Installer: scripts/install.sh (repo source for interactive setup, synced to live) |
 | Commands | `~/.config/opencode/commands/*.md` | `commands/*.md` | 6 files: model-switch.md, permissions.md, preset.md, remember.md, wiki.md, wiki-lint.md |
 | OpenCode skills | `~/.config/opencode/skills/` | `skills/` | 3 OpenCode-specific skills: codemap, clonedeps, simplify |
 | model-profile.jsonc | `~/.config/opencode/model-profile.jsonc` | `config/model-profile.jsonc` | Model assignment source of truth (default preset = `balanced` in repo). Live stays at root for backward compat with `oc --sync-profile`; repo uses `config/` subdir for cleaner structure — both are valid and intentionally different. |
@@ -51,12 +51,12 @@ There are three directions:
 
 Universal files that live in `~/.agents/` and sync to the occams-agentic repo:
 - Skills: agent-browser, audio-analysis, code-review, lecture-notes, pr-integration, video-analysis
-- Scripts: analyze-video.py, transcribe, lecture-scenes.py, lecture-fusion.py, lecture-clips.py, wiki-lint.py, repo-ingest.py
+- Scripts: analyze-video.py, transcribe, lecture-scenes.py, lecture-fusion.py, lecture-clips.py, project-init.py, wiki-lint.py, repo-ingest.py
 - AGENTS.md (tool-agnostic schema) → occams-agentic root
 - wiki-template/ → occams-agentic
 - conventions/ → occams-agentic
 
-See occams-agentic's `.github/MAINTAINING.md` for its sync runbook.
+See occams-agentic repo for its sync conventions.
 
 ## Intentional Differences
 

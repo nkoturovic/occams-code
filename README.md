@@ -58,7 +58,7 @@ The installer:
 
 1. Copies OpenCode-specific scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
 2. Installs the oh-my-opencode-slim plugin
-3. Sets up API keys in `~/.local/share/opencode/auth.json` and `~/.config/secrets/env`
+3. Sets up API keys (interactively, shell-visible in `~/.config/secrets/env`)
 
 > **Note:** `~/.agents/` (skills, scripts, wiki) is set up by occams-agentic's `bootstrap.sh` — run that first.
 
