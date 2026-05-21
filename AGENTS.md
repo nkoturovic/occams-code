@@ -34,9 +34,9 @@
 
 **@observer** — Visual/audio analysis. Model supports text, image, video, and PDF natively.
 - **Images & PDFs:** Read tool handles natively.
-- **Video (visual):** If model supports native video, use it. Otherwise `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`.
+- **Video (visual):** OpenCode Read tool does not support video. Use `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`.
 - **Audio/Speech-to-Text:** `~/.agents/scripts/transcribe <path> [flags]` — local whisper.cpp.
-- **Combined (lectures/talks):** Run both — transcribe for speech, vision for visuals.
+- **Combined (lectures/talks):** Run both — transcribe for speech, analyze-video.py for visuals.
 - Load `/skill video-analysis` or `/skill audio-analysis` for details.
 - Return factual descriptions. No design opinions.
 
@@ -61,7 +61,7 @@
 The orchestrator is text-only. All images, PDFs, video, and audio go through `@observer`.
 
 - **Images/PDFs:** "Read the file at `<path>` — your model handles this natively."
-- **Video:** "Analyze the video at `<path>`. Try native vision first; if unavailable, use `python3 ~/.agents/scripts/analyze-video.py`."
+- **Video:** "Analyze the video at `<path>` using `python3 ~/.agents/scripts/analyze-video.py`." (OpenCode Read tool does not support video.)
 - **Audio:** "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. Optional: `--language <code>`."
 - **Combined:** Run transcribe + video analysis in parallel.
 - SVG is text (XML) — read directly.
