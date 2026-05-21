@@ -26,7 +26,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 - **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
-- **model-profile.jsonc** — Single source of truth for model assignments. Edit, run `oc --sync-profile`, restart. Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
+- **model-profile.jsonc** — Model-mapping source of truth. Edit, run `oc --sync-profile` to regenerate oh-my-opencode-slim.json, restart. Per-agent MCP/skill assignments live in oh-my-opencode-slim.json (committed preset). Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **5 MCP servers** — context7 (library docs), grep_app (code search), websearch (Exa), zai_vision (image analysis), and web-search-prime (Z.AI web search). Z.AI MCPs require `Z_AI_API_KEY`.
 - **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
 
@@ -162,7 +162,7 @@ OpenCode-specific scripts (universal scripts like `project-init.py`, `transcribe
 
 | Script | Purpose |
 |--------|---------|
-| `model-profile.py` | **Config generator** — generates oh-my-opencode-slim.json from model-profile.jsonc |
+| `model-profile.py` | **Config generator** — regenerates model assignments in oh-my-opencode-slim.json from model-profile.jsonc (per-agent MCP/skill config is in the committed preset) |
 | `doctor-model-check.py` | Model health check — verifies API connectivity and model availability (used by `--doctor`) |
 | `project-init.py` | Compatibility wrapper → `~/.agents/scripts/project-init.py` |
 | `detect-project-state.py` | Project state detection (reads `.opencode/` — used by `--doctor`) |
@@ -248,7 +248,7 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 ├── AGENTS.md                    # OpenCode-specific agent rules and workflows
 ├── opencode.json                # Core config (providers, MCPs, LSPs)
 ├── oh-my-opencode-slim.json     # Presets, agents, fallback chains, council
-├── model-profile.jsonc          # Source-of-truth for model assignments
+├── model-profile.jsonc          # Model-mapping source of truth (regenerated into oh-my-opencode-slim.json)
 ├── bin/oc                       # Launcher script
 ├── scripts/                     # OpenCode-specific scripts
 ├── commands/                    # Slash command definitions
