@@ -18,6 +18,7 @@
 - Don't re-read files you already have in context.
 - **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
 - **Present plans before executing.** For non-trivial multi-step work, outline the plan with verification checks first.
+- **Retrieval order:** Wiki → Code search → context7 → web-search-prime → websearch (Exa fallback).
 
 ## Agent Instructions
 
@@ -64,7 +65,7 @@ The orchestrator is text-only. All images, PDFs, video, and audio go through `@o
 - **Audio:** "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. Optional: `--language <code>`."
 - **Combined:** Run transcribe + video analysis in parallel.
 - SVG is text (XML) — read directly.
-- URL content: `curl -sL "URL" -o /tmp/file.ext` → delegate path to `@observer`.
+- URL content: `curl -sL "URL" -o /tmp/file.ext` → delegate path to `@observer`. Do NOT use webfetch for PDFs.
 
 ## Directory Layout
 
@@ -97,4 +98,4 @@ When a skill says "delegate to your implementation agent", use `@fixer`.
 
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
 
-OpenAI integration uses `/connect` OAuth, not environment API keys. Read the active preset before assuming models.
+OpenAI integration uses `/connect` OAuth, not environment API keys. Highest variant is `xhigh`. Observer/designer stay on Gemini; read the active preset before assuming models.
