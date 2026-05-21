@@ -432,6 +432,14 @@ PY
     OPENCODE_ARGS+=("--port" "0")
   fi
 
+  # Verify opencode is available before trying to exec
+  if ! command -v opencode &>/dev/null; then
+    echo -e "${RED}Error: opencode not found in PATH.${RESET}" >&2
+    echo "  Install OpenCode first: https://opencode.ai/docs/install" >&2
+    echo "  Or if already installed, ensure it's in your PATH." >&2
+    exit 1
+  fi
+
   if [[ "$SAFE" == true || "$UNSAFE" == true ]] && [[ -f "$CORE_CONFIG" ]]; then
     [[ "$show_banner" == false ]] && echo "" # spacing for non-interactive
     launch_with_permissions "$([[ "$UNSAFE" == true ]] && echo unsafe || echo safe)"
