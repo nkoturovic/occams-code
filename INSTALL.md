@@ -65,7 +65,7 @@ The installer asks:
 
 1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
 2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai`) — auto-recommended based on providers
-3. **Z.AI MCPs** — only asked if you selected Z.AI; injects `zai_vision` + `web-search-prime` blocks with your API key
+3. **Z.AI MCPs** — only asked if you selected Z.AI; adds `zai_vision` + `web-search-prime` MCP blocks with `{env:Z_AI_API_KEY}` placeholder (your key is stored in `~/.config/secrets/env`)
 4. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
 5. **Weekly cron** for log cleanup
 6. **PATH setup** — appends `oc` to your shell rc
@@ -364,7 +364,7 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
 | `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |
 | `defuddle` not in PATH after install | npm prefix not in PATH | Installer auto-symlinks to `~/.local/bin/`; ensure that's in your PATH |
-| Z.AI MCPs show as "disabled" in `oc` | You opted in but the API key is wrong | Edit `~/.config/opencode/opencode.json` `Z_AI_API_KEY` |
+| Z.AI MCPs show as "disabled" in `oc` | `Z_AI_API_KEY` not set in environment | Check `~/.config/secrets/env` has `export Z_AI_API_KEY="..."`, then `source ~/.profile` |
 | `analyze-video.py: OPENROUTER_API_KEY not set` | Shell hasn't sourced `~/.config/secrets/env` | `source ~/.profile` in current shell, or open a new terminal |
 | websearch MCP returns "rate limited" | Free Exa tier exhausted | Set `EXA_API_KEY` in `~/.config/secrets/env` |
 
