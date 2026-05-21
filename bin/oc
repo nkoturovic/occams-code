@@ -273,10 +273,14 @@ run_doctor() {
 
 # --- Standalone: project init ---
 run_project_init() {
-  if ! command -v python3 &>/dev/null || [[ ! -f "$HOME/.config/opencode/scripts/project-init.py" ]]; then
+  local init_script="$HOME/.agents/scripts/project-init.py"
+  if [[ ! -f "$init_script" ]]; then
+    init_script="$HOME/.config/opencode/scripts/project-init.py"
+  fi
+  if ! command -v python3 &>/dev/null || [[ ! -f "$init_script" ]]; then
     echo -e "${YELLOW}⚠ project-init.py not found${RESET}"; return 1
   fi
-  python3 "$HOME/.config/opencode/scripts/project-init.py" --project-path "$PWD"
+  python3 "$init_script" --project-path "$PWD"
 }
 
 # --- Standalone: sync models from model-profile ---
@@ -330,6 +334,23 @@ PY
   restore; trap - EXIT INT TERM; return $rc
 }
 
+# --- Auto-initialize project workspace ---
+maybe_auto_init() {
+  # Need a project config to consider this a managed project
+  [[ -n "$PROJECT_CONFIG" ]] || return 0
+  # Already initialized — skip
+  [[ -f "AGENTS.md" ]] && return 0
+  # Don't init in home directory
+  [[ "$PWD" == "$HOME" ]] && return 0
+  # Find the init script (prefer universal, fallback to OpenCode-specific)
+  local init_script="$HOME/.agents/scripts/project-init.py"
+  [[ -f "$init_script" ]] || init_script="$HOME/.config/opencode/scripts/project-init.py"
+  [[ -f "$init_script" ]] || return 0
+  command -v python3 &>/dev/null || return 0
+  echo -e "${DIM}  Initializing project workspace...${RESET}"
+  python3 "$init_script" --project-path "$PWD" --quiet 2>&1 | sed 's/^/  /'
+}
+
 # --- Main ---
 main() {
   # Standalone commands: skip everything, run, exit
@@ -370,6 +391,9 @@ PY
 
   # First-run setup (before show_config, so config reflects the final state)
   [[ "$QUICK" == false ]] && first_run_setup || true
+
+  # Auto-initialize project workspace (after preset selection)
+  maybe_auto_init
 
   # Banner + config (interactive, non-quick only)
   if [[ "$show_banner" == true ]]; then
