@@ -111,8 +111,8 @@
         "includeUsage": true
       },
       "models": {
-        "glm-5.1": {
-          "name": "GLM 5.1 (Z.AI)",
+        "glm-5.2": {
+          "name": "GLM 5.2 (Z.AI)",
           "reasoning": true,
           "temperature": true,
           "interleaved": {
@@ -120,7 +120,7 @@
           },
           "limit": {
             "context": 202000,
-            "output": 24576
+            "output": 131072
           },
           "options": {
             "thinking": {
@@ -227,8 +227,8 @@
         "includeUsage": true
       },
       "models": {
-        "z-ai/glm-5.1": {
-          "name": "GLM 5.1 (via OpenRouter)",
+        "z-ai/glm-5.2": {
+          "name": "GLM 5.2 (via OpenRouter)",
           "reasoning": true,
           "temperature": true,
           "interleaved": {
@@ -236,7 +236,7 @@
           },
           "limit": {
             "context": 202000,
-            "output": 24576
+            "output": 131072
           },
           "options": {
             "reasoning": {

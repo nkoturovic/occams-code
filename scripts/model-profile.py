@@ -102,17 +102,17 @@ AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
 FALLBACK_CHAINS: dict[str, list[str]] = {
     "orchestrator": [
         "deepseek/deepseek-v4-pro",
-        "zai-coding-plan/glm-5.1",
+        "zai-coding-plan/glm-5.2",
         "openrouter/deepseek/deepseek-v4-pro",
         "anthropic/claude-sonnet-4-6",
         "openai/gpt-5.4",
-        "openrouter/z-ai/glm-5.1",
+        "openrouter/z-ai/glm-5.2",
         "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free",
     ],
     "oracle": [
         "deepseek/deepseek-v4-pro",
-        "zai-coding-plan/glm-5.1",
+        "zai-coding-plan/glm-5.2",
         "anthropic/claude-opus-4-7",
         "openrouter/deepseek/deepseek-v4-pro",
         "openrouter/anthropic/claude-sonnet-4.6",
@@ -154,7 +154,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
     ],
     "fixer": [
-        "zai-coding-plan/glm-5.1",
+        "zai-coding-plan/glm-5.2",
         "deepseek/deepseek-v4-pro",
         "openai/gpt-5.3-codex",
         "openrouter/qwen/qwen3-coder",
@@ -175,7 +175,7 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
         "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
     },
     "balanced": {
-        "reviewer-1": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-1": {"model": "openrouter/z-ai/glm-5.2"},
         "reviewer-2": {"model": "openrouter/qwen/qwen3.6-plus"},
     },
     "cheap": {
@@ -185,16 +185,16 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
     },
     "premium": {
         "reviewer-1": {"model": "anthropic/claude-sonnet-4-6"},
-        "reviewer-2": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-2": {"model": "openrouter/z-ai/glm-5.2"},
         "reviewer-3": {"model": "openrouter/google/gemini-3.1-pro-preview"},
     },
     "deepseek": {
         "reviewer-1": {"model": "kimi-for-coding/kimi-for-coding"},
-        "reviewer-2": {"model": "openrouter/z-ai/glm-5.1"},
+        "reviewer-2": {"model": "openrouter/z-ai/glm-5.2"},
         "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
     },
     "openai": {
-        "reviewer-1": {"model": "zai-coding-plan/glm-5.1", "variant": "max"},
+        "reviewer-1": {"model": "zai-coding-plan/glm-5.2", "variant": "max"},
         "reviewer-2": {"model": "openrouter/anthropic/claude-sonnet-4.6", "variant": "high"},
         "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
     },
