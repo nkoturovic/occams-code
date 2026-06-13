@@ -259,7 +259,6 @@ The agent will keep working through incomplete TODOs without stopping. It stops 
 
 ~/.agents/                       ← occams-agentic (harness-agnostic framework)
 ├── AGENTS.md                    # Tool-agnostic workspace schema
-├── plans/                       # Kanban task management (backlog/, active/, done/)
 ├── repos/                       # Cloned repos, outside the wiki vault
 ├── scratch/                     # Ephemeral agent workspace
 ├── skills/                      # Universal skills (audio-analysis, video-analysis, lecture-notes, etc.)

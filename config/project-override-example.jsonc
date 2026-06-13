@@ -11,24 +11,24 @@
   "agents": {
     // Use a cheaper designer model for this project
     "designer": {
-      "model": "openrouter/google/gemini-3-flash-preview"
+      "model": "openrouter/google/gemini-3.5-flash"
     }
 
     // Other examples (uncomment as needed):
 
     // "explorer": {
-    //   "model": "openrouter/deepseek/deepseek-v3.2",
-    //   "temperature": 0.2
+    //   "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+    //   "temperature": 1.0
     // },
 
     // "oracle": {
     //   "model": "openrouter/anthropic/claude-sonnet-4.6"
     // }
 
-    // Enable video analysis (also set zai_vision enabled: true in opencode.json):
+    // Enable observer with Kimi multimodal:
     // "observer": {
-    //   "model": "openrouter/moonshotai/kimi-k2.6",
-    //   "mcps": ["web-search-prime", "context7", "zai_vision"]
+    //   "model": "openrouter/moonshotai/kimi-k2.7-code",
+    //   "mcps": ["zai_vision"]
     // }
   }
 }

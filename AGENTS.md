@@ -17,8 +17,54 @@
 - **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
 - Don't re-read files you already have in context.
 - **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
-- **Present plans before executing.** For non-trivial multi-step work, outline the plan with verification checks first.
+- **Present plans before executing.** For non-trivial work, outline the plan with verification gates first. For heavy/multi-phase tasks, use `/deepwork`.
 - **Retrieval order:** Wiki → Code search → context7 → web-search-prime → websearch (Exa fallback).
+
+## Context Gathering Protocol
+
+Before any non-trivial task, ensure sufficient context is available locally. This implements Principle 1 (Context First) from `~/.agents/conventions/principles.md`.
+
+**Gather phase (before planning):**
+1. **Wiki first** — Check global `~/.agents/wiki/` for framework patterns and prior decisions. For project work, also check `<project>/.agents/wiki/` for project-specific context.
+2. **Codebase mapping** — For unfamiliar repos, use `/skill codemap`. For known repos, dispatch `@explorer` with parallel searches.
+3. **Dependency internals** — Use `/skill clonedeps` to clone dependency source for SDK/framework behavior inspection.
+4. **External docs** — Dispatch `@librarian` for official docs, API references. Download as markdown when reference material is needed repeatedly.
+5. **Clone depth strategy:** `--depth 1` for structure, `--depth 50` for history/blame, full clone for deep archaeology.
+
+**Plan phase (after gathering):**
+- Plans use Todos with verification gates: `1. [Step] → verify: [check]`
+- Break complex work into bounded tasks that specialists can execute independently.
+- Present plan before executing. Proceed only when gates are clear.
+- For heavy/multi-phase work, use DeepWork (see below).
+
+**Post-task phase:**
+- After each task, reconsider: what additional context would improve remaining work?
+- Update plan and Todos. Gather more resources if the task revealed new dependencies or unknowns.
+- **Record durable findings** — append a brief entry to wiki `log.md`. Promote reusable patterns or decisions to wiki project/concept pages. This closes the loop: next session's Context Gathering reads what this session learned.
+
+## DeepWork Integration
+
+DeepWork is oh-my-opencode-slim's first-class structured execution workflow for heavy coding tasks: broad refactors, multi-phase features, risky architecture changes.
+
+**When to use:** `/deepwork <task>` for large refactors, multi-module features, risky arch changes.
+**When NOT to use:** single-file edits, trivial fixes, quick changes — execute directly.
+
+**Workflow:**
+1. Orchestrator creates a persistent plan artifact at `.slim/deepwork/<task>.md`
+2. Draft plan → **Oracle review** → revise until acceptable
+3. Create phased implementation plan → **Oracle review**
+4. Execute phase by phase with validation
+5. After each phase: validate → **Oracle review** → fix issues → continue
+
+**Key capabilities:**
+- Persistent session state in markdown files
+- Mandatory Oracle gates at plan approval + every phase boundary (includes simplify/readability feedback)
+- V2 scheduler integration (dispatch background specialists, wait for hook-driven completion, reconcile)
+- OpenCode todo lists for progress tracking
+
+**Wiki integration:** DeepWork artifacts in `.slim/deepwork/` are execution records. After completion, record a brief summary in wiki `log.md` and promote any durable architectural decisions or patterns to wiki project/concept pages. DeepWork handles execution; wiki handles compiled knowledge.
+
+**Background orchestration model:** The orchestrator is a scheduler, not a default implementation worker. It plans, dispatches background specialists, tracks task IDs, avoids conflicting writes, reconciles results, and verifies. Enabled via `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=1` in `bin/oc`. See oh-my-opencode-slim docs for the full scheduler model.
 
 ## Agent Instructions
 
@@ -73,8 +119,7 @@ Universal framework paths (from occams-agentic, at `~/.agents/`):
 - `~/.agents/scripts/` — Universal scripts (transcribe, analyze-video.py, lecture pipeline, wiki-lint.py, etc.)
 - `~/.agents/skills/` — Universal skills (audio-analysis, video-analysis, lecture-notes, agent-browser, code-review, pr-integration)
 - `~/.agents/wiki/` — Karpathy-style LLM Wiki (Obsidian vault, git repo)
-- `~/.agents/plans/` — Kanban task management (backlog/, active/, done/)
-- `~/.agents/conventions/` — Behavioral principles, kanban workflow, skill authoring guide
+- `~/.agents/conventions/` — Behavioral principles (7), skill authoring guide
 
 OpenCode-specific paths:
 - `~/.config/opencode/` — config, launcher, model profile, OpenCode-specific scripts and skills
@@ -98,4 +143,4 @@ When a skill says "delegate to your implementation agent", use `@fixer`.
 
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
 
-OpenAI integration uses `/connect` OAuth, not environment API keys. Highest variant is `xhigh`. Observer/designer stay on Gemini; read the active preset before assuming models.
+OpenAI integration uses `/connect` OAuth, not environment API keys. Highest variant is `xhigh`. Read the active preset in `oh-my-opencode-slim.json` before assuming models — assignments change.
