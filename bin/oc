@@ -497,13 +497,11 @@ PY
     done
     OPENCODE_ARGS=("${_filtered[@]+"${_filtered[@]}"}")
   fi
-  # Tmux multiplexer: inject --port so subagent panes can attach
-  # Required by omo-slim multiplexer (workaround for opencode#9099)
+  # Multiplexer panes: inject --port so subagents can attach.
+  # Required by omo-slim for tmux/zellij integration (opencode#9099).
   # --port 0: tries 4096 first (backward compatible), auto-assigns if taken.
   # The real port is passed to subagent panes via Server.url (not env var).
-  # This avoids silent hangs when running multiple opencode instances
-  # across different tmux sessions/windows/panes on the same machine.
-  if [[ -n "${TMUX:-}" ]]; then
+  if [[ -n "${TMUX:-}" || -n "${ZELLIJ:-}" ]]; then
     OPENCODE_ARGS+=("--port" "0")
   fi
 

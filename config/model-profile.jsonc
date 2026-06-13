@@ -8,8 +8,8 @@
 
   "preset": "custom",
 
-  // Tmux multiplexer: live subagent panes (only active inside tmux)
-  // Toggle: "auto" (enable in tmux) | "none" (disable)
+  // Multiplexer: live subagent panes (active inside tmux or Zellij)
+  // Toggle: "auto" (detect tmux/zellij) | "tmux" | "zellij" | "none"
   "multiplexer": {
     "type": "auto",
     "layout": "main-vertical",
