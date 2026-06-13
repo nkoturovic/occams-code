@@ -85,9 +85,9 @@
       },
       "models": {
         "kimi-for-coding": {
-          "name": "Kimi for Coding (K2.6)",
+          "name": "Kimi for Coding (K2.7 Code)",
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "limit": {
             "context": 262144,
             "output": 32768
@@ -373,10 +373,10 @@
             "output": 16384
           }
         },
-        "moonshotai/kimi-k2.6": {
-          "name": "Kimi K2.6 (via OpenRouter)",
+        "moonshotai/kimi-k2.7-code": {
+          "name": "Kimi K2.7 Code (via OpenRouter)",
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "limit": {
             "context": 262144,
             "output": 32768

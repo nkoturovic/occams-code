@@ -123,14 +123,14 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
     ],
     "designer": [
         "kimi-for-coding/kimi-for-coding",
-        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/moonshotai/kimi-k2.7-code",
         "openrouter/google/gemini-3.1-pro-preview",
         "openrouter/google/gemini-3-flash-preview",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free",
     ],
     "observer": [
-        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/moonshotai/kimi-k2.7-code",
         "kimi-for-coding/kimi-for-coding",
         "openrouter/z-ai/glm-5v-turbo",
         "anthropic/claude-sonnet-4-6",
