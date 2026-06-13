@@ -230,42 +230,6 @@
         "includeUsage": true
       },
       "models": {
-        "z-ai/glm-5.2": {
-          "name": "GLM 5.2 (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "interleaved": {
-            "field": "reasoning_content"
-          },
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          },
-          "options": {
-            "reasoning": {
-              "enabled": true
-            }
-          }
-        },
-        "z-ai/glm-5v-turbo": {
-          "name": "GLM 5V Turbo (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 202000,
-            "output": 24576
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
         "anthropic/claude-sonnet-4.6": {
           "name": "Claude Sonnet 4.6 (via OpenRouter)",
           "reasoning": true,
@@ -273,172 +237,6 @@
           "limit": {
             "context": 1000000,
             "output": 32768
-          }
-        },
-        "google/gemini-3.1-pro-preview": {
-          "name": "Gemini 3.1 Pro Preview (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "audio"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "variants": {
-            "high": {},
-            "max": {},
-            "low": {}
-          }
-        },
-        "deepseek/deepseek-v3.2": {
-          "name": "DeepSeek V3.2 (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "interleaved": {
-            "field": "reasoning_content"
-          },
-          "limit": {
-            "context": 128000,
-            "output": 16384
-          }
-        },
-        "qwen/qwen3.6-plus": {
-          "name": "Qwen 3.6 Plus (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          }
-        },
-        "qwen/qwen3-coder:free": {
-          "name": "Qwen3 Coder Free (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 40000,
-            "output": 16384
-          }
-        },
-        "nvidia/nemotron-3-super-120b-a12b:free": {
-          "name": "Nemotron 3 Super Free (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 32000,
-            "output": 16384
-          }
-        },
-        "google/gemini-3-flash-preview": {
-          "name": "Gemini 3 Flash Preview (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 1000000,
-            "output": 32768
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "audio"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "variants": {
-            "high": {},
-            "max": {},
-            "low": {}
-          }
-        },
-        "qwen/qwen3-coder": {
-          "name": "Qwen3 Coder (via OpenRouter)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          }
-        },
-        "moonshotai/kimi-k2.7-code": {
-          "name": "Kimi K2.7 Code (via OpenRouter)",
-          "reasoning": true,
-          "temperature": false,
-          "limit": {
-            "context": 262144,
-            "output": 32768
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "attachment": true
-        },
-        "~google/gemini-pro-latest": {
-          "name": "Gemini Pro (auto-updating)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 1000000,
-            "output": 65536
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "audio"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "variants": {
-            "high": {},
-            "low": {}
-          }
-        },
-        "~google/gemini-flash-latest": {
-          "name": "Gemini Flash (auto-updating)",
-          "reasoning": true,
-          "temperature": true,
-          "limit": {
-            "context": 1000000,
-            "output": 65536
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "audio"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "variants": {
-            "high": {},
-            "low": {}
           }
         },
         "deepseek/deepseek-v4-pro": {
@@ -461,6 +259,69 @@
             "high": {},
             "max": {},
             "low": {}
+          }
+        },
+        "google/gemini-3.5-flash": {
+          "name": "Gemini 3.5 Flash (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "variants": {
+            "high": {},
+            "max": {},
+            "low": {}
+          }
+        },
+        "moonshotai/kimi-k2.7-code": {
+          "name": "Kimi K2.7 Code (via OpenRouter)",
+          "reasoning": true,
+          "temperature": false,
+          "limit": {
+            "context": 262144,
+            "output": 32768
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "attachment": true
+        },
+        "nvidia/nemotron-3-super-120b-a12b:free": {
+          "name": "Nemotron 3 Super Free (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "limit": {
+            "context": 32000,
+            "output": 16384
+          }
+        },
+        "qwen/qwen3-coder:free": {
+          "name": "Qwen3 Coder Free (via OpenRouter)",
+          "reasoning": true,
+          "temperature": true,
+          "limit": {
+            "context": 40000,
+            "output": 16384
           }
         }
       }

@@ -74,8 +74,8 @@
         "temperature": 0.8
       },
       "fixer": {
-        "model": "kimi-for-coding/kimi-for-coding",
-        "variant": "high",
+        "model": "zai-coding-plan/glm-5.2",
+        "variant": "max",
         "skills": [],
         "mcps": [
           "context7"
@@ -83,13 +83,14 @@
         "options": {
           "thinking": {
             "type": "enabled",
-            "budgetTokens": 65536
-          }
+            "clear_thinking": false
+          },
+          "reasoningEffort": "max"
         },
-        "temperature": 1.0
+        "temperature": 0.8
       },
       "designer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -100,10 +101,16 @@
           "context7",
           "zai_vision"
         ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 16000
+          }
+        },
         "temperature": 1.0
       },
       "observer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "kimi-for-coding/kimi-for-coding",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -113,6 +120,12 @@
         "mcps": [
           "zai_vision"
         ],
+        "options": {
+          "thinking": {
+            "type": "enabled",
+            "budgetTokens": 8000
+          }
+        },
         "temperature": 1.0
       },
       "council": {
@@ -125,7 +138,7 @@
     },
     "balanced": {
       "orchestrator": {
-        "model": "openrouter/z-ai/glm-5.2",
+        "model": "openrouter/deepseek/deepseek-v4-pro",
         "variant": "high",
         "skills": [
           "*"
@@ -148,7 +161,7 @@
         "temperature": 1.0
       },
       "designer": {
-        "model": "openrouter/~google/gemini-flash-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -162,17 +175,17 @@
         "temperature": 1.0
       },
       "explorer": {
-        "model": "openrouter/deepseek/deepseek-v3.2",
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "variant": "high",
         "skills": [],
         "mcps": [
           "context7",
           "grep_app"
         ],
-        "temperature": 0.7
+        "temperature": 1.0
       },
       "librarian": {
-        "model": "openrouter/qwen/qwen3.6-plus",
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "variant": "high",
         "skills": [],
         "mcps": [
@@ -181,10 +194,10 @@
           "context7",
           "grep_app"
         ],
-        "temperature": 0.7
+        "temperature": 1.0
       },
       "fixer": {
-        "model": "openrouter/deepseek/deepseek-v3.2",
+        "model": "openrouter/deepseek/deepseek-v4-pro",
         "variant": "high",
         "skills": [],
         "mcps": [
@@ -193,7 +206,7 @@
         "temperature": 0.7
       },
       "observer": {
-        "model": "openrouter/~google/gemini-flash-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -238,7 +251,7 @@
         "temperature": 1.0
       },
       "designer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -283,7 +296,7 @@
         "temperature": 0.6
       },
       "observer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -373,7 +386,7 @@
         "temperature": 0.8
       },
       "designer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -387,7 +400,7 @@
         "temperature": 1.0
       },
       "observer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -409,7 +422,7 @@
     },
     "cheap": {
       "orchestrator": {
-        "model": "openrouter/qwen/qwen3-coder",
+        "model": "openrouter/qwen/qwen3-coder:free",
         "variant": "high",
         "skills": [
           "*"
@@ -432,7 +445,7 @@
         "temperature": 1.0
       },
       "designer": {
-        "model": "openrouter/~google/gemini-flash-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -468,7 +481,7 @@
         "temperature": 1.0
       },
       "fixer": {
-        "model": "openrouter/deepseek/deepseek-v3.2",
+        "model": "openrouter/qwen/qwen3-coder:free",
         "variant": "high",
         "skills": [],
         "mcps": [
@@ -477,7 +490,7 @@
         "temperature": 0.7
       },
       "observer": {
-        "model": "openrouter/~google/gemini-flash-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -490,11 +503,11 @@
         "temperature": 1.0
       },
       "council": {
-        "model": "openrouter/qwen/qwen3.6-plus",
+        "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "variant": "high",
         "skills": [],
         "mcps": [],
-        "temperature": 0.7
+        "temperature": 1.0
       }
     },
     "openai": {
@@ -553,7 +566,7 @@
         "temperature": 1.0
       },
       "designer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "agent-browser"
@@ -567,7 +580,7 @@
         "temperature": 1.0
       },
       "observer": {
-        "model": "openrouter/~google/gemini-pro-latest",
+        "model": "openrouter/google/gemini-3.5-flash",
         "variant": "high",
         "skills": [
           "video-analysis",
@@ -594,64 +607,44 @@
     "chains": {
       "orchestrator": [
         "deepseek/deepseek-v4-pro",
-        "zai-coding-plan/glm-5.2",
+        "openai/gpt-5.5",
         "openrouter/deepseek/deepseek-v4-pro",
-        "anthropic/claude-sonnet-4-6",
-        "openai/gpt-5.4",
-        "openrouter/z-ai/glm-5.2",
-        "openrouter/qwen/qwen3.6-plus",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "oracle": [
         "deepseek/deepseek-v4-pro",
-        "zai-coding-plan/glm-5.2",
         "anthropic/claude-opus-4-7",
         "openrouter/deepseek/deepseek-v4-pro",
-        "openrouter/anthropic/claude-sonnet-4.6",
-        "openai/gpt-5.4",
-        "openrouter/qwen/qwen3.6-plus",
-        "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/qwen/qwen3-coder:free"
+        "openrouter/anthropic/claude-sonnet-4.6"
       ],
       "designer": [
-        "kimi-for-coding/kimi-for-coding",
         "openrouter/moonshotai/kimi-k2.7-code",
-        "openrouter/google/gemini-3.1-pro-preview",
-        "openrouter/google/gemini-3-flash-preview",
+        "openrouter/google/gemini-3.5-flash",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free"
       ],
       "observer": [
         "openrouter/moonshotai/kimi-k2.7-code",
-        "kimi-for-coding/kimi-for-coding",
-        "openrouter/z-ai/glm-5v-turbo",
+        "openrouter/google/gemini-3.5-flash",
         "anthropic/claude-sonnet-4-6",
-        "openrouter/google/gemini-3-flash-preview"
+        "openrouter/qwen/qwen3-coder:free"
       ],
       "explorer": [
-        "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/qwen/qwen3-coder",
-        "openrouter/qwen/qwen3.6-plus",
-        "openai/gpt-5.3-codex-spark",
-        "openrouter/google/gemini-3-flash-preview",
-        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        "zai-coding-plan/glm-5.2",
+        "openrouter/google/gemini-3.5-flash",
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "openrouter/qwen/qwen3-coder:free"
       ],
       "librarian": [
-        "openrouter/qwen/qwen3.6-plus",
-        "openai/gpt-5.4",
-        "openrouter/deepseek/deepseek-v4-pro",
-        "anthropic/claude-sonnet-4-6",
-        "openrouter/deepseek/deepseek-v3.2",
-        "openrouter/google/gemini-3-flash-preview",
-        "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        "deepseek/deepseek-v4-pro",
+        "openrouter/google/gemini-3.5-flash",
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "openrouter/qwen/qwen3-coder:free"
       ],
       "fixer": [
-        "zai-coding-plan/glm-5.2",
+        "kimi-for-coding/kimi-for-coding",
         "deepseek/deepseek-v4-pro",
-        "openai/gpt-5.3-codex",
-        "openrouter/qwen/qwen3-coder",
-        "anthropic/claude-sonnet-4-6",
-        "openrouter/deepseek/deepseek-v3.2",
+        "openrouter/deepseek/deepseek-v4-pro",
         "openrouter/qwen/qwen3-coder:free"
       ]
     }
@@ -675,20 +668,17 @@
       },
       "balanced": {
         "reviewer-1": {
-          "model": "openrouter/z-ai/glm-5.2"
+          "model": "openrouter/deepseek/deepseek-v4-pro"
         },
         "reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus"
+          "model": "openrouter/anthropic/claude-sonnet-4.6"
         }
       },
       "cheap": {
         "reviewer-1": {
-          "model": "openrouter/qwen/qwen3-coder"
+          "model": "openrouter/qwen/qwen3-coder:free"
         },
         "reviewer-2": {
-          "model": "openrouter/qwen/qwen3.6-plus"
-        },
-        "reviewer-3": {
           "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
         }
       },
@@ -697,10 +687,10 @@
           "model": "anthropic/claude-sonnet-4-6"
         },
         "reviewer-2": {
-          "model": "openrouter/z-ai/glm-5.2"
+          "model": "openrouter/anthropic/claude-sonnet-4.6"
         },
         "reviewer-3": {
-          "model": "openrouter/google/gemini-3.1-pro-preview"
+          "model": "openrouter/google/gemini-3.5-flash"
         }
       },
       "deepseek": {
@@ -708,7 +698,7 @@
           "model": "kimi-for-coding/kimi-for-coding"
         },
         "reviewer-2": {
-          "model": "openrouter/z-ai/glm-5.2"
+          "model": "openrouter/deepseek/deepseek-v4-pro"
         },
         "reviewer-3": {
           "model": "openrouter/anthropic/claude-sonnet-4.6"
