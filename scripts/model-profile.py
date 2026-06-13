@@ -341,11 +341,10 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
         "multiplexer": model_map.get("multiplexer", {"type": "none"}),
-        "todoContinuation": model_map.get("todoContinuation", {
-            "maxContinuations": 15,
-            "cooldownMs": 5000,
-            "autoEnable": False,
-            "autoEnableThreshold": 4,
+        "backgroundJobs": model_map.get("backgroundJobs", {
+            "maxSessionsPerAgent": 2,
+            "readContextMinLines": 10,
+            "readContextMaxFiles": 8,
         }),
         "presets": build_presets(model_map.get("presets", {})),
         "fallback": {

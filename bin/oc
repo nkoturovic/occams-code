@@ -29,6 +29,8 @@ CORE_CONFIG="$HOME/.config/opencode/opencode.json"
 STATE_DIR="$HOME/.local/state/opencode"
 # Override 32K output token cap — match model capabilities not a one-size-fits-all floor
 export OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX=131072
+# Enable async background subagents (oh-my-opencode-slim v2.0+ orchestration)
+export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=1
 
 # Resolve project config: prefer .jsonc, fall back to .json (matches omo-slim behavior)
 PROJECT_CONFIG=""
