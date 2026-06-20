@@ -74,8 +74,30 @@ def iter_models(pv: dict) -> list[tuple[str, dict]]:
         return []
     return list(models.items())
 
+
+def normalize_model_ref(value) -> list[str]:
+    """Normalize a model config to a flat list of model ID strings.
+
+    Since v2.0.4, agent `model` may be a string OR an array of strings
+    (model-array fallback chains). Fallback `chains` were removed from
+    the schema; the array IS the chain.
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [m for m in value if isinstance(m, str)]
+    return []
+
 def check_temperature(core: dict) -> tuple[int, int]:
-    """C1: temperature:true on every custom-provider (npm) model."""
+    """C1: temperature flag present on every custom-provider (npm) model.
+
+    `temperature: true`  → exposed to the model (pass)
+    `temperature: false` → intentional suppression (pass; e.g. K2.7 Code
+                            locks temperature at 1.0)
+    missing / None       → CRITICAL (plugin temperatures silently dropped)
+    """
     errors = warnings = 0
     for pn, pv in core.get("provider", {}).items():
         if "npm" not in pv:
@@ -83,9 +105,10 @@ def check_temperature(core: dict) -> tuple[int, int]:
         for mn, mv in iter_models(pv):
             errors, warnings = check(
                 "CRITICAL",
-                f"Missing temperature:true on {pn}/{mn}",
-                bool(mv.get("temperature")),
-                "plugin temperatures silently dropped",
+                f"Missing temperature flag on {pn}/{mn}",
+                mv.get("temperature") is not None,
+                "plugin temperatures silently dropped "
+                "(set true, or false if intentionally suppressed)",
                 errors, warnings,
             )
     return errors, warnings
@@ -120,26 +143,23 @@ def collect_valid_models(core: dict) -> set[str]:
 
 
 def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
-    """C3: every model reference in slim.json resolves to a defined model."""
+    """C3: every model reference in slim.json resolves to a defined model.
+
+    Model references may be a single string or an array of strings
+    (v2.0.4 model-array fallback chains). Every element must resolve.
+
+    Note: `fallback.chains` was removed in v2.0.4. Fallback ordering is
+    now expressed by the array order on each agent's `model` field.
+    """
     errors = warnings = 0
     valid = collect_valid_models(core)
-
-    # fallback chains
-    for ch_name, chain in slim.get("fallback", {}).get("chains", {}).items():
-        for mid in chain:
-            errors, warnings = check(
-                "CRITICAL",
-                f"Broken reference: fallback.{ch_name} → {mid}",
-                mid in valid,
-                "model not defined in opencode.json",
-                errors, warnings,
-            )
 
     # council presets
     for preset_name, preset in slim.get("council", {}).get("presets", {}).items():
         for role, entry in preset.items():
-            mid = entry.get("model") if isinstance(entry, dict) else None
-            if mid:
+            for mid in normalize_model_ref(
+                entry.get("model") if isinstance(entry, dict) else None
+            ):
                 errors, warnings = check(
                     "CRITICAL",
                     f"Broken reference: council.{preset_name}.{role} → {mid}",
@@ -148,11 +168,12 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
                     errors, warnings,
                 )
 
-    # agent presets
+    # agent presets (model may be a string or array of fallback models)
     for preset_name, preset in slim.get("presets", {}).items():
         for agent_name, agent_cfg in preset.items():
-            mid = agent_cfg.get("model") if isinstance(agent_cfg, dict) else None
-            if mid:
+            for mid in normalize_model_ref(
+                agent_cfg.get("model") if isinstance(agent_cfg, dict) else None
+            ):
                 errors, warnings = check(
                     "CRITICAL",
                     f"Broken reference: preset.{preset_name}.{agent_name} → {mid}",

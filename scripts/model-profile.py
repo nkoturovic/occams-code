@@ -226,34 +226,12 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     config["skills"] = defaults.get("skills", [])
     config["mcps"] = defaults.get("mcps", [])
 
-    # Temperature — always from override if set (including thinking-mode models)
-    is_kimi = "kimi-for-coding" in model
-    is_deepseek_v4 = "deepseek-v4-pro" in model
-    is_glm_zai = "zai-coding-plan/glm" in model
-    is_gemini = "gemini" in model
-
-    if is_kimi:
-        # Kimi agents use thinking options
-        budget = override.get("thinking", 16000)
-        config["options"] = {
-            "thinking": {"type": "enabled", "budgetTokens": budget}
-        }
-    elif is_gemini:
-        # Gemini through OpenRouter (@ai-sdk/openai-compatible):
-        # variant system auto-generates {reasoningEffort: "high"} from the
-        # "high" variant — the maximum available. No manual options needed.
-        # Any reasoningEffort set here would be overridden by the variant anyway.
-        pass
-    elif is_deepseek_v4:
-        # DeepSeek V4 Pro — no special options needed
-        pass
-    elif is_glm_zai:
-        # GLM 5.1 — explicit thinking config matching model options
-        effort = override.get("reasoningEffort", "max")
-        config["options"] = {
-            "thinking": {"type": "enabled", "clear_thinking": False},
-            "reasoningEffort": effort
-        }
+    # NOTE: Per-model options (thinking, reasoningEffort) are NOT injected here.
+    # They live in the model definitions in opencode.json, which are model-specific
+    # and don't leak to fallback models when model-array fallback triggers.
+    # The variant system (model variant overrides) also lives in opencode.json.
+    # This prevents the C3 issue where primary-model options would be sent to
+    # fallback models that don't support them.
 
     # Temperature applies to ALL models (including thinking-mode ones)
     if "temperature" in override:
@@ -341,6 +319,8 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
         ),
         "fallback": {
             "enabled": True,
+            # NOTE: timeoutMs/retryDelayMs are schema-valid but only enabled
+            # and retry_on_empty are actively used by v2.0.4 runtime.
             "timeoutMs": 60000,
             "retryDelayMs": 500,
             "retry_on_empty": True,

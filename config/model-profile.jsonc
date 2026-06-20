@@ -30,10 +30,11 @@
       "explorer":    { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 0.8 },
       "librarian":    { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
       "fixer":        { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
-      // Kimi K2.7 Code via subscription: multimodal (text+image+video), thinking always on.
+      // Kimi K2.7 Code via subscription: multimodal (text+image+video), thinking always on (API-enforced).
       // temperature: false in opencode.json — value here is documentation only.
-      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "thinking": 16000, "temperature": 1.0 },
-      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "thinking": 8000, "temperature": 1.0 },
+      // Thinking budget uses API default (no agent-level options injected — prevents fallback leak).
+      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
+      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
       "council":      { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
     },
 

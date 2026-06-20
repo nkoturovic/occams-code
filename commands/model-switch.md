@@ -15,13 +15,13 @@ Every model in your config already has a temperature example in at least one pre
 Temperature is always set explicitly for every agent. For thinking-mode models
 (Kimi, DeepSeek V4 Pro), the API ignores temperature — use these values for
 consistency with the plugin defaults:
-- DeepSeek V4 Pro: 0.3 (orchestrator), 0.1 (oracle/fixer/observer)
-- Kimi K2.6: 0.7 (designer), 0.1 (fixer/observer)
-- GLM 5.1: 0.3–0.6 (tested — avoid 0.0, it breaks reasoning)
-- Claude: 0.1–0.3 (fixer/oracle), 0.3 (orchestrator)
+- DeepSeek V4 Pro: 0.8 (explorer), 1.0 (council)
+- Kimi K2.7 Code: 1.0 (API-locked — `temperature: false` in config)
+- GLM 5.2: 0.8 (orchestrator/librarian/fixer)
+- Claude: 0.6 (premium preset)
 - All other models: 1.0 unless you have a specific reason to lower it
 
-Kimi models additionally require `"thinking"`: 32000 (or 16000 for minimum).
+Kimi K2.7 Code agents additionally use `"thinking"`: 16000 (designer) or 8000 (observer).
 
 ## Global model switch (applies everywhere)
 
@@ -44,7 +44,7 @@ python3 ~/.config/opencode/scripts/model-profile.py \
 Edit `.opencode/oh-my-opencode-slim.jsonc`. Only specify the roles to override:
 
 ```jsonc
-{"agents":{"explorer":{"model":"openrouter/qwen/qwen3.6-plus","variant":"high","temperature":0.7}}}
+{"agents":{"explorer":{"model":"openrouter/google/gemini-3.5-flash","temperature":1.0}}}
 ```
 
 No generator needed — omo-slim reads this at startup. Restart after saving.

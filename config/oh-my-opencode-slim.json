@@ -30,13 +30,6 @@
           "web-search-prime",
           "websearch"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
         "temperature": 0.8
       },
       "oracle": {
@@ -88,13 +81,6 @@
           "context7",
           "grep_app"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
         "temperature": 0.8
       },
       "fixer": {
@@ -110,13 +96,6 @@
         "mcps": [
           "context7"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
         "temperature": 0.8
       },
       "designer": {
@@ -137,12 +116,6 @@
           "context7",
           "zai_vision"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 16000
-          }
-        },
         "temperature": 1.0
       },
       "observer": {
@@ -162,12 +135,6 @@
         "mcps": [
           "zai_vision"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "budgetTokens": 8000
-          }
-        },
         "temperature": 1.0
       },
       "council": {
@@ -479,13 +446,6 @@
           "context7",
           "grep_app"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
         "temperature": 0.8
       },
       "librarian": {
@@ -518,13 +478,6 @@
         "mcps": [
           "context7"
         ],
-        "options": {
-          "thinking": {
-            "type": "enabled",
-            "clear_thinking": false
-          },
-          "reasoningEffort": "max"
-        },
         "temperature": 0.8
       },
       "designer": {

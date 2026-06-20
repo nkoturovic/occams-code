@@ -38,4 +38,8 @@ package.json
 plugins/
 
 *.bak
+
+# AI agent workspace
+.agents/
 .slim/
+*.v1-backup
