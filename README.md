@@ -112,12 +112,12 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 
 | Preset | Use case | Required keys | Notes |
 |--------|----------|---------------|-------|
-| `balanced` | **Default** — daily development | OpenRouter only | GLM-5.1 oracle, DeepSeek V3.2 explorer/fixer, Qwen 3.6 Plus librarian/council, Gemini Flash designer/observer |
-| `cheap` | Exploration, bulk tasks | OpenRouter only | Free Nemotron for explorer/librarian; Qwen3-Coder orchestrator; Qwen 3.6 Plus oracle |
-| `deepseek` | DeepSeek-heavy reasoning | DeepSeek API + OpenRouter | DeepSeek V4 Pro for all reasoning roles; Gemini Pro for designer/observer |
-| `premium` | Complex architecture, debugging | OpenRouter + Anthropic | Claude Opus 4.7 (orchestrator, oracle, council), Claude Sonnet 4.6 (explorer, librarian, fixer), Gemini Pro (designer, observer) |
-| `custom` | Subscription-based | Z.AI + Kimi + DeepSeek + OpenRouter | Z.AI GLM-5.1 (orchestrator, oracle, explorer, librarian), Kimi for Coding (fixer), DeepSeek V4 Pro (council), Gemini Pro (designer, observer) |
-| `openai` | OpenAI-first via OAuth | OpenAI (/connect OAuth) + OpenRouter | GPT-5.5 (orchestrator, oracle, council), GPT-5.4 (librarian), GPT-5.3-Codex (explorer, fixer), Gemini Pro (designer, observer) |
+| `balanced` | **Default** — daily development | OpenRouter + DeepSeek API | DeepSeek V4 Pro (orchestrator/fixer/council), Nemotron Free (explorer/librarian), Gemini 3.5 Flash (designer/observer) |
+| `cheap` | Exploration, bulk tasks | OpenRouter only | Qwen3-Coder Free (orchestrator/fixer), Nemotron Free (explorer/librarian/council), Gemini 3.5 Flash (designer/observer), DeepSeek V4 Pro (oracle) |
+| `deepseek` | DeepSeek-heavy reasoning | DeepSeek API + Z.AI | DeepSeek V4 Pro (orchestrator/oracle/librarian/council), GLM-5.2 (explorer/fixer), Gemini 3.5 Flash (designer/observer) |
+| `premium` | Complex architecture, debugging | Anthropic + OpenRouter | Claude Opus 4.7 (orchestrator/oracle/council), Claude Sonnet 4.6 (explorer/librarian/fixer), Gemini 3.5 Flash (designer/observer) |
+| `custom` | Subscription-based | Z.AI + Kimi + DeepSeek + OpenAI | GLM-5.2 (orchestrator/librarian/fixer), GPT-5.5 (oracle), DeepSeek V4 Pro (explorer/council), Kimi K2.7 Code (designer/observer) |
+| `openai` | OpenAI-first via OAuth | OpenAI (/connect OAuth) + OpenRouter | GPT-5.5 (orchestrator/oracle/council), GPT-5.4 (librarian), GPT-5.3-Codex (explorer/fixer), Gemini 3.5 Flash (designer/observer) |
 
 **The default `balanced` preset works fully with just an OpenRouter key.** The other presets require additional API keys/subscriptions.
 

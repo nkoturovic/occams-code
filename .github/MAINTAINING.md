@@ -106,7 +106,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Do NOT commit `oh-my-opencode-slim.json` to repo root — only `config/oh-my-opencode-slim.json`
 - [ ] Do NOT add a repo-owned copy of occams-agentic's root AGENTS.md — it is managed separately
 - [ ] Do NOT sync wiki-template/ — now in occams-agentic repo
-- [ ] Trim unreferenced models from `provider.opencode.models` (TUI metadata duplicates), unused OpenRouter entries (e.g., `openai/gpt-5.4` if not in any agent/fallback), unused direct deepseek (`deepseek-v3.2` direct version if only `openrouter/deepseek/deepseek-v3.2` is used)
+- [ ] Trim unreferenced models from `provider.opencode.models` (TUI metadata duplicates), unused OpenRouter entries (e.g., `openai/gpt-5.4` if not in any agent/fallback), unused direct deepseek (`deepseek-v4-pro` direct version if only `openrouter/deepseek/deepseek-v4-pro` is used)
 - [ ] Keep `deepseek-v4-flash` declared (useful Flash-tier option for direct DeepSeek users editing model-profile)
 
 ### Verification

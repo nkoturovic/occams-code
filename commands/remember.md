@@ -1,6 +1,6 @@
 ---
 description: Persist session knowledge to wiki
 ---
-Save durable knowledge from this session. Follow the memory routing rules in AGENTS.md (section "Wiki", step 36+) to persist facts to the right wiki pages. Update frontmatter dates and append to `~/.agents/wiki/log.md`.
+Save durable knowledge from this session. Append a brief entry to `~/.agents/wiki/log.md` following the log format. Promote reusable patterns or architectural decisions to wiki concept/project pages. Follow the wiki schema at `~/.agents/wiki/AGENTS.md` for page structure. Update frontmatter dates on any pages you edit.
 
 Focus on: $ARGUMENTS
