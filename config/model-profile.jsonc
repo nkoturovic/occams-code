@@ -22,7 +22,7 @@
     "custom": {
       // For DeepSeek V4 Pro as primary model, use the "deepseek" preset below.
       "orchestrator": { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
-      // DO NOT DELETE: original GLM-5.1 oracle config for easy fallback
+      // DO NOT DELETE: original GLM-5.2 oracle config for easy fallback
       // "oracle":       { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 1.0 },
       // DO NOT DELETE: DeepSeek V4 Pro oracle config for easy fallback
       // "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
