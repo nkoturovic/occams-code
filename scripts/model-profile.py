@@ -183,11 +183,13 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
 
 # ─── Build logic ────────────────────────────────────────────────────────
 
-def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, Any]:
+def build_agent_config(agent_name: str, override: dict[str, Any],
+                       fallback_chains: dict[str, list[str]] | None = None) -> dict[str, Any]:
     """Merge per-agent defaults with preset-specific overrides.
 
     Rules:
-      - model: always from override (required)
+      - model: always from override (required); merged with fallback chain
+        into an array for v2.0.4+ model-array fallback mechanism
       - variant: override > default (orchestrator/designer have no default variant)
       - temperature: from override; absent if model uses thinking mode
       - skills/mcps: from defaults (override can't change these)
@@ -198,9 +200,15 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     defaults = AGENT_DEFAULTS.get(agent_name, {})
     config: dict[str, Any] = {}
 
-    # Required fields
-    config["model"] = override["model"]
-    model = config["model"]
+    # Build model: primary + fallback chain as array (v2.0.4+ mechanism)
+    primary = override["model"]
+    chains = fallback_chains or {}
+    chain = chains.get(agent_name, [])
+    model_array = [primary] + [m for m in chain if m != primary]
+    config["model"] = model_array if len(model_array) > 1 else primary
+
+    # Use primary model string for type detection
+    model = primary
 
     # Variant (defaults only exist for explorer/librarian/fixer/observer)
     # OpenCode silently ignores variants for models that don't support them
@@ -254,7 +262,8 @@ def build_agent_config(agent_name: str, override: dict[str, Any]) -> dict[str, A
     return config
 
 
-def build_presets(preset_map: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def build_presets(preset_map: dict[str, dict[str, Any]],
+                  fallback_chains: dict[str, list[str]] | None = None) -> dict[str, dict[str, Any]]:
     """Build the full presets section from the input map.
 
     Input:
@@ -268,7 +277,7 @@ def build_presets(preset_map: dict[str, dict[str, Any]]) -> dict[str, dict[str, 
     for preset_name, agents in preset_map.items():
         preset_agents: dict[str, Any] = {}
         for agent_name, agent_cfg in agents.items():
-            preset_agents[agent_name] = build_agent_config(agent_name, agent_cfg)
+            preset_agents[agent_name] = build_agent_config(agent_name, agent_cfg, fallback_chains)
         presets[preset_name] = preset_agents
 
     return presets
@@ -326,11 +335,15 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
             "readContextMinLines": 10,
             "readContextMaxFiles": 8,
         }),
-        "presets": build_presets(model_map.get("presets", {})),
+        "presets": build_presets(
+            model_map.get("presets", {}),
+            model_map.get("fallback_chains", FALLBACK_CHAINS),
+        ),
         "fallback": {
             "enabled": True,
             "timeoutMs": 60000,
-            "chains": model_map.get("fallback_chains", FALLBACK_CHAINS),
+            "retryDelayMs": 500,
+            "retry_on_empty": True,
         },
         "council": build_council(model_map.get("council"), model_map.get("preset", "custom")),
     }
