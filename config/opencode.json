@@ -24,7 +24,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 65536
+            "output": 131072
           },
           "options": {
             "thinking": {
@@ -55,7 +55,7 @@
           },
           "limit": {
             "context": 1048576,
-            "output": 65536
+            "output": 131072
           },
           "options": {
             "thinking": {
