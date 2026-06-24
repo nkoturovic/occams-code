@@ -9,7 +9,10 @@
       "name": "DeepSeek",
       "options": {
         "baseURL": "https://api.deepseek.com",
-        "includeUsage": true
+        "includeUsage": true,
+        "chunkTimeout": 60000,
+        "headerTimeout": 30000,
+        "timeout": false
       },
       "models": {
         "deepseek-v4-pro": {
@@ -81,7 +84,10 @@
       "name": "Kimi for Coding",
       "options": {
         "baseURL": "https://api.kimi.com/coding/v1",
-        "includeUsage": true
+        "includeUsage": true,
+        "chunkTimeout": 60000,
+        "headerTimeout": 30000,
+        "timeout": false
       },
       "models": {
         "kimi-for-coding": {
@@ -111,7 +117,10 @@
       "name": "Z.AI Coding Plan",
       "options": {
         "baseURL": "https://api.z.ai/api/coding/paas/v4",
-        "includeUsage": true
+        "includeUsage": true,
+        "chunkTimeout": 60000,
+        "headerTimeout": 30000,
+        "timeout": false
       },
       "models": {
         "glm-5.2": {
@@ -227,7 +236,10 @@
       "name": "OpenRouter",
       "options": {
         "baseURL": "https://openrouter.ai/api/v1",
-        "includeUsage": true
+        "includeUsage": true,
+        "chunkTimeout": 60000,
+        "headerTimeout": 30000,
+        "timeout": false
       },
       "models": {
         "anthropic/claude-sonnet-4.6": {
