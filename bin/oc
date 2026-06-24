@@ -29,6 +29,10 @@ CORE_CONFIG="$HOME/.config/opencode/opencode.json"
 STATE_DIR="$HOME/.local/state/opencode"
 # Enable async background subagents (oh-my-opencode-slim v2.0+ orchestration)
 export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=1
+# Raise output token ceiling above the hardcoded 32K default cap
+# (provider/transform.ts: OUTPUT_TOKEN_MAX = 32_000). Allows model.limit.output
+# to take effect up to this value. GLM-5.2 supports up to 131072.
+export OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX=131072
 
 # Resolve project config: prefer .jsonc, fall back to .json (matches omo-slim behavior)
 PROJECT_CONFIG=""
