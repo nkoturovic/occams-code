@@ -320,7 +320,7 @@ def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
         "fallback": {
             "enabled": True,
             # NOTE: timeoutMs/retryDelayMs are schema-valid but only enabled
-            # and retry_on_empty are actively used by v2.0.4 runtime.
+            # and retry_on_empty are actively used by v2.0.4+ runtime.
             "timeoutMs": 60000,
             "retryDelayMs": 500,
             "retry_on_empty": True,
