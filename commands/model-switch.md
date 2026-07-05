@@ -10,7 +10,7 @@ Both come from one file: `~/.config/opencode/model-profile.jsonc`.
 
 Every model in your config already has a temperature example in at least one preset. To find the right value for a model:
 1. Search for that model string across all presets in `model-profile.jsonc`
-2. Copy its `"temperature"` or `"thinking"` field — same model, same temp regardless of role
+2. Copy its `"temperature"` field — same model, same temp regardless of role
 
 Temperature is always set explicitly for every agent. For thinking-mode models
 (Kimi, DeepSeek V4 Pro), the API ignores temperature — use these values for
@@ -21,14 +21,12 @@ consistency with the plugin defaults:
 - Claude: 0.6 (premium preset)
 - All other models: 1.0 unless you have a specific reason to lower it
 
-Kimi K2.7 Code agents additionally use `"thinking"`: 16000 (designer) or 8000 (observer).
-
 ## Global model switch (applies everywhere)
 
 Valid presets: `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`.  
 Valid agents: `orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`, `observer`.
 
-1. **Edit** `~/.config/opencode/model-profile.jsonc` — change `model` and `temperature`/`thinking` for the target agent in the target preset using values found above.
+1. **Edit** `~/.config/opencode/model-profile.jsonc` — change `model` and `temperature` for the target agent in the target preset using values found above.
 2. **Run** the generator:
 
 ```bash
@@ -41,7 +39,7 @@ python3 ~/.config/opencode/scripts/model-profile.py \
 
 ## Per-project model switch (this project only)
 
-Edit `.opencode/oh-my-opencode-slim.jsonc`. Only specify the roles to override:
+Edit `.opencode/oh-my-opencode-slim.jsonc`. In v2.1.0, project config deep-merges with the user config, so only specify the roles/fields to override. Arrays replace when set.
 
 ```jsonc
 {"agents":{"explorer":{"model":"openrouter/google/gemini-3.5-flash","temperature":1.0}}}

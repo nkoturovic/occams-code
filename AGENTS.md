@@ -16,7 +16,7 @@
 - **Never add filler text.** "Segfault on null ptr. Add guard." beats a paragraph saying the same thing. One-word answers are fine when appropriate.
 - **Commit to decisions.** After examining evidence, pick the single most likely explanation and proceed. Do not re-analyze or weigh alternatives unless new information contradicts your conclusion.
 - Don't re-read files you already have in context.
-- **Anti-loop rule:** If the same action fails more than twice, STOP and report the failure. Do not retry a third time.
+- **Anti-loop guard:** Do not repeat the same failed command/edit/tool call with the same inputs and no new evidence. After two identical failures, change tactic; after a third identical failure, stop and report. Evidence-driven attempts are not a loop.
 - **Present plans before executing.** For non-trivial work, outline the plan with verification gates first. For heavy/multi-phase tasks, use `/deepwork`.
 - **Retrieval order:** Wiki → Code search → context7 → web-search-prime → websearch (Exa fallback).
 

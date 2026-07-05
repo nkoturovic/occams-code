@@ -502,10 +502,10 @@ PY
     OPENCODE_ARGS=("${_filtered[@]+"${_filtered[@]}"}")
   fi
   # Multiplexer panes: inject --port so subagents can attach.
-  # Required by omo-slim for tmux/zellij integration (opencode#9099).
+  # Required by omo-slim for tmux/zellij/herdr integration (opencode#9099).
   # --port 0: tries 4096 first (backward compatible), auto-assigns if taken.
   # The real port is passed to subagent panes via Server.url (not env var).
-  if [[ -n "${TMUX:-}" || -n "${ZELLIJ:-}" ]]; then
+  if [[ -n "${TMUX:-}" || -n "${ZELLIJ:-}" || -n "${HERDR_ENV:-}" || -n "${HERDR_PANE_ID:-}" ]]; then
     OPENCODE_ARGS+=("--port" "0")
   fi
 

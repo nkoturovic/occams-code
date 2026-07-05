@@ -118,8 +118,8 @@
       "options": {
         "baseURL": "https://api.z.ai/api/coding/paas/v4",
         "includeUsage": true,
-        "chunkTimeout": 60000,
-        "headerTimeout": 30000,
+        "chunkTimeout": 240000,
+        "headerTimeout": 120000,
         "timeout": false
       },
       "models": {
@@ -349,7 +349,7 @@
     }
   },
   "plugin": [
-    "oh-my-opencode-slim"
+    "oh-my-opencode-slim@2.1.0"
   ],
   "mcp": {
     "context7": {

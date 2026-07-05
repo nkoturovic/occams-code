@@ -149,7 +149,7 @@ Switch one agent's model (recommended — explicit temperature):
 - Omitted keys inherit from global config — set only what you want to change
 - Arrays (`skills`, `mcps`, `disabled_agents`) are **replaced entirely**, not appended — list all desired values
 - Nested objects (`options`) merge recursively — you cannot unset keys by omission
-- Never set `presets` in a project config — it wipes out all global preset definitions
+- oh-my-opencode-slim v2.1.0 deep-merges project `presets` with user presets, so project configs can override a single preset/agent without redefining every preset
 
 The plugin deep-merges project config with global config. Edit the file directly — no wizard needed. `.opencode/` is gitignored.
 

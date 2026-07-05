@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
-  "preset": "custom",
+  "preset": "balanced",
   "disabled_agents": [],
   "multiplexer": {
     "type": "auto",
@@ -705,13 +705,13 @@
       },
       "explorer": {
         "model": [
-          "openai/gpt-5.3-codex",
+          "deepseek/deepseek-v4-pro",
           "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "high",
+        "variant": "max",
         "skills": [],
         "mcps": [
           "context7",
@@ -721,23 +721,24 @@
       },
       "fixer": {
         "model": [
-          "openai/gpt-5.3-codex",
+          "openai/gpt-5.5",
           "kimi-for-coding/kimi-for-coding",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "high",
+        "variant": "xhigh",
         "skills": [],
         "mcps": [
           "context7"
         ],
-        "temperature": 1.0
+        "temperature": 0.8
       },
       "designer": {
         "model": [
-          "openrouter/google/gemini-3.5-flash",
+          "kimi-for-coding/kimi-for-coding",
           "openrouter/moonshotai/kimi-k2.7-code",
+          "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -755,8 +756,9 @@
       },
       "observer": {
         "model": [
-          "openrouter/google/gemini-3.5-flash",
+          "kimi-for-coding/kimi-for-coding",
           "openrouter/moonshotai/kimi-k2.7-code",
+          "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -787,7 +789,7 @@
     "retry_on_empty": true
   },
   "council": {
-    "default_preset": "custom",
+    "default_preset": "balanced",
     "councillor_execution_mode": "parallel",
     "presets": {
       "custom": {

@@ -6,10 +6,10 @@
   // Per-project overrides use .opencode/oh-my-opencode-slim.jsonc
   // (omo-slim reads this automatically — just set model there)
 
-  "preset": "custom",
+  "preset": "balanced",
 
-  // Multiplexer: live subagent panes (active inside tmux or Zellij)
-  // Toggle: "auto" (detect tmux/zellij) | "tmux" | "zellij" | "none"
+  // Multiplexer: live subagent panes (active inside tmux, Zellij, or Herdr)
+  // Toggle: "auto" (detect tmux/zellij/herdr) | "tmux" | "zellij" | "herdr" | "none"
   "multiplexer": {
     "type": "auto",
     "layout": "main-vertical",
@@ -89,14 +89,16 @@
     // ============ OPENAI (ChatGPT Plus OAuth via /connect) ============
     "openai": {
       "orchestrator": { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.8 },
+      // "orchestrator": { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
       "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 },
       "librarian":    { "model": "openai/gpt-5.4", "variant": "xhigh", "temperature": 0.8 },
       // Codex models for code-heavy agents — purpose-built beats general-purpose
-      "explorer":     { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 0.8 },
-      "fixer":        { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 1.0 },
+      // "explorer":     { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 0.8 },
+      "explorer":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 0.8 },
+      "fixer":        { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.8 },
       // Gemini for vision — Codex endpoint doesn't reliably support vision
-      "designer":     { "model": "openrouter/google/gemini-3.5-flash", "temperature": 1.0 },
-      "observer":     { "model": "openrouter/google/gemini-3.5-flash", "temperature": 1.0 },
+      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
+      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
       "council":      { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 }
     }
   },

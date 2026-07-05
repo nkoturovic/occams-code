@@ -1,6 +1,9 @@
 # Project-local config (per-project preset + model overrides)
 .opencode/
 
+# Plugin-managed local skill sync/state
+.oh-my-opencode-slim/
+
 # Secrets and auth
 .env
 .env.*
