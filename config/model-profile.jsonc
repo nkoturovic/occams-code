@@ -26,8 +26,9 @@
       // "oracle":       { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 1.0 },
       // DO NOT DELETE: DeepSeek V4 Pro oracle config for easy fallback
       // "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
-      "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 },
-      "explorer":    { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 0.8 },
+      "oracle":       { "model": "openai/gpt-5.6-sol", "variant": "max", "temperature": 1.0 },
+      "explorer":    { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 0.8 },
+      // Librarian: GLM-5.2 has no xhigh; max is its highest effort. Terra is fallback #1.
       "librarian":    { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
       "fixer":        { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
       // Kimi K2.7 Code via subscription: multimodal (text+image+video), thinking always on (API-enforced).
@@ -38,16 +39,16 @@
       "council":      { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
     },
 
-    // ============ BALANCED (OpenRouter-first, best cost/quality) ============
+    // ============ BALANCED (OpenRouter-only, best cost/quality) ============
     "balanced": {
       "orchestrator": { "model": "openrouter/deepseek/deepseek-v4-pro", "temperature": 0.8 },
-      "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
+      "oracle":       { "model": "openrouter/deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
       "designer":     { "model": "openrouter/google/gemini-3.5-flash", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "temperature": 1.0 },
       "librarian":    { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "temperature": 1.0 },
       "fixer":        { "model": "openrouter/deepseek/deepseek-v4-pro", "temperature": 0.7 },
       "observer":     { "model": "openrouter/google/gemini-3.5-flash", "temperature": 1.0 },
-      "council":      { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
+      "council":      { "model": "openrouter/deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
     },
 
     // ============ PREMIUM (best available, no cost concern) ============
@@ -74,10 +75,10 @@
       "council":      { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
     },
 
-    // ============ CHEAP (budget-optimized, free models where possible) ============
+    // ============ CHEAP (OpenRouter-only, free models where possible) ============
     "cheap": {
       "orchestrator": { "model": "openrouter/qwen/qwen3-coder:free", "temperature": 0.7 },
-      "oracle":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
+      "oracle":       { "model": "openrouter/deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 },
       "designer":     { "model": "openrouter/google/gemini-3.5-flash", "temperature": 1.0 },
       "explorer":     { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
       "librarian":    { "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free", "variant": "high", "temperature": 1.0 },
@@ -88,25 +89,25 @@
 
     // ============ OPENAI (ChatGPT Plus OAuth via /connect) ============
     "openai": {
-      "orchestrator": { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.8 },
+      "orchestrator": { "model": "openai/gpt-5.6-sol", "variant": "xhigh", "temperature": 0.8 },
       // "orchestrator": { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
-      "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 },
-      "librarian":    { "model": "openai/gpt-5.4", "variant": "xhigh", "temperature": 0.8 },
-      // Codex models for code-heavy agents — purpose-built beats general-purpose
-      // "explorer":     { "model": "openai/gpt-5.3-codex", "variant": "high", "temperature": 0.8 },
-      "explorer":       { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 0.8 },
-      "fixer":        { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.8 },
-      // Gemini for vision — Codex endpoint doesn't reliably support vision
-      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
-      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
-      "council":      { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 1.0 }
+      "oracle":       { "model": "openai/gpt-5.6-sol", "variant": "max", "temperature": 1.0 },
+      "librarian":    { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 0.8 },
+      "explorer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 0.8 },
+      "fixer":        { "model": "openai/gpt-5.6-sol", "variant": "xhigh", "temperature": 0.8 },
+      // Terra supports text/image/PDF; Kimi/Gemini remain multimodal fallbacks.
+      "designer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 1.0 },
+      "observer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 1.0 },
+      "council":      { "model": "openai/gpt-5.6-sol", "variant": "max", "temperature": 1.0 }
     }
   },
 
   // ── Council Reviewers ────────────────────────────────────────
   // (the council chair/synthesis agent is configured in presets.<preset>.council above)
   // Each preset lists reviewer models for @council multi-LLM consensus.
-  // Supported per-reviewer: model (required), variant (optional), prompt (optional).
+  // Supported per-reviewer: model string or ordered fallback array (required),
+  // variant (optional), prompt (optional). Array entries may be model strings
+  // or { "id": "provider/model", "variant": "..." } objects (v2.1.1+).
   // Temperature is hardcoded to 0.2 by omo-slim (councillor.ts:67).
   // Thinking/options are NOT supported per-reviewer — the generator strips
   // unknown keys; Zod does the same at runtime as a second line of defense.
@@ -116,7 +117,7 @@
     "presets": {
       "custom": {
         "reviewer-1": { "model": "zai-coding-plan/glm-5.2", "variant": "max" },
-        "reviewer-2": { "model": "openai/gpt-5.5", "variant": "xhigh" },
+        "reviewer-2": { "model": "openai/gpt-5.6-sol", "variant": "xhigh" },
         "reviewer-3": { "model": "openrouter/anthropic/claude-sonnet-4.6" }
       },
       "balanced": {

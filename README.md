@@ -5,7 +5,7 @@
 
 The OpenCode-specific configuration layer for the [occams-agentic](https://github.com/nkoturovic/occams-agentic) AI framework. Provides multi-model orchestration, a smart launcher (`oc`), and curated agent presets on top of the universal skills, scripts, and wiki from occams-agentic.
 
-**The default `balanced` preset works fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys or OpenAI OAuth, but you don't need them to start.
+**The default `balanced` and budget `cheap` presets work fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys or OpenAI OAuth, but you don't need them to start.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **6 presets** — `balanced` (default, OpenRouter-only), `cheap`, `deepseek`, `premium`, `custom`, `openai`
+- **6 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, and `openai` use additional providers
 - **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
@@ -36,7 +36,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 - [OpenCode](https://github.com/sst/opencode) (`npm install -g opencode` or `bun install -g opencode`)
 - Python 3.10+, Bash 4.0+, [jq](https://stedolan.github.io/jq/), git, curl
 - `npm` or `bun` (for installing the oh-my-opencode-slim plugin)
-- An API key for at least one provider (**OpenRouter recommended for the OOB `balanced` preset**)
+- An OpenRouter API key for the out-of-box `balanced` or `cheap` preset; additional providers are optional
 
 <details>
 <summary>Platform-specific notes</summary>
@@ -110,16 +110,16 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 
 ### Presets
 
-| Preset | Use case | Required keys | Notes |
-|--------|----------|---------------|-------|
-| `balanced` | **Default** — daily development | OpenRouter + DeepSeek API | DeepSeek V4 Pro (orchestrator/fixer/council), Nemotron Free (explorer/librarian), Gemini 3.5 Flash (designer/observer) |
-| `cheap` | Exploration, bulk tasks | OpenRouter only | Qwen3-Coder Free (orchestrator/fixer), Nemotron Free (explorer/librarian/council), Gemini 3.5 Flash (designer/observer), DeepSeek V4 Pro (oracle) |
-| `deepseek` | DeepSeek-heavy reasoning | DeepSeek API + Z.AI | DeepSeek V4 Pro (orchestrator/oracle/librarian/council), GLM-5.2 (explorer/fixer), Gemini 3.5 Flash (designer/observer) |
+| Preset | Use case | Primary-route access | Notes |
+|--------|----------|----------------------|-------|
+| `balanced` | **Default** — daily development | OpenRouter only | DeepSeek V4 Pro (orchestrator/oracle/fixer/council), Nemotron Free (explorer/librarian), Gemini 3.5 Flash (designer/observer); all fallbacks also use OpenRouter |
+| `cheap` | Exploration, bulk tasks | OpenRouter only | Qwen3-Coder Free (orchestrator/fixer), DeepSeek V4 Pro (oracle), Nemotron Free (explorer/librarian/council), Gemini 3.5 Flash (designer/observer); all fallbacks also use OpenRouter |
+| `deepseek` | DeepSeek-heavy reasoning | DeepSeek API + Z.AI + OpenRouter | DeepSeek V4 Pro (orchestrator/oracle/librarian/council), GLM-5.2 (explorer/fixer), Gemini 3.5 Flash (designer/observer) |
 | `premium` | Complex architecture, debugging | Anthropic + OpenRouter | Claude Opus 4.7 (orchestrator/oracle/council), Claude Sonnet 4.6 (explorer/librarian/fixer), Gemini 3.5 Flash (designer/observer) |
-| `custom` | Subscription-based | Z.AI + Kimi + DeepSeek + OpenAI | GLM-5.2 (orchestrator/librarian/fixer), GPT-5.5 (oracle), DeepSeek V4 Pro (explorer/council), Kimi K2.7 Code (designer/observer) |
-| `openai` | OpenAI-first via OAuth | OpenAI (/connect OAuth) + OpenRouter | GPT-5.5 (orchestrator/oracle/council), GPT-5.4 (librarian), GPT-5.3-Codex (explorer/fixer), Gemini 3.5 Flash (designer/observer) |
+| `custom` | Subscription-based | Z.AI + OpenAI OAuth + Kimi + DeepSeek | GLM-5.2 (orchestrator/librarian/fixer), GPT-5.6 Sol (oracle), GPT-5.6 Terra (explorer), Kimi K2.7 Code (designer/observer), DeepSeek V4 Pro (council) |
+| `openai` | OpenAI-first via OAuth | OpenAI OAuth (`/connect`) | GPT-5.6 Sol (orchestrator/oracle/fixer/council), GPT-5.6 Terra (explorer/librarian/designer/observer) |
 
-**The default `balanced` preset works fully with just an OpenRouter key.** The other presets require additional API keys/subscriptions.
+**The default `balanced` and budget `cheap` presets work fully with just an OpenRouter key.** The other presets require additional API keys or subscriptions for their primary routes.
 
 ### Per-Project Config
 

@@ -75,20 +75,48 @@ def iter_models(pv: dict) -> list[tuple[str, dict]]:
     return list(models.items())
 
 
-def normalize_model_ref(value) -> list[str]:
-    """Normalize a model config to a flat list of model ID strings.
-
-    Since v2.0.4, agent `model` may be a string OR an array of strings
-    (model-array fallback chains). Fallback `chains` were removed from
-    the schema; the array IS the chain.
-    """
-    if value is None:
-        return []
+def normalize_model_ref(
+    value, path: str = "model", *, allow_object: bool = False
+) -> tuple[list[str], list[tuple[str, str]]]:
+    """Normalize model references and return precise validation errors."""
     if isinstance(value, str):
-        return [value]
+        if value.strip():
+            return [value], []
+        return [], [(path, "expected a non-empty model ID string")]
+
+    if isinstance(value, dict):
+        if not allow_object:
+            return [], [(path, "expected a model string or non-empty array")]
+        refs = []
+        issues = []
+        model_id = value.get("id")
+        if isinstance(model_id, str) and model_id.strip():
+            refs.append(model_id)
+        else:
+            issues.append((f"{path}.id", "expected a non-empty string"))
+        if "variant" in value and not isinstance(value["variant"], str):
+            issues.append((f"{path}.variant", "expected a string"))
+        return refs, issues
+
     if isinstance(value, list):
-        return [m for m in value if isinstance(m, str)]
-    return []
+        if allow_object:
+            return [], [(path, "nested model arrays are not supported")]
+        if not value:
+            return [], [(path, "expected a non-empty model array")]
+        refs = []
+        issues = []
+        for index, item in enumerate(value):
+            item_refs, item_issues = normalize_model_ref(
+                item, f"{path}[{index}]", allow_object=True
+            )
+            refs.extend(item_refs)
+            issues.extend(item_issues)
+        return refs, issues
+
+    return [], [(
+        path,
+        f"expected a model string, object, or non-empty array; got {type(value).__name__}",
+    )]
 
 def check_temperature(core: dict) -> tuple[int, int]:
     """C1: temperature flag present on every custom-provider (npm) model.
@@ -145,8 +173,8 @@ def collect_valid_models(core: dict) -> set[str]:
 def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
     """C3: every model reference in slim.json resolves to a defined model.
 
-    Model references may be a single string or an array of strings
-    (v2.0.4+ model-array fallback chains). Every element must resolve.
+    Model references may be a string or a non-empty flat array containing
+    strings and {id, variant?} objects. Every element must be valid and resolve.
 
     Note: `fallback.chains` was removed in v2.0.4. Fallback ordering is
     now expressed by the array order on each agent's `model` field.
@@ -157,9 +185,20 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
     # council presets
     for preset_name, preset in slim.get("council", {}).get("presets", {}).items():
         for role, entry in preset.items():
-            for mid in normalize_model_ref(
-                entry.get("model") if isinstance(entry, dict) else None
-            ):
+            model_path = f"council.{preset_name}.{role}.model"
+            refs, issues = normalize_model_ref(
+                entry.get("model") if isinstance(entry, dict) else None,
+                model_path,
+            )
+            for path, detail in issues:
+                errors, warnings = check(
+                    "CRITICAL",
+                    f"Malformed model reference: {path}",
+                    False,
+                    detail,
+                    errors, warnings,
+                )
+            for mid in refs:
                 errors, warnings = check(
                     "CRITICAL",
                     f"Broken reference: council.{preset_name}.{role} → {mid}",
@@ -171,9 +210,20 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
     # agent presets (model may be a string or array of fallback models)
     for preset_name, preset in slim.get("presets", {}).items():
         for agent_name, agent_cfg in preset.items():
-            for mid in normalize_model_ref(
-                agent_cfg.get("model") if isinstance(agent_cfg, dict) else None
-            ):
+            model_path = f"preset.{preset_name}.{agent_name}.model"
+            refs, issues = normalize_model_ref(
+                agent_cfg.get("model") if isinstance(agent_cfg, dict) else None,
+                model_path,
+            )
+            for path, detail in issues:
+                errors, warnings = check(
+                    "CRITICAL",
+                    f"Malformed model reference: {path}",
+                    False,
+                    detail,
+                    errors, warnings,
+                )
+            for mid in refs:
                 errors, warnings = check(
                     "CRITICAL",
                     f"Broken reference: preset.{preset_name}.{agent_name} → {mid}",
@@ -183,6 +233,35 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
                 )
 
     return errors, warnings
+
+
+def run_self_test() -> int:
+    """Exercise mixed council arrays and malformed reference handling."""
+    core = {"provider": {"test": {"models": {"one": {}, "two": {}}}}}
+    valid = {
+        "council": {"presets": {"test": {"reviewer": {"model": [
+            "test/one",
+            {"id": "test/two", "variant": "high"},
+        ]}}}},
+    }
+    valid_errors, _ = check_referential_integrity(core, valid)
+    assert valid_errors == 0, "valid mixed council array was rejected"
+
+    malformed = {
+        "council": {"presets": {"test": {"reviewer": {"model": [
+            "test/one", "", 7, ["test/one"], {"id": ""},
+            {"id": "test/two", "variant": 7},
+        ]}}}},
+    }
+    malformed_errors, _ = check_referential_integrity(core, malformed)
+    assert malformed_errors > 0, "malformed model references were accepted"
+    _, top_level_object_issues = normalize_model_ref({"id": "test/one"})
+    assert top_level_object_issues, "top-level model object was accepted"
+    print(
+        f"Self-test passed: valid mixed array accepted; "
+        f"malformed array produced {malformed_errors} critical error(s)."
+    )
+    return 0
 
 
 def check_api_keys(core: dict, auth_path: str) -> tuple[int, int]:
@@ -292,7 +371,14 @@ def main() -> int:
         "--quiet", action="store_true",
         help="Suppress output; exit code only",
     )
+    parser.add_argument(
+        "--self-test", action="store_true",
+        help="Run focused model-reference validation checks",
+    )
     args = parser.parse_args()
+
+    if args.self_test:
+        return run_self_test()
 
     # Suppress all output in quiet mode
     if args.quiet:

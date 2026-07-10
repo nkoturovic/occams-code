@@ -143,4 +143,4 @@ When a skill says "delegate to your implementation agent", use `@fixer`.
 
 Agent models per preset: `~/.config/opencode/oh-my-opencode-slim.json` (read directly, don't hardcode).
 
-OpenAI integration uses `/connect` OAuth, not environment API keys. Highest variant is `xhigh`. Read the active preset in `oh-my-opencode-slim.json` before assuming models — assignments change.
+OpenAI integration uses `/connect` OAuth, not environment API keys. GPT-5.6 supports `max` effort; earlier GPT-5 models top out at `xhigh`. Read the active preset in `oh-my-opencode-slim.json` before assuming models — assignments change.

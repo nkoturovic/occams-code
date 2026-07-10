@@ -18,7 +18,7 @@
         "model": [
           "zai-coding-plan/glm-5.2",
           "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -34,13 +34,13 @@
       },
       "oracle": {
         "model": [
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "deepseek/deepseek-v4-pro",
           "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/anthropic/claude-sonnet-4.6"
         ],
-        "variant": "xhigh",
+        "variant": "max",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -51,13 +51,13 @@
       },
       "explorer": {
         "model": [
-          "deepseek/deepseek-v4-pro",
+          "openai/gpt-5.6-terra",
           "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "max",
+        "variant": "xhigh",
         "skills": [],
         "mcps": [
           "context7",
@@ -68,10 +68,9 @@
       "librarian": {
         "model": [
           "zai-coding-plan/glm-5.2",
+          "openai/gpt-5.6-terra",
           "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "openrouter/qwen/qwen3-coder:free"
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "max",
         "skills": [],
@@ -149,8 +148,6 @@
       "orchestrator": {
         "model": [
           "openrouter/deepseek/deepseek-v4-pro",
-          "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.5",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -165,8 +162,6 @@
       },
       "oracle": {
         "model": [
-          "deepseek/deepseek-v4-pro",
-          "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/anthropic/claude-sonnet-4.6"
         ],
@@ -183,7 +178,6 @@
         "model": [
           "openrouter/google/gemini-3.5-flash",
           "openrouter/moonshotai/kimi-k2.7-code",
-          "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -201,7 +195,6 @@
       "explorer": {
         "model": [
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -216,9 +209,7 @@
       "librarian": {
         "model": [
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/qwen/qwen3-coder:free"
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "high",
         "skills": [],
@@ -233,8 +224,6 @@
       "fixer": {
         "model": [
           "openrouter/deepseek/deepseek-v4-pro",
-          "kimi-for-coding/kimi-for-coding",
-          "deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -248,7 +237,6 @@
         "model": [
           "openrouter/google/gemini-3.5-flash",
           "openrouter/moonshotai/kimi-k2.7-code",
-          "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -263,7 +251,7 @@
         "temperature": 1.0
       },
       "council": {
-        "model": "deepseek/deepseek-v4-pro",
+        "model": "openrouter/deepseek/deepseek-v4-pro",
         "variant": "max",
         "skills": [],
         "mcps": [],
@@ -275,7 +263,7 @@
         "model": [
           "anthropic/claude-opus-4-7",
           "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -343,10 +331,10 @@
       "librarian": {
         "model": [
           "anthropic/claude-sonnet-4-6",
+          "zai-coding-plan/glm-5.2",
+          "openai/gpt-5.6-terra",
           "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "openrouter/qwen/qwen3-coder:free"
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "high",
         "skills": [],
@@ -403,7 +391,7 @@
       "orchestrator": {
         "model": [
           "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -451,9 +439,9 @@
       "librarian": {
         "model": [
           "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "openrouter/qwen/qwen3-coder:free"
+          "zai-coding-plan/glm-5.2",
+          "openai/gpt-5.6-terra",
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "max",
         "skills": [],
@@ -529,8 +517,6 @@
       "orchestrator": {
         "model": [
           "openrouter/qwen/qwen3-coder:free",
-          "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.5",
           "openrouter/deepseek/deepseek-v4-pro"
         ],
         "variant": "high",
@@ -545,8 +531,6 @@
       },
       "oracle": {
         "model": [
-          "deepseek/deepseek-v4-pro",
-          "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/anthropic/claude-sonnet-4.6"
         ],
@@ -563,7 +547,6 @@
         "model": [
           "openrouter/google/gemini-3.5-flash",
           "openrouter/moonshotai/kimi-k2.7-code",
-          "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -581,7 +564,6 @@
       "explorer": {
         "model": [
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -596,9 +578,7 @@
       "librarian": {
         "model": [
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/qwen/qwen3-coder:free"
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "high",
         "skills": [],
@@ -613,8 +593,6 @@
       "fixer": {
         "model": [
           "openrouter/qwen/qwen3-coder:free",
-          "kimi-for-coding/kimi-for-coding",
-          "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro"
         ],
         "variant": "high",
@@ -628,7 +606,6 @@
         "model": [
           "openrouter/google/gemini-3.5-flash",
           "openrouter/moonshotai/kimi-k2.7-code",
-          "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
         "variant": "high",
@@ -653,7 +630,7 @@
     "openai": {
       "orchestrator": {
         "model": [
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
@@ -670,13 +647,13 @@
       },
       "oracle": {
         "model": [
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "deepseek/deepseek-v4-pro",
           "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/anthropic/claude-sonnet-4.6"
         ],
-        "variant": "xhigh",
+        "variant": "max",
         "skills": [],
         "mcps": [
           "web-search-prime",
@@ -687,11 +664,10 @@
       },
       "librarian": {
         "model": [
-          "openai/gpt-5.4",
+          "openai/gpt-5.6-terra",
+          "zai-coding-plan/glm-5.2",
           "deepseek/deepseek-v4-pro",
-          "openrouter/google/gemini-3.5-flash",
-          "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "openrouter/qwen/qwen3-coder:free"
+          "openrouter/google/gemini-3.5-flash"
         ],
         "variant": "xhigh",
         "skills": [],
@@ -705,13 +681,13 @@
       },
       "explorer": {
         "model": [
-          "deepseek/deepseek-v4-pro",
+          "openai/gpt-5.6-terra",
           "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "max",
+        "variant": "xhigh",
         "skills": [],
         "mcps": [
           "context7",
@@ -721,7 +697,7 @@
       },
       "fixer": {
         "model": [
-          "openai/gpt-5.5",
+          "openai/gpt-5.6-sol",
           "kimi-for-coding/kimi-for-coding",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
@@ -736,13 +712,13 @@
       },
       "designer": {
         "model": [
-          "kimi-for-coding/kimi-for-coding",
+          "openai/gpt-5.6-terra",
           "openrouter/moonshotai/kimi-k2.7-code",
           "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "high",
+        "variant": "xhigh",
         "skills": [
           "agent-browser"
         ],
@@ -756,13 +732,13 @@
       },
       "observer": {
         "model": [
-          "kimi-for-coding/kimi-for-coding",
+          "openai/gpt-5.6-terra",
           "openrouter/moonshotai/kimi-k2.7-code",
           "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
           "openrouter/qwen/qwen3-coder:free"
         ],
-        "variant": "high",
+        "variant": "xhigh",
         "skills": [
           "video-analysis",
           "lecture-notes",
@@ -774,8 +750,8 @@
         "temperature": 1.0
       },
       "council": {
-        "model": "openai/gpt-5.5",
-        "variant": "xhigh",
+        "model": "openai/gpt-5.6-sol",
+        "variant": "max",
         "skills": [],
         "mcps": [],
         "temperature": 1.0
@@ -798,7 +774,7 @@
           "variant": "max"
         },
         "reviewer-2": {
-          "model": "openai/gpt-5.5",
+          "model": "openai/gpt-5.6-sol",
           "variant": "xhigh"
         },
         "reviewer-3": {

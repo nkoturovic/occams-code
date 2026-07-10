@@ -3,7 +3,7 @@ name: oh-my-opencode-slim
 description: Configure and improve oh-my-opencode-slim for the current user. Use when users want to tune agents, models, prompts, custom agents, skills, MCPs, presets, or plugin behavior. Also use when recurring workflow friction suggests a safe config or prompt improvement.
 ---
 
-# oh-my-opencode-slim v2.1.0 Configuration Skill
+# oh-my-opencode-slim v2.1.1 Configuration Skill
 
 Help users configure, customize, and safely improve their
 oh-my-opencode-slim setup. Prefer the smallest durable change: tune models,
@@ -96,7 +96,7 @@ Minimal project override:
   "presets": {
     "openai": {
       "fixer": {
-        "model": "openai/gpt-5.5",
+        "model": "openai/gpt-5.6-sol",
         "variant": "xhigh",
         "temperature": 0.8
       }
@@ -117,6 +117,40 @@ Cross-preset built-in override:
   }
 }
 ```
+
+## v2.1.1 Features
+
+- **Council fallback chains**: a councillor's `model` field now accepts an array
+  for ordered fallback. Entries may be plain model ID strings or `{ "id", "variant" }`
+  objects. The chain runs top-to-bottom; the first model that succeeds is used.
+- **`fallback.maxRetries`** (default `3`): number of consecutive rate-limit
+  responses before the chain aborts or swaps to the next model.
+- **`fallback.runtimeOverride`** (default `true`): whether an out-of-chain
+  `/model` pick still triggers the fallback chain on failure.
+- **`compactSidebar`** now defaults to `true`: the agent sidebar renders
+  compactly out of the box; set it `false` to restore the old spacing.
+
+Configure runtime fallback behavior under the top-level `fallback` object.
+Configure a councillor's ordered fallback chain in that councillor's `model`
+array; there is no per-councillor `fallback` object.
+
+### GPT-5.6 reasoning and OAuth limits
+
+- OpenAI hides raw chain-of-thought by design. OpenCode already requests
+  reasoning summaries and encrypted multi-turn continuity; do not duplicate
+  those options in agent config.
+- OpenCode 1.17.18 does not generate GPT-5.6's `max` variant. Define `max` in
+  the model's `variants` and keep fallback effort in model-level `options` so
+  cross-provider agent fallback arrays do not leak OpenAI-specific settings.
+- OpenCode 1.17.18 advertises GPT-5.6's larger direct-API context, but the Codex
+  OAuth backend accepts less. Until
+  [issue #36247](https://github.com/anomalyco/opencode/issues/36247) is fixed,
+  set each local GPT-5.6 model's `limit` to `context: 500000`, `input: 372000`,
+  and `output: 128000`. These explicit limits restore automatic compaction;
+  manually compact before roughly 350K input only as a backstop.
+- Do not use GPT-5.6 `*-pro` aliases on OpenCode 1.17.18: the bundled SDK does
+  not serialize `reasoning.mode`. Sol with `max` is the strongest reliable
+  quality-first route; keep `max` on the normal AI-SDK runtime.
 
 ## Common Customizations
 
@@ -157,7 +191,7 @@ runtime permission scaffolding derived from those fields. Do not add a new
 {
   "agents": {
     "api-reviewer": {
-      "model": "openai/gpt-5.5",
+      "model": "openai/gpt-5.6-sol",
       "variant": "high",
       "prompt": "You review API design, compatibility, error semantics, and migration risk. Return concise findings with file references.",
       "orchestratorPrompt": "Delegate to @api-reviewer for API contract changes, public SDK changes, backwards-compatibility questions, or migration-risk review. Do not use it for routine implementation.",

@@ -61,7 +61,9 @@ Oracle review is required for:
 
 Apply changes to live `~/.config/opencode` first.
 
-- Pin plugin spec exactly, e.g. `"oh-my-opencode-slim@2.1.0"`, in both `opencode.json` and `tui.json`. Bare `"oh-my-opencode-slim"` is cache-ambiguous.
+- Pin the plugin spec to the exact selected version in both `opencode.json` and
+  `tui.json` (format: `"oh-my-opencode-slim@<exact-version>"`). Bare
+  `"oh-my-opencode-slim"` is cache-ambiguous.
 - Regenerate `oh-my-opencode-slim.json` from `model-profile.jsonc` only if the source changed:
   `python3 scripts/model-profile.py model-profile.jsonc oh-my-opencode-slim.json`
 - Keep provider timeouts and output caps as deliberate mitigations; do not silently revert.

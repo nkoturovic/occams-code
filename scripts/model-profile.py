@@ -5,8 +5,8 @@ Usage:
   python3 model-profile.py model-profile.jsonc > oh-my-opencode-slim.json
 
 The model-profile.jsonc specifies only the variable parts (model, temperature,
-variant, thinking options). Everything else (skills, MCPs, fallback chains,
-council reviewer presets, infrastructure keys) is templated from constants.
+variant). Everything else (skills, MCPs, fallback chains, council reviewer
+presets, infrastructure keys) is templated from constants.
 
 Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 (the plugin already reads this and deep-merges at startup).
@@ -103,7 +103,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
     # Max 4 per chain — diverse providers, lean set
     "orchestrator": [
         "deepseek/deepseek-v4-pro",
-        "openai/gpt-5.5",
+        "openai/gpt-5.6-sol",
         "openrouter/deepseek/deepseek-v4-pro",
         "openrouter/qwen/qwen3-coder:free",
     ],
@@ -132,10 +132,10 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/qwen/qwen3-coder:free",
     ],
     "librarian": [
+        "zai-coding-plan/glm-5.2",
+        "openai/gpt-5.6-terra",
         "deepseek/deepseek-v4-pro",
         "openrouter/google/gemini-3.5-flash",
-        "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-        "openrouter/qwen/qwen3-coder:free",
     ],
     "fixer": [
         "kimi-for-coding/kimi-for-coding",
@@ -152,7 +152,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
 COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
     "custom": {
         "reviewer-1": {"model": "zai-coding-plan/glm-5.2", "variant": "max"},
-        "reviewer-2": {"model": "openai/gpt-5.5", "variant": "xhigh"},
+        "reviewer-2": {"model": "openai/gpt-5.6-sol", "variant": "xhigh"},
         "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
     },
     "balanced": {
@@ -183,19 +183,21 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
 
 # ─── Build logic ────────────────────────────────────────────────────────
 
+OPENROUTER_ONLY_PRESETS = {"balanced", "cheap"}
+
+
 def build_agent_config(agent_name: str, override: dict[str, Any],
-                       fallback_chains: dict[str, list[str]] | None = None) -> dict[str, Any]:
+                       fallback_chains: dict[str, list[str]] | None = None,
+                       *, openrouter_only: bool = False) -> dict[str, Any]:
     """Merge per-agent defaults with preset-specific overrides.
 
     Rules:
       - model: always from override (required); merged with fallback chain
         into an array for v2.0.4+ model-array fallback mechanism
       - variant: override > default (orchestrator/designer have no default variant)
-      - temperature: from override; absent if model uses thinking mode
+      - temperature: emitted when present in the override
       - skills/mcps: from defaults (override can't change these)
-      - options.thinking: auto-injected for kimi-for-coding models;
-        removed for deepseek-v4-pro (dedicated provider handles it);
-        NOT injected for any other model.
+      - model-specific options: not injected; they live in opencode.json
     """
     defaults = AGENT_DEFAULTS.get(agent_name, {})
     config: dict[str, Any] = {}
@@ -204,11 +206,10 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     primary = override["model"]
     chains = fallback_chains or {}
     chain = chains.get(agent_name, [])
+    if openrouter_only:
+        chain = [model for model in chain if model.startswith("openrouter/")]
     model_array = [primary] + [m for m in chain if m != primary]
     config["model"] = model_array if len(model_array) > 1 else primary
-
-    # Use primary model string for type detection
-    model = primary
 
     # Variant (defaults only exist for explorer/librarian/fixer/observer)
     # OpenCode silently ignores variants for models that don't support them
@@ -255,7 +256,12 @@ def build_presets(preset_map: dict[str, dict[str, Any]],
     for preset_name, agents in preset_map.items():
         preset_agents: dict[str, Any] = {}
         for agent_name, agent_cfg in agents.items():
-            preset_agents[agent_name] = build_agent_config(agent_name, agent_cfg, fallback_chains)
+            preset_agents[agent_name] = build_agent_config(
+                agent_name,
+                agent_cfg,
+                fallback_chains,
+                openrouter_only=preset_name in OPENROUTER_ONLY_PRESETS,
+            )
         presets[preset_name] = preset_agents
 
     return presets
