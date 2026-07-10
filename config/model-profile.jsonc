@@ -95,7 +95,7 @@
       "librarian":    { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 0.8 },
       "explorer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 0.8 },
       "fixer":        { "model": "openai/gpt-5.6-sol", "variant": "xhigh", "temperature": 0.8 },
-      // Terra supports text/image/PDF; Kimi/Gemini remain multimodal fallbacks.
+      // Terra supports text/image via OAuth; Kimi/Gemini remain multimodal fallbacks.
       "designer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 1.0 },
       "observer":     { "model": "openai/gpt-5.6-terra", "variant": "xhigh", "temperature": 1.0 },
       "council":      { "model": "openai/gpt-5.6-sol", "variant": "max", "temperature": 1.0 }

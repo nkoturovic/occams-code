@@ -339,6 +339,9 @@
       }
     },
     "openai": {
+      "options": {
+        "headerTimeout": false
+      },
       "models": {
         "gpt-5.6-sol": {
           "limit": {
@@ -392,22 +395,12 @@
     "oh-my-opencode-slim@2.1.1"
   ],
   "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "enabled": true
-    },
-    "grep_app": {
-      "type": "remote",
-      "url": "https://mcp.grep.app",
-      "enabled": true
-    },
     "zai_vision": {
       "type": "local",
       "command": [
         "npx",
         "-y",
-        "@z_ai/mcp-server"
+        "@z_ai/mcp-server@0.1.4"
       ],
       "environment": {
         "Z_AI_API_KEY": "{env:Z_AI_API_KEY}",

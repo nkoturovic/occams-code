@@ -78,7 +78,7 @@ DeepWork is oh-my-opencode-slim's first-class structured execution workflow for 
 
 **@council** — Multi-LLM consensus. High-stakes decisions where diverse perspectives matter.
 
-**@observer** — Visual/audio analysis. Model supports text, image, video, and PDF natively.
+**@observer** — Visual/audio analysis. Use Read for images/PDFs and local analysis skills for video/audio.
 - **Images & PDFs:** Read tool handles natively.
 - **Video (visual):** OpenCode Read tool does not support video. Use `python3 ~/.agents/scripts/analyze-video.py <path> [prompt]`.
 - **Audio/Speech-to-Text:** `~/.agents/scripts/transcribe <path> [flags]` — local whisper.cpp.
@@ -106,7 +106,7 @@ DeepWork is oh-my-opencode-slim's first-class structured execution workflow for 
 
 The orchestrator is text-only. All images, PDFs, video, and audio go through `@observer`.
 
-- **Images/PDFs:** "Read the file at `<path>` — your model handles this natively."
+- **Images/PDFs:** "Read the file at `<path>` and analyze the extracted visual/document content."
 - **Video:** "Analyze the video at `<path>` using `python3 ~/.agents/scripts/analyze-video.py`." (OpenCode Read tool does not support video.)
 - **Audio:** "Transcribe the audio from `<path>` using `~/.agents/scripts/transcribe`. Optional: `--language <code>`."
 - **Combined:** Run transcribe + video analysis in parallel.

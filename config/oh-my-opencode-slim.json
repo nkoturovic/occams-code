@@ -17,8 +17,11 @@
       "orchestrator": {
         "model": [
           "zai-coding-plan/glm-5.2",
+          {
+            "id": "openai/gpt-5.6-sol",
+            "variant": "xhigh"
+          },
           "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.6-sol",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -61,14 +64,17 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
       "librarian": {
         "model": [
           "zai-coding-plan/glm-5.2",
-          "openai/gpt-5.6-terra",
+          {
+            "id": "openai/gpt-5.6-terra",
+            "variant": "xhigh"
+          },
           "deepseek/deepseek-v4-pro",
           "openrouter/google/gemini-3.5-flash"
         ],
@@ -78,13 +84,17 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
       "fixer": {
         "model": [
           "zai-coding-plan/glm-5.2",
+          {
+            "id": "openai/gpt-5.6-sol",
+            "variant": "xhigh"
+          },
           "kimi-for-coding/kimi-for-coding",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
@@ -202,7 +212,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 1.0
       },
@@ -217,7 +227,7 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 1.0
       },
@@ -324,7 +334,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.6
       },
@@ -342,7 +352,7 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.6
       },
@@ -432,7 +442,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
@@ -449,7 +459,7 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
@@ -571,7 +581,7 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 1.0
       },
@@ -586,7 +596,7 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 1.0
       },
@@ -631,6 +641,7 @@
       "orchestrator": {
         "model": [
           "openai/gpt-5.6-sol",
+          "zai-coding-plan/glm-5.2",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
@@ -648,6 +659,7 @@
       "oracle": {
         "model": [
           "openai/gpt-5.6-sol",
+          "zai-coding-plan/glm-5.2",
           "deepseek/deepseek-v4-pro",
           "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
@@ -675,7 +687,7 @@
           "web-search-prime",
           "websearch",
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
@@ -691,13 +703,14 @@
         "skills": [],
         "mcps": [
           "context7",
-          "grep_app"
+          "gh_grep"
         ],
         "temperature": 0.8
       },
       "fixer": {
         "model": [
           "openai/gpt-5.6-sol",
+          "zai-coding-plan/glm-5.2",
           "kimi-for-coding/kimi-for-coding",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
@@ -750,7 +763,11 @@
         "temperature": 1.0
       },
       "council": {
-        "model": "openai/gpt-5.6-sol",
+        "model": [
+          "openai/gpt-5.6-sol",
+          "zai-coding-plan/glm-5.2",
+          "deepseek/deepseek-v4-pro"
+        ],
         "variant": "max",
         "skills": [],
         "mcps": [],

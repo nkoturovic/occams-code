@@ -27,7 +27,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Model-mapping source of truth. Edit, run `oc --sync-profile` to regenerate oh-my-opencode-slim.json, restart. Per-agent MCP/skill assignments live in oh-my-opencode-slim.json (committed preset). Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
-- **5 MCP servers** — context7 (library docs), grep_app (code search), websearch (Exa), zai_vision (image analysis), and web-search-prime (Z.AI web search). Z.AI MCPs require `Z_AI_API_KEY`.
+- **5 MCP servers** — context7 (library docs), gh_grep (grep.app code search), websearch (Exa), zai_vision (image analysis), and web-search-prime (Z.AI web search). Z.AI MCPs require `Z_AI_API_KEY`.
 - **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
 
 ### Prerequisites
@@ -197,7 +197,7 @@ Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel 
 | Server | Purpose |
 |--------|---------|
 | **context7** | Remote library documentation lookup |
-| **grep_app** | Search code across open-source repos |
+| **gh_grep** | Search code across open-source repos via grep.app |
 | **websearch** | Exa web search, plugin-built, free tier (set `EXA_API_KEY` for higher quotas) |
 
 **Opt-in (2 — only if you set `Z_AI_API_KEY`):**

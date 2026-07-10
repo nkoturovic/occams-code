@@ -76,12 +76,12 @@ AGENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "explorer": {
         "variant": "high",
         "skills": [],
-        "mcps": ["context7", "grep_app"],
+        "mcps": ["context7", "gh_grep"],
     },
     "librarian": {
         "variant": "high",
         "skills": [],
-        "mcps": ["web-search-prime", "websearch", "context7", "grep_app"],
+        "mcps": ["web-search-prime", "websearch", "context7", "gh_grep"],
     },
     "fixer": {
         "variant": "high",
@@ -147,6 +147,26 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
 }
 
 
+PRESET_ROLE_PREFIXES: dict[str, dict[str, list[str | dict[str, str]]]] = {
+    "openai": {
+        "orchestrator": ["zai-coding-plan/glm-5.2"],
+        "oracle": ["zai-coding-plan/glm-5.2"],
+        "librarian": ["zai-coding-plan/glm-5.2"],
+        "explorer": ["zai-coding-plan/glm-5.2"],
+        "fixer": ["zai-coding-plan/glm-5.2"],
+        "council": [
+            "zai-coding-plan/glm-5.2",
+            "deepseek/deepseek-v4-pro",
+        ],
+    },
+    "custom": {
+        "orchestrator": [{"id": "openai/gpt-5.6-sol", "variant": "xhigh"}],
+        "librarian": [{"id": "openai/gpt-5.6-terra", "variant": "xhigh"}],
+        "fixer": [{"id": "openai/gpt-5.6-sol", "variant": "xhigh"}],
+    },
+}
+
+
 # ─── Council templates ─────────────────────────────────────────────────
 
 COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
@@ -186,14 +206,20 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
 OPENROUTER_ONLY_PRESETS = {"balanced", "cheap"}
 
 
+def model_id(model: str | dict[str, Any]) -> str:
+    """Return the provider/model ID from a string or per-model config object."""
+    return model["id"] if isinstance(model, dict) else model
+
+
 def build_agent_config(agent_name: str, override: dict[str, Any],
                        fallback_chains: dict[str, list[str]] | None = None,
-                       *, openrouter_only: bool = False) -> dict[str, Any]:
+                       *, fallback_prefix: list[str | dict[str, str]] | None = None,
+                       openrouter_only: bool = False) -> dict[str, Any]:
     """Merge per-agent defaults with preset-specific overrides.
 
     Rules:
-      - model: always from override (required); merged with fallback chain
-        into an array for v2.0.4+ model-array fallback mechanism
+      - model: primary, preset-role prefix, then global role chain with stable
+        ID-based de-duplication
       - variant: override > default (orchestrator/designer have no default variant)
       - temperature: emitted when present in the override
       - skills/mcps: from defaults (override can't change these)
@@ -202,13 +228,26 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     defaults = AGENT_DEFAULTS.get(agent_name, {})
     config: dict[str, Any] = {}
 
-    # Build model: primary + fallback chain as array (v2.0.4+ mechanism)
+    # Build model array for the v2.0.4+ fallback mechanism.
     primary = override["model"]
     chains = fallback_chains or {}
-    chain = chains.get(agent_name, [])
+    candidates: list[str | dict[str, Any]] = [
+        primary,
+        *(fallback_prefix or []),
+        *chains.get(agent_name, []),
+    ]
     if openrouter_only:
-        chain = [model for model in chain if model.startswith("openrouter/")]
-    model_array = [primary] + [m for m in chain if m != primary]
+        candidates = [model for model in candidates if model_id(model).startswith("openrouter/")]
+
+    model_array: list[str | dict[str, Any]] = []
+    seen_model_ids: set[str] = set()
+    for model in candidates:
+        identifier = model_id(model)
+        if identifier in seen_model_ids:
+            continue
+        seen_model_ids.add(identifier)
+        model_array.append(model)
+
     config["model"] = model_array if len(model_array) > 1 else primary
 
     # Variant (defaults only exist for explorer/librarian/fixer/observer)
@@ -260,6 +299,7 @@ def build_presets(preset_map: dict[str, dict[str, Any]],
                 agent_name,
                 agent_cfg,
                 fallback_chains,
+                fallback_prefix=PRESET_ROLE_PREFIXES.get(preset_name, {}).get(agent_name),
                 openrouter_only=preset_name in OPENROUTER_ONLY_PRESETS,
             )
         presets[preset_name] = preset_agents
