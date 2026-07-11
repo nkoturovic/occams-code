@@ -20,6 +20,10 @@ import json
 import os
 import sys
 import argparse
+import contextlib
+import copy
+import importlib.util
+import io
 from pathlib import Path
 
 # ── ansi ────────────────────────────────────────────────────────────────
@@ -235,8 +239,201 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
     return errors, warnings
 
 
+OPENAI_FAST_SPEC = {
+    "gpt-5.6-sol-fast": {
+        "base": "gpt-5.6-sol",
+        "fields": (
+            (("id",), "gpt-5.6-sol", "canonical id"),
+            (("name",), "GPT-5.6 Sol Fast (ChatGPT OAuth)", "name"),
+            (("limit", "context"), 500000, "context limit"),
+            (("limit", "input"), 372000, "input limit"),
+            (("limit", "output"), 128000, "output limit"),
+            (("options", "reasoningEffort"), "xhigh", "xhigh effort"),
+            (("options", "serviceTier"), "priority", "Priority tier"),
+            (("variants", "max", "reasoningEffort"), "max", "max variant"),
+        ),
+    },
+    "gpt-5.6-terra-fast": {
+        "base": "gpt-5.6-terra",
+        "fields": (
+            (("id",), "gpt-5.6-terra", "canonical id"),
+            (("name",), "GPT-5.6 Terra Fast (ChatGPT OAuth)", "name"),
+            (("limit", "context"), 500000, "context limit"),
+            (("limit", "input"), 372000, "input limit"),
+            (("limit", "output"), 128000, "output limit"),
+            (("options", "reasoningEffort"), "xhigh", "xhigh effort"),
+            (("options", "serviceTier"), "priority", "Priority tier"),
+            (("variants", "max", "reasoningEffort"), "max", "max variant"),
+        ),
+    },
+}
+
+
+def check_openai_fast_parity(
+    core: dict,
+    slim: dict,
+    *,
+    expected_default: str | None = None,
+    baseline: dict | None = None,
+    require_fast: bool = False,
+) -> tuple[int, int]:
+    """Skip absent Fast config by default; reject partial or invalid config."""
+    errors = warnings = 0
+
+    def require(label: str, predicate: bool, detail: str) -> None:
+        nonlocal errors, warnings
+        errors, warnings = check(
+            "CRITICAL", label, predicate, detail, errors, warnings
+        )
+
+    canonical_refs = {
+        f"openai/{fast}": f"openai/{spec['base']}"
+        for fast, spec in OPENAI_FAST_SPEC.items()
+    }
+
+    def normalize_fast_refs(value):
+        if isinstance(value, str):
+            return canonical_refs.get(value, value)
+        if isinstance(value, list):
+            return [normalize_fast_refs(item) for item in value]
+        if isinstance(value, dict):
+            return {key: normalize_fast_refs(item) for key, item in value.items()}
+        return value
+
+    models = core.get("provider", {}).get("openai", {}).get("models", {})
+    presets = slim.get("presets", {})
+    council_presets = slim.get("council", {}).get("presets", {})
+    surfaces = {
+        **{f"provider.{fast_id}": fast_id in models for fast_id in OPENAI_FAST_SPEC},
+        "presets.openai-fast": "openai-fast" in presets,
+        "council.openai-fast": "openai-fast" in council_presets,
+    }
+    if not any(surfaces.values()):
+        if require_fast:
+            require(
+                "OpenAI Fast configuration required",
+                False,
+                "all Fast provider and preset surfaces are absent",
+            )
+        return errors, warnings
+
+    require(
+        "complete OpenAI Fast configuration",
+        all(surfaces.values()),
+        "both aliases, agent preset, and council preset must be present together",
+    )
+    if not all(surfaces.values()):
+        return errors, warnings
+
+    require(
+        "openai-fast agent parity",
+        "openai" in presets
+        and normalize_fast_refs(presets["openai-fast"]) == presets.get("openai"),
+        "normalized openai-fast agent tree must equal openai",
+    )
+
+    require(
+        "openai-fast council parity",
+        "openai" in council_presets
+        and council_presets["openai-fast"] == council_presets.get("openai"),
+        "openai-fast council reviewers must exactly equal openai",
+    )
+
+    def field_value(model: dict, path: tuple[str, ...]):
+        value = model
+        for key in path:
+            if not isinstance(value, dict):
+                return None
+            value = value.get(key)
+        return value
+
+    for fast_id, spec in OPENAI_FAST_SPEC.items():
+        fast = models[fast_id]
+        base_id = spec["base"]
+        require(
+            f"OpenAI Fast alias object: {fast_id}",
+            isinstance(fast, dict),
+            "expected an object",
+        )
+        if not isinstance(fast, dict):
+            continue
+        for path, expected, label in spec["fields"]:
+            require(
+                f"OpenAI Fast {label}: {fast_id}",
+                field_value(fast, path) == expected,
+                f"expected {'.'.join(path)}={expected!r}",
+            )
+
+        normalized_fast = copy.deepcopy(fast)
+        normalized_fast.pop("id", None)
+        normalized_fast.pop("name", None)
+        if isinstance(normalized_fast.get("options"), dict):
+            normalized_fast["options"].pop("serviceTier", None)
+        require(
+            f"OpenAI Fast provider parity: {fast_id}",
+            normalized_fast == models.get(base_id),
+            f"alias must otherwise equal {base_id}",
+        )
+
+    require(
+        "preset/council default parity",
+        slim.get("preset") == slim.get("council", {}).get("default_preset"),
+        "top-level and council defaults must match",
+    )
+    if expected_default is not None:
+        require(
+            "expected default preset",
+            slim.get("preset") == expected_default,
+            f"expected {expected_default!r}",
+        )
+
+    if baseline is not None:
+        existing_presets = {
+            name: value for name, value in presets.items() if name != "openai-fast"
+        }
+        existing_council = {
+            name: value
+            for name, value in council_presets.items()
+            if name != "openai-fast"
+        }
+        require(
+            "pre-existing preset baseline",
+            existing_presets == baseline.get("presets"),
+            "a pre-existing generated preset changed",
+        )
+        require(
+            "pre-existing council baseline",
+            existing_council == baseline.get("councilPresets"),
+            "a pre-existing council preset changed",
+        )
+        require(
+            "baseline default preset",
+            slim.get("preset") == baseline.get("defaultPreset"),
+            "top-level default changed from checkpoint",
+        )
+        require(
+            "baseline council default",
+            slim.get("council", {}).get("default_preset")
+            == baseline.get("councilDefault"),
+            "council default changed from checkpoint",
+        )
+        base_models = baseline.get("baseModels", {})
+        require(
+            "baseline OpenAI Sol provider object",
+            models.get("gpt-5.6-sol") == base_models.get("sol"),
+            "base Sol provider object changed from checkpoint",
+        )
+        require(
+            "baseline OpenAI Terra provider object",
+            models.get("gpt-5.6-terra") == base_models.get("terra"),
+            "base Terra provider object changed from checkpoint",
+        )
+
+    return errors, warnings
+
+
 def run_self_test() -> int:
-    """Exercise mixed council arrays and malformed reference handling."""
+    """Exercise model references, OpenAI Fast parity, and generator de-dupe."""
     core = {"provider": {"test": {"models": {"one": {}, "two": {}}}}}
     valid = {
         "council": {"presets": {"test": {"reviewer": {"model": [
@@ -253,13 +450,180 @@ def run_self_test() -> int:
             {"id": "test/two", "variant": 7},
         ]}}}},
     }
-    malformed_errors, _ = check_referential_integrity(core, malformed)
+    with contextlib.redirect_stdout(io.StringIO()):
+        malformed_errors, _ = check_referential_integrity(core, malformed)
     assert malformed_errors > 0, "malformed model references were accepted"
     _, top_level_object_issues = normalize_model_ref({"id": "test/one"})
     assert top_level_object_issues, "top-level model object was accepted"
+    def build_model(fields) -> dict:
+        model = {}
+        for path, value, _label in fields:
+            target = model
+            for key in path[:-1]:
+                target = target.setdefault(key, {})
+            target[path[-1]] = value
+        return model
+
+    def base_model(spec: dict) -> dict:
+        model = build_model(spec["fields"])
+        model.pop("id")
+        model.pop("name")
+        model["options"].pop("serviceTier")
+        return model
+
+    parity_core = {"provider": {"openai": {"models": {}}}}
+    parity_models = parity_core["provider"]["openai"]["models"]
+    for fast_id, fast_spec in OPENAI_FAST_SPEC.items():
+        parity_models[fast_spec["base"]] = base_model(fast_spec)
+        parity_models[fast_id] = build_model(fast_spec["fields"])
+    openai_agent = {
+        "orchestrator": {
+            "model": ["openai/gpt-5.6-sol", "test/fallback"],
+            "variant": "xhigh",
+        }
+    }
+    fast_agent = copy.deepcopy(openai_agent)
+    fast_agent["orchestrator"]["model"][0] = "openai/gpt-5.6-sol-fast"
+    reviewers = {"reviewer-1": {"model": "test/reviewer"}}
+    parity_slim = {
+        "preset": "openai",
+        "presets": {
+            "openai": openai_agent,
+            "openai-fast": fast_agent,
+            "balanced": {"orchestrator": {"model": "test/fallback"}},
+        },
+        "council": {
+            "default_preset": "openai",
+            "presets": {
+                "openai": reviewers,
+                "openai-fast": copy.deepcopy(reviewers),
+                "balanced": {"reviewer-1": {"model": "test/reviewer"}},
+            },
+        },
+    }
+    baseline = {
+        "defaultPreset": "openai",
+        "presets": {
+            "openai": copy.deepcopy(openai_agent),
+            "balanced": {"orchestrator": {"model": "test/fallback"}},
+        },
+        "councilDefault": "openai",
+        "councilPresets": {
+            "openai": copy.deepcopy(reviewers),
+            "balanced": {"reviewer-1": {"model": "test/reviewer"}},
+        },
+        "baseModels": {
+            "sol": copy.deepcopy(parity_models["gpt-5.6-sol"]),
+            "terra": copy.deepcopy(parity_models["gpt-5.6-terra"]),
+        },
+    }
+    parity_errors, _ = check_openai_fast_parity(
+        parity_core,
+        parity_slim,
+        expected_default="openai",
+        baseline=baseline,
+        require_fast=True,
+    )
+    assert parity_errors == 0, "valid OpenAI Fast parity fixture was rejected"
+
+    absent_core = copy.deepcopy(parity_core)
+    absent_slim = copy.deepcopy(parity_slim)
+    for fast_id in OPENAI_FAST_SPEC:
+        absent_core["provider"]["openai"]["models"].pop(fast_id)
+    absent_slim["presets"].pop("openai-fast")
+    absent_slim["council"]["presets"].pop("openai-fast")
+    assert check_openai_fast_parity(absent_core, absent_slim)[0] == 0
+    with contextlib.redirect_stdout(io.StringIO()):
+        absent_required = check_openai_fast_parity(
+            absent_core, absent_slim, require_fast=True
+        )[0]
+        partial_core = copy.deepcopy(absent_core)
+        first_fast = next(iter(OPENAI_FAST_SPEC))
+        partial_core["provider"]["openai"]["models"][first_fast] = copy.deepcopy(
+            parity_models[first_fast]
+        )
+        partial_errors = check_openai_fast_parity(partial_core, absent_slim)[0]
+    assert absent_required > 0, "required entirely absent Fast config was accepted"
+    assert partial_errors > 0, "partial Fast config was accepted"
+
+    missing = object()
+    alias_path = ("provider", "openai", "models", "gpt-5.6-sol-fast")
+    field_mutations = (
+        ("id", ("id",), "wrong"),
+        ("context", ("limit", "context"), 1),
+        ("input", ("limit", "input"), 1),
+        ("output", ("limit", "output"), 1),
+        ("xhigh", ("options", "reasoningEffort"), "high"),
+        ("service tier", ("options", "serviceTier"), "default"),
+        ("max", ("variants", "max", "reasoningEffort"), "xhigh"),
+    )
+    mutations = [
+        case
+        for label, path, wrong in field_mutations
+        for case in (
+            (f"wrong {label}", "core", alias_path + path, wrong),
+            (f"missing {label}", "core", alias_path + path, missing),
+        )
+    ] + [
+        ("literal fast tier", "core", alias_path + ("options", "serviceTier"), "fast"),
+        ("agent drift", "slim", ("presets", "openai-fast", "orchestrator", "variant"), "high"),
+        ("council drift", "slim", ("council", "presets", "openai-fast", "reviewer-1", "model"), "wrong"),
+        ("default drift", "slim", ("preset",), "balanced"),
+        ("existing preset drift", "slim", ("presets", "balanced", "orchestrator", "model"), "wrong"),
+    ]
+    assert len(mutations) == 19
+
+    def mutate(root: dict, path: tuple[str, ...], value) -> None:
+        target = root
+        for key in path[:-1]:
+            target = target[key]
+        if value is missing:
+            target.pop(path[-1], None)
+        else:
+            target[path[-1]] = value
+
+    for name, target_name, path, value in mutations:
+        mutated_core = copy.deepcopy(parity_core)
+        mutated_slim = copy.deepcopy(parity_slim)
+        mutate(mutated_core if target_name == "core" else mutated_slim, path, value)
+        with contextlib.redirect_stdout(io.StringIO()):
+            mutation_errors, _ = check_openai_fast_parity(
+                mutated_core,
+                mutated_slim,
+                expected_default="openai",
+                baseline=baseline,
+                require_fast=True,
+            )
+        assert mutation_errors > 0, f"negative mutation was accepted: {name}"
+
+    generator_path = Path(__file__).with_name("model-profile.py")
+    spec = importlib.util.spec_from_file_location("model_profile_self_test", generator_path)
+    assert spec and spec.loader, f"cannot load generator: {generator_path}"
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+    approved_dedupe = {
+        f"openai/{fast}": f"openai/{fast_spec['base']}"
+        for fast, fast_spec in OPENAI_FAST_SPEC.items()
+    }
+    assert generator.FAST_MODEL_DEDUPE_EQUIVALENCE == approved_dedupe
+
+    def generated_models(candidates: list[str]):
+        config = generator.build_agent_config(
+            "orchestrator",
+            {"model": candidates[0]},
+            {"orchestrator": candidates[1:]},
+        )
+        return config["model"]
+
+    for fast, base in approved_dedupe.items():
+        assert generated_models([fast, base]) == fast, f"[Fast, base] rewrote {fast}"
+        assert generated_models([base, fast]) == base, f"[base, Fast] rewrote {base}"
+    unrelated = ["example/model-fast", "example/model"]
+    assert generated_models(unrelated) == unrelated, "unrelated -fast ID was de-duplicated"
+
     print(
-        f"Self-test passed: valid mixed array accepted; "
-        f"malformed array produced {malformed_errors} critical error(s)."
+        "Self-test passed: absent/partial gating, 19 independent Fast parity "
+        "mutations, exact dedupe map, and Sol/Terra stable-first ordering."
     )
     return 0
 
@@ -373,7 +737,23 @@ def main() -> int:
     )
     parser.add_argument(
         "--self-test", action="store_true",
-        help="Run focused model-reference validation checks",
+        help="Run focused model-reference and OpenAI Fast parity checks",
+    )
+    parser.add_argument(
+        "--expected-default",
+        help="Require this top-level and council default preset",
+    )
+    parser.add_argument(
+        "--baseline-manifest",
+        help="Immutable Phase 1 baseline manifest for unchanged-object checks",
+    )
+    parser.add_argument(
+        "--baseline-target", choices=("live", "public"),
+        help="Manifest section to compare (required with --baseline-manifest)",
+    )
+    parser.add_argument(
+        "--require-openai-fast", action="store_true",
+        help="Fail when all OpenAI Fast provider and preset surfaces are absent",
     )
     args = parser.parse_args()
 
@@ -390,6 +770,11 @@ def main() -> int:
     try:
         core = load_json(args.core_config)
         slim = load_json(args.slim_config)
+        baseline = None
+        if args.baseline_manifest:
+            if not args.baseline_target:
+                parser.error("--baseline-target is required with --baseline-manifest")
+            baseline = load_json(args.baseline_manifest)[args.baseline_target]
     except Exception as e:
         print(f"  {RED}✗{RESET} [CRITICAL] Cannot load configs: {e}")
         return 1
@@ -411,6 +796,17 @@ def main() -> int:
 
     # ── C3: referential integrity ──
     e, w = check_referential_integrity(core, slim)
+    total_errors += e
+    total_warnings += w
+
+    # ── OpenAI Fast strict parity ──
+    e, w = check_openai_fast_parity(
+        core,
+        slim,
+        expected_default=args.expected_default,
+        baseline=baseline,
+        require_fast=args.require_openai_fast,
+    )
     total_errors += e
     total_warnings += w
 

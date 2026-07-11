@@ -13,7 +13,7 @@ Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 
 Why this exists:
   - Most of the generated config is repetitive boilerplate
-  - Editing 6 presets × 8 role entries by hand is error-prone
+  - Editing 7 presets × 8 role entries by hand is error-prone
   - When models change, you update one mapping file, regenerate, deploy
 
 Design (Occam's Code):
@@ -159,6 +159,17 @@ PRESET_ROLE_PREFIXES: dict[str, dict[str, list[str | dict[str, str]]]] = {
             "deepseek/deepseek-v4-pro",
         ],
     },
+    "openai-fast": {
+        "orchestrator": ["zai-coding-plan/glm-5.2"],
+        "oracle": ["zai-coding-plan/glm-5.2"],
+        "librarian": ["zai-coding-plan/glm-5.2"],
+        "explorer": ["zai-coding-plan/glm-5.2"],
+        "fixer": ["zai-coding-plan/glm-5.2"],
+        "council": [
+            "zai-coding-plan/glm-5.2",
+            "deepseek/deepseek-v4-pro",
+        ],
+    },
     "custom": {
         "orchestrator": [{"id": "openai/gpt-5.6-sol", "variant": "xhigh"}],
         "librarian": [{"id": "openai/gpt-5.6-terra", "variant": "xhigh"}],
@@ -205,6 +216,11 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
 
 OPENROUTER_ONLY_PRESETS = {"balanced", "cheap"}
 
+FAST_MODEL_DEDUPE_EQUIVALENCE = {
+    "openai/gpt-5.6-sol-fast": "openai/gpt-5.6-sol",
+    "openai/gpt-5.6-terra-fast": "openai/gpt-5.6-terra",
+}
+
 
 def model_id(model: str | dict[str, Any]) -> str:
     """Return the provider/model ID from a string or per-model config object."""
@@ -243,9 +259,10 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     seen_model_ids: set[str] = set()
     for model in candidates:
         identifier = model_id(model)
-        if identifier in seen_model_ids:
+        dedupe_key = FAST_MODEL_DEDUPE_EQUIVALENCE.get(identifier, identifier)
+        if dedupe_key in seen_model_ids:
             continue
-        seen_model_ids.add(identifier)
+        seen_model_ids.add(dedupe_key)
         model_array.append(model)
 
     config["model"] = model_array if len(model_array) > 1 else primary

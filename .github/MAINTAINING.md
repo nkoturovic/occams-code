@@ -70,7 +70,7 @@ These differences are **deliberate** — do not "fix" them:
 | Council default | Your preset | `balanced` |
 | Providers table order | Your primary first | openrouter first |
 | Auth paths | May have personal paths (e.g., `~/.local/share/opencode/auth.json`) | Generic `auth.json` |
-| Presets | May include personal active preset/default | 6 (`balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`) — default remains `balanced` |
+| Presets | May include personal active preset/default | 7 (`balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`) — default remains `balanced`; OpenAI recommends normal `openai` |
 | Per-project config | `.opencode/oh-my-opencode-slim.jsonc` (preferred) or `.json` with personal overrides | Same file, plugin reads natively, deep-merges |
 | Direct provider routing | e.g., `anthropic/claude-sonnet-4-6` (no OpenRouter markup) | OpenRouter for general presets/chains; `custom` may keep subscription providers |
 | Agent workspace | `~/.agents/` | Managed by occams-agentic (bootstrap.sh); occams-code references it |
@@ -97,6 +97,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] General preset/fallback chains should use OpenRouter equivalents (custom may keep subscription models)
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Default preset must be `balanced`
+- [ ] `openai-fast` stays opt-in and OAuth-specific, with `openai` parity; describe about 1.5× generation speed and increased usage without claiming an unpublished GPT-5.6 multiplier
 - [ ] **Z.AI MCPs (zai_vision + web-search-prime): no hardcoded keys** — default `config/opencode.json` may ship them enabled, but only with `{env:Z_AI_API_KEY}` / inherited env placeholders. Never commit a real key. The installer can also inject user-specific MCP blocks when opted in.
 - [ ] `opencode.json.instructions` should include `"~/.agents/AGENTS.md"` (provided by occams-agentic bootstrap.sh)
 - [ ] Observer skills: `["video-analysis", "lecture-notes", "audio-analysis"]` in all presets — keep `audio-analysis` (resolves AGENTS.md inconsistency).

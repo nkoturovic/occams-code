@@ -201,7 +201,8 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  3) deepseek"
   echo "  4) premium   $([[ "$_rec" == "premium" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
   echo "  5) custom    $([[ "$_rec" == "custom" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
-  echo "  6) openai    (requires ChatGPT Plus OAuth via /connect)"
+  echo "  6) openai     $([[ "$_rec" == "openai" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (ChatGPT Plus OAuth via /connect)"
+  echo "  7) openai-fast (opt-in OAuth Fast/Priority; increased usage)"
   read -rp "  Enter number [$_def_num]: " _q2 < /dev/tty
   _q2="${_q2:-$_def_num}"
   case "$_q2" in
@@ -210,6 +211,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     4) PRESET="premium" ;;
     5) PRESET="custom" ;;
     6) PRESET="openai" ;;
+    7) PRESET="openai-fast" ;;
     *) PRESET="balanced" ;;
   esac
   echo -e "  ${GREEN}→${RESET} $PRESET"
@@ -276,6 +278,65 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     SETUP_SECRETS=0
   fi
   echo ""
+fi
+
+# Validate preset before summary/dry-run.
+if [[ -n "${PRESET:-}" ]]; then
+  case "$PRESET" in
+    custom|balanced|cheap|premium|deepseek|openai|openai-fast) ;;
+    *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
+  esac
+fi
+
+_bundled_config() {
+  local name="$1"
+  if [[ -f "$REPO_ROOT/config/$name" ]]; then
+    printf '%s\n' "$REPO_ROOT/config/$name"
+  elif [[ -f "$REPO_ROOT/$name" ]]; then
+    printf '%s\n' "$REPO_ROOT/$name"
+  else
+    return 1
+  fi
+}
+
+_effective_config() {
+  local name="$1"
+  if [[ -f "$OPENCODE_DIR/$name" ]]; then
+    printf '%s\n' "$OPENCODE_DIR/$name"
+  else
+    _bundled_config "$name"
+  fi
+}
+
+_fast_config_error() {
+  echo -e "${RED}Error: openai-fast is unavailable in the effective configuration.${RESET}" >&2
+  echo "  Upgrade or merge opencode.json, oh-my-opencode-slim.json, and model-profile.jsonc, then retry; no files were changed." >&2
+  exit 1
+}
+
+if [[ "$PRESET" == "openai-fast" ]]; then
+  _fast_core="$(_effective_config opencode.json)" || _fast_config_error
+  _fast_slim="$(_effective_config oh-my-opencode-slim.json)" || _fast_config_error
+  _fast_profile="$(_effective_config model-profile.jsonc)" || _fast_config_error
+
+  jq -e '
+    (.provider.openai.models["gpt-5.6-sol-fast"] | type == "object") and
+    (.provider.openai.models["gpt-5.6-terra-fast"] | type == "object")
+  ' "$_fast_core" >/dev/null 2>&1 || _fast_config_error
+
+  jq -e '
+    (.presets["openai-fast"] | type == "object") and
+    (.council.presets["openai-fast"] | type == "object")
+  ' "$_fast_slim" >/dev/null 2>&1 || _fast_config_error
+
+  if [[ ! -f "$REPO_ROOT/scripts/model-profile.py" ]] ||
+     ! python3 "$REPO_ROOT/scripts/model-profile.py" "$_fast_profile" 2>/dev/null |
+       jq -e '
+         (.presets["openai-fast"] | type == "object") and
+         (.council.presets["openai-fast"] | type == "object")
+       ' >/dev/null; then
+    _fast_config_error
+  fi
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────
@@ -364,12 +425,6 @@ _preserve_copy "$REPO_ROOT/config/model-profile.jsonc" "$OPENCODE_DIR/model-prof
 
 # ── Set preset in config files ───────────────────────────────────
 if [[ -n "${PRESET:-}" ]]; then
-  # Validate preset name
-  case "$PRESET" in
-    custom|balanced|cheap|premium|deepseek|openai) ;;
-    *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
-  esac
-
   # Update oh-my-opencode-slim.json (preset + council.default_preset)
   if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]]; then
     jq --arg p "$PRESET" '.preset = $p | .council.default_preset = $p' \

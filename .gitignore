@@ -44,5 +44,5 @@ plugins/
 
 # AI agent workspace
 .agents/
-.slim/
+.slim/deepwork/
 *.v1-backup

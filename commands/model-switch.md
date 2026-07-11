@@ -23,8 +23,10 @@ consistency with the plugin defaults:
 
 ## Global model switch (applies everywhere)
 
-Valid presets: `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`.  
+Valid presets: `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`.
 Valid agents: `orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`, `observer`.
+
+`openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`; model roles, capabilities, reasoning, fallbacks, and council stay identical.
 
 1. **Edit** `~/.config/opencode/model-profile.jsonc` — change `model` and `temperature` for the target agent in the target preset using values found above.
 2. **Run** the generator:

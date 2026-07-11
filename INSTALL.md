@@ -39,7 +39,9 @@ You need **at least one** provider. The default `balanced` preset works with jus
 | Anthropic | https://console.anthropic.com | `premium` preset (Claude Opus 4.7) |
 | Z.AI | https://z.ai | `custom` preset + Z.AI MCPs (subscription) |
 | Kimi for Coding | https://platform.moonshot.cn | `custom` preset (subscription) |
-| OpenAI | `/connect` inside OpenCode | `openai` preset (ChatGPT Plus OAuth) |
+| OpenAI | `/connect` inside OpenCode | Recommended `openai`, or opt-in `openai-fast` (ChatGPT Plus OAuth) |
+
+`openai-fast` uses the OAuth Fast/Priority route while keeping `openai`'s GPT-5.6 Sol/Terra roles, capabilities, reasoning, fallbacks, and council unchanged. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
 ---
 
@@ -64,7 +66,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 The installer asks:
 
 1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
-2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai`) — auto-recommended based on providers
+2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast`) — interactively recommended from providers; OpenAI recommends normal `openai` (unattended default: `balanced`)
 3. **Z.AI MCPs** — only asked if you selected Z.AI; adds `zai_vision` + `web-search-prime` MCP blocks with `{env:Z_AI_API_KEY}` placeholder (your key is stored in `~/.config/secrets/env`)
 4. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
 5. **Weekly cron** for log cleanup
@@ -164,7 +166,7 @@ OCCAM_SETUP_PATH=1 \
 | Variable | Values | Default |
 |----------|--------|---------|
 | `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi,openai` | `openrouter` |
-| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` | `balanced` |
+| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
 | `OCCAM_INSTALL_DEFUDDLE` | `0` / `1` | `1` |
@@ -182,6 +184,12 @@ OCCAM_SETUP_PATH=1 \
 | `OCCAM_OPENCODE_DIR` | path | `$HOME/.config/opencode` |
 
 **CLI flags** (override env vars): `--preset NAME`, `--providers CSV`, `--no-defuddle`, `--no-agent-browser`, `--no-obsidian`, `--no-cron`, `--no-path`, `--enable-zai`, `--zai-key KEY`, `--dry-run` (preview without writing), `--unattended`.
+
+Preview the opt-in Fast preset without writing:
+
+```bash
+./scripts/install.sh --unattended --dry-run --providers openai --preset openai-fast
+```
 
 The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
 

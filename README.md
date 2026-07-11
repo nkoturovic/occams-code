@@ -22,7 +22,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **6 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, and `openai` use additional providers
+- **7 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, `openai`, and opt-in `openai-fast` use additional providers
 - **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
 - **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
@@ -118,8 +118,11 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 | `premium` | Complex architecture, debugging | Anthropic + OpenRouter | Claude Opus 4.7 (orchestrator/oracle/council), Claude Sonnet 4.6 (explorer/librarian/fixer), Gemini 3.5 Flash (designer/observer) |
 | `custom` | Subscription-based | Z.AI + OpenAI OAuth + Kimi + DeepSeek | GLM-5.2 (orchestrator/librarian/fixer), GPT-5.6 Sol (oracle), GPT-5.6 Terra (explorer), Kimi K2.7 Code (designer/observer), DeepSeek V4 Pro (council) |
 | `openai` | OpenAI-first via OAuth | OpenAI OAuth (`/connect`) | GPT-5.6 Sol (orchestrator/oracle/fixer/council), GPT-5.6 Terra (explorer/librarian/designer/observer) |
+| `openai-fast` | Opt-in faster OpenAI route | OpenAI OAuth (`/connect`) | Fast/Priority transport with the same GPT-5.6 Sol/Terra role configuration as `openai` |
 
 **The default `balanced` and budget `cheap` presets work fully with just an OpenRouter key.** The other presets require additional API keys or subscriptions for their primary routes.
+
+`openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`. Its roles, capabilities, reasoning effort, fallbacks, and council configuration are identical. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 usage multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
 ### Per-Project Config
 
