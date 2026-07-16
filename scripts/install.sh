@@ -36,6 +36,14 @@ ENABLE_ZAI_MCPS=0
 ZAI_KEY=""
 SETUP_SECRETS=1
 
+# Preserve-only configs are never modified when already present.
+OPENCODE_CONFIG_PREEXISTED=0
+SLIM_CONFIG_PREEXISTED=0
+PROFILE_CONFIG_PREEXISTED=0
+[[ -f "$OPENCODE_DIR/opencode.json" ]] && OPENCODE_CONFIG_PREEXISTED=1
+[[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]] && SLIM_CONFIG_PREEXISTED=1
+[[ -f "$OPENCODE_DIR/model-profile.jsonc" ]] && PROFILE_CONFIG_PREEXISTED=1
+
 # ── Helpers ──────────────────────────────────────────────────────────
 _usage() {
   echo "Usage: $0 [--unattended] [--dry-run] [--preset NAME] [--providers CSV] [--no-defuddle] [--no-agent-browser] [--no-obsidian] [--no-cron] [--no-path] [--enable-zai] [--zai-key KEY]"
@@ -119,6 +127,20 @@ if [[ "$UNATTENDED" -eq 1 ]]; then
     echo -e "${YELLOW}Note: deepseek preset requires OpenRouter. Adding to providers.${RESET}" >&2
     PROVIDERS="${PROVIDERS:+$PROVIDERS,}openrouter"
   fi
+  if [[ "$PRESET" == "kimi" ]]; then
+    if [[ "$PROVIDERS" != *"kimi"* ]]; then
+      echo -e "${YELLOW}Note: kimi preset requires Kimi. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}kimi"
+    fi
+    if [[ "$PROVIDERS" != *"openai"* ]]; then
+      echo -e "${YELLOW}Note: kimi preset uses OpenAI support roles. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai"
+    fi
+    if [[ "$PROVIDERS" != *"deepseek"* ]]; then
+      echo -e "${YELLOW}Note: kimi preset uses direct DeepSeek fallbacks/council. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
+    fi
+  fi
 fi
 
 # ── Header ───────────────────────────────────────────────────────────
@@ -175,7 +197,9 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
 
   # Auto-recommend preset
   _rec="balanced"
-  if [[ "$PROVIDERS" == *"openai"* ]]; then
+  if [[ "$PROVIDERS" == *"kimi"* && "$PROVIDERS" == *"openai"* && "$PROVIDERS" == *"deepseek"* ]]; then
+    _rec="kimi"
+  elif [[ "$PROVIDERS" == *"openai"* ]]; then
     _rec="openai"
   elif [[ "$PROVIDERS" == *"anthropic"* ]]; then
     _rec="premium"
@@ -192,6 +216,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     premium)   _def_num=4 ;;
     custom)    _def_num=5 ;;
     openai)    _def_num=6 ;;
+    kimi)      _def_num=8 ;;
     *)         _def_num=1 ;;
   esac
 
@@ -203,6 +228,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  5) custom    $([[ "$_rec" == "custom" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "")"
   echo "  6) openai     $([[ "$_rec" == "openai" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (ChatGPT Plus OAuth via /connect)"
   echo "  7) openai-fast (opt-in OAuth Fast/Priority; increased usage)"
+  echo "  8) kimi       $([[ "$_rec" == "kimi" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (K3 1M + OpenAI support roles)"
   read -rp "  Enter number [$_def_num]: " _q2 < /dev/tty
   _q2="${_q2:-$_def_num}"
   case "$_q2" in
@@ -212,6 +238,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     5) PRESET="custom" ;;
     6) PRESET="openai" ;;
     7) PRESET="openai-fast" ;;
+    8) PRESET="kimi" ;;
     *) PRESET="balanced" ;;
   esac
   echo -e "  ${GREEN}→${RESET} $PRESET"
@@ -220,6 +247,20 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   if [[ "$PRESET" == "deepseek" && "$PROVIDERS" != *"openrouter"* ]]; then
     echo -e "  ${YELLOW}⚠${RESET} The deepseek preset uses OpenRouter for designer/observer. Adding openrouter to providers."
     PROVIDERS="${PROVIDERS:+$PROVIDERS,}openrouter"
+  fi
+  if [[ "$PRESET" == "kimi" ]]; then
+    if [[ "$PROVIDERS" != *"kimi"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The kimi preset requires Kimi. Adding kimi to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}kimi"
+    fi
+    if [[ "$PROVIDERS" != *"openai"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The kimi preset uses OpenAI support roles. Adding openai to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai"
+    fi
+    if [[ "$PROVIDERS" != *"deepseek"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The kimi preset uses direct DeepSeek fallbacks/council. Adding deepseek to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
+    fi
   fi
   echo ""
 
@@ -283,7 +324,7 @@ fi
 # Validate preset before summary/dry-run.
 if [[ -n "${PRESET:-}" ]]; then
   case "$PRESET" in
-    custom|balanced|cheap|premium|deepseek|openai|openai-fast) ;;
+    custom|balanced|cheap|premium|deepseek|openai|openai-fast|kimi) ;;
     *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
   esac
 fi
@@ -338,6 +379,37 @@ if [[ "$PRESET" == "openai-fast" ]]; then
         --require-openai-fast \
         --quiet; then
     _fast_config_error
+  fi
+fi
+
+_kimi_config_error() {
+  echo -e "${RED}Error: kimi is unavailable in the effective configuration.${RESET}" >&2
+  echo "  Upgrade or merge opencode.json, oh-my-opencode-slim.json, and model-profile.jsonc, then retry; no files were changed." >&2
+  exit 1
+}
+
+if [[ "$PRESET" == "kimi" ]]; then
+  _kimi_core="$(_effective_config opencode.json)" || _kimi_config_error
+  _kimi_slim="$(_effective_config oh-my-opencode-slim.json)" || _kimi_config_error
+  _kimi_profile="$(_effective_config model-profile.jsonc)" || _kimi_config_error
+  _kimi_doctor="$REPO_ROOT/scripts/doctor-model-check.py"
+  _kimi_generator="$REPO_ROOT/scripts/model-profile.py"
+
+  [[ -f "$_kimi_doctor" && -f "$_kimi_generator" ]] || _kimi_config_error
+
+  if ! python3 "$_kimi_doctor" \
+      --core-config "$_kimi_core" \
+      --slim-config "$_kimi_slim" \
+      --quiet; then
+    _kimi_config_error
+  fi
+
+  if ! python3 "$_kimi_generator" "$_kimi_profile" 2>/dev/null |
+      python3 "$_kimi_doctor" \
+        --core-config "$_kimi_core" \
+        --slim-config /dev/stdin \
+        --quiet; then
+    _kimi_config_error
   fi
 fi
 
@@ -419,32 +491,53 @@ _preserve_copy() {
   fi
 }
 
-_preserve_copy "$REPO_ROOT/config/opencode.json" "$OPENCODE_DIR/opencode.json" "opencode.json"
-_preserve_copy "$REPO_ROOT/config/oh-my-opencode-slim.json" "$OPENCODE_DIR/oh-my-opencode-slim.json" "oh-my-opencode-slim.json"
+_preserve_bundled_config() {
+  local name="$1"
+  local src
+  if src="$(_bundled_config "$name")"; then
+    _preserve_copy "$src" "$OPENCODE_DIR/$name" "$name"
+  else
+    echo -e "  ${YELLOW}⚠${RESET} $name not found in source"
+  fi
+}
+
+_preserve_bundled_config "opencode.json"
+_preserve_bundled_config "oh-my-opencode-slim.json"
 _preserve_copy "$REPO_ROOT/AGENTS.md" "$OPENCODE_DIR/AGENTS.md" "AGENTS.md"
 # Note: ~/.agents/AGENTS.md is managed by occams-agentic bootstrap.sh.
-_preserve_copy "$REPO_ROOT/config/model-profile.jsonc" "$OPENCODE_DIR/model-profile.jsonc" "model-profile.jsonc"
+_preserve_bundled_config "model-profile.jsonc"
 
 # ── Set preset in config files ───────────────────────────────────
 if [[ -n "${PRESET:-}" ]]; then
   # Update oh-my-opencode-slim.json (preset + council.default_preset)
   if [[ -f "$OPENCODE_DIR/oh-my-opencode-slim.json" ]]; then
-    jq --arg p "$PRESET" '.preset = $p | .council.default_preset = $p' \
-      "$OPENCODE_DIR/oh-my-opencode-slim.json" > /tmp/oc-slim-$$.json \
-      && mv /tmp/oc-slim-$$.json "$OPENCODE_DIR/oh-my-opencode-slim.json"
-    echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in oh-my-opencode-slim.json"
+    if [[ "$SLIM_CONFIG_PREEXISTED" -eq 0 ]]; then
+      jq --arg p "$PRESET" '.preset = $p | .council.default_preset = $p' \
+        "$OPENCODE_DIR/oh-my-opencode-slim.json" > /tmp/oc-slim-$$.json \
+        && mv /tmp/oc-slim-$$.json "$OPENCODE_DIR/oh-my-opencode-slim.json"
+      echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in oh-my-opencode-slim.json"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} existing oh-my-opencode-slim.json preserved; preset unchanged"
+    fi
   fi
 
   # Update model-profile.jsonc (sed preserves JSONC comments)
   if [[ -f "$OPENCODE_DIR/model-profile.jsonc" ]]; then
-    sed -i 's/"preset": "[^"]*"/"preset": "'"$PRESET"'"/' "$OPENCODE_DIR/model-profile.jsonc"
-    echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in model-profile.jsonc"
+    if [[ "$PROFILE_CONFIG_PREEXISTED" -eq 0 ]]; then
+      sed -i 's/"preset": "[^"]*"/"preset": "'"$PRESET"'"/' "$OPENCODE_DIR/model-profile.jsonc"
+      echo -e "  ${GREEN}✓${RESET} preset set to '$PRESET' in model-profile.jsonc"
+    else
+      echo -e "  ${YELLOW}⊙${RESET} existing model-profile.jsonc preserved; preset unchanged"
+    fi
   fi
 fi
 
 # ── Z.AI MCP injection ───────────────────────────────────────────────
 if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.json" ]]; then
-  jq '
+  if [[ "$OPENCODE_CONFIG_PREEXISTED" -eq 1 ]]; then
+    echo -e "  ${YELLOW}⊙${RESET} existing opencode.json preserved; merge Z.AI MCPs manually"
+  else
+    jq '
     .mcp.zai_vision = {
       "type": "local",
       "command": ["npx", "-y", "@z_ai/mcp-server"],
@@ -459,9 +552,10 @@ if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.js
       "enabled": true,
       "timeout": 60000
     }
-  ' "$OPENCODE_DIR/opencode.json" > /tmp/oc-json-$$.json \
-    && mv /tmp/oc-json-$$.json "$OPENCODE_DIR/opencode.json"
-  echo -e "  ${GREEN}✓${RESET} Z.AI MCPs added to opencode.json (key via {env:Z_AI_API_KEY} placeholder)"
+    ' "$OPENCODE_DIR/opencode.json" > /tmp/oc-json-$$.json \
+      && mv /tmp/oc-json-$$.json "$OPENCODE_DIR/opencode.json"
+    echo -e "  ${GREEN}✓${RESET} Z.AI MCPs added to opencode.json (key via {env:Z_AI_API_KEY} placeholder)"
+  fi
 fi
 
 # ── Wiki (managed by occams-agentic) ──────────────────────────────────

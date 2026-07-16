@@ -38,10 +38,14 @@ You need **at least one** provider. The default `balanced` preset works with jus
 | DeepSeek | https://platform.deepseek.com/api_keys | Direct V4 Pro / V4 Flash (best DeepSeek experience) |
 | Anthropic | https://console.anthropic.com | `premium` preset (Claude Opus 4.7) |
 | Z.AI | https://z.ai | `custom` preset + Z.AI MCPs (subscription) |
-| Kimi for Coding | https://platform.moonshot.cn | `custom` preset (subscription) |
+| Kimi for Coding | https://platform.moonshot.cn | `custom` or K3-first `kimi` preset (subscription) |
 | OpenAI | `/connect` inside OpenCode | Recommended `openai`, or opt-in `openai-fast` (ChatGPT Plus OAuth) |
 
 `openai-fast` uses the OAuth Fast/Priority route while keeping `openai`'s GPT-5.6 Sol/Terra roles, capabilities, reasoning, fallbacks, and council unchanged. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
+
+The `kimi` preset uses intrinsic-max Kimi K3 1M for orchestrator/fixer, OpenAI OAuth support roles, and direct DeepSeek fallbacks/council. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
+
+Fresh installs provision the bundled K3 model, profile, and generated config directly. Existing installations keep preserve-only user configs unchanged. If those configs predate Kimi support, merge or sync bundled `config/opencode.json`, `config/model-profile.jsonc`, and `config/oh-my-opencode-slim.json` before selecting `--preset kimi`; the installer preflight fails safely instead of overwriting them.
 
 ---
 
@@ -66,7 +70,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 The installer asks:
 
 1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
-2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast`) — interactively recommended from providers; OpenAI recommends normal `openai` (unattended default: `balanced`)
+2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi`) — interactively recommended from providers; Kimi + OpenAI + DeepSeek recommends `kimi`, while OpenAI alone recommends normal `openai` (unattended default: `balanced`)
 3. **Z.AI MCPs** — only asked if you selected Z.AI; adds `zai_vision` + `web-search-prime` MCP blocks with `{env:Z_AI_API_KEY}` placeholder (your key is stored in `~/.config/secrets/env`)
 4. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
 5. **Weekly cron** for log cleanup
@@ -166,7 +170,7 @@ OCCAM_SETUP_PATH=1 \
 | Variable | Values | Default |
 |----------|--------|---------|
 | `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi,openai` | `openrouter` |
-| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` | `balanced` |
+| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
 | `OCCAM_INSTALL_DEFUDDLE` | `0` / `1` | `1` |
@@ -189,6 +193,12 @@ Preview the opt-in Fast preset without writing:
 
 ```bash
 ./scripts/install.sh --unattended --dry-run --providers openai --preset openai-fast
+```
+
+Preview the Kimi preset and its configuration preflight without writing:
+
+```bash
+./scripts/install.sh --unattended --dry-run --providers kimi,openai,deepseek --preset kimi
 ```
 
 The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.

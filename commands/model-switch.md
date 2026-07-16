@@ -8,22 +8,21 @@ description: Switch which model runs which agent role (global or per-project)
 
 Both come from one file: `~/.config/opencode/model-profile.jsonc`.
 
-Every model in your config already has a temperature example in at least one preset. To find the right value for a model:
+Every temperature-capable model in your config has an example in at least one preset. To find the right value for a model:
 1. Search for that model string across all presets in `model-profile.jsonc`
 2. Copy its `"temperature"` field — same model, same temp regardless of role
 
-Temperature is always set explicitly for every agent. For thinking-mode models
-(Kimi, DeepSeek V4 Pro), the API ignores temperature — use these values for
-consistency with the plugin defaults:
+Temperature is set explicitly except for Kimi K3, whose model definition
+suppresses it. For thinking-mode models, use these rules:
 - DeepSeek V4 Pro: 0.8 (explorer), 1.0 (council)
-- Kimi K2.7 Code: 1.0 (API-locked — `temperature: false` in config)
+- Kimi K3: omit `temperature` and use `"variant": null`; intrinsic model effort is max
 - GLM 5.2: 0.8 (orchestrator/librarian/fixer)
 - Claude: 0.6 (premium preset)
 - All other models: 1.0 unless you have a specific reason to lower it
 
 ## Global model switch (applies everywhere)
 
-Valid presets: `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`.
+Valid presets (8): `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`, `kimi`.
 Valid agents: `orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`, `observer`.
 
 `openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`; model roles, capabilities, reasoning, fallbacks, and council stay identical.

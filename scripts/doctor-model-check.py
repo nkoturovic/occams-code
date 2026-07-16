@@ -24,6 +24,7 @@ import contextlib
 import copy
 import importlib.util
 import io
+import tempfile
 from pathlib import Path
 
 # ── ansi ────────────────────────────────────────────────────────────────
@@ -126,8 +127,7 @@ def check_temperature(core: dict) -> tuple[int, int]:
     """C1: temperature flag present on every custom-provider (npm) model.
 
     `temperature: true`  → exposed to the model (pass)
-    `temperature: false` → intentional suppression (pass; e.g. K2.7 Code
-                            locks temperature at 1.0)
+    `temperature: false` → intentional suppression (pass; e.g. Kimi K3)
     missing / None       → CRITICAL (plugin temperatures silently dropped)
     """
     errors = warnings = 0
@@ -299,6 +299,256 @@ OPENAI_FAST_SPEC = {
     },
 }
 
+EXPECTED_PRESETS = {
+    "custom", "balanced", "premium", "deepseek", "cheap", "openai",
+    "openai-fast", "kimi",
+}
+KIMI_MODEL_REF = "kimi-for-coding/kimi-k3-1m"
+SOL_HIGH_MODEL_REF = "openai/gpt-5.6-sol-high"
+KIMI_MODEL_SPEC = {
+    "id": "k3[1m]",
+    "name": "Kimi K3 1M (Kimi Coding API)",
+    "reasoning": True,
+    "temperature": False,
+    "limit": {"context": 1048576, "output": 131072},
+    "modalities": {"input": ["text", "image"], "output": ["text"]},
+    "attachment": True,
+    "options": {"effort": "max"},
+    "variants": {
+        "high": {"disabled": True},
+        "max": {"disabled": True},
+    },
+}
+OPENROUTER_KIMI_MODEL_SPEC = {
+    "name": "Kimi K3 (via OpenRouter)",
+    "reasoning": True,
+    "temperature": False,
+    "limit": {"context": 1048576, "output": 131072},
+    "modalities": {"input": ["text", "image"], "output": ["text"]},
+    "attachment": True,
+}
+SOL_HIGH_MODEL_SPEC = {
+    "id": "gpt-5.6-sol",
+    "name": "GPT-5.6 Sol High (ChatGPT OAuth)",
+    "limit": {"context": 500000, "input": 372000, "output": 128000},
+    "options": {"reasoningEffort": "high"},
+    "variants": {"max": {"disabled": True}},
+}
+KIMI_COUNCIL_SPEC = {
+    "reviewer-1": {"model": KIMI_MODEL_REF},
+    "reviewer-2": {"model": "openai/gpt-5.5", "variant": "xhigh"},
+    "reviewer-3": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+    },
+}
+
+
+def check_kimi_profile(
+    core: dict,
+    slim: dict,
+    *,
+    expected_default: str | None = None,
+) -> tuple[int, int]:
+    """Validate the exact K3 preset, intrinsic effort, and fallback alias contract."""
+    errors = warnings = 0
+
+    def require(label: str, predicate: bool, detail: str) -> None:
+        nonlocal errors, warnings
+        errors, warnings = check(
+            "CRITICAL", label, predicate, detail, errors, warnings
+        )
+
+    def first_model(entry: dict) -> str | None:
+        value = entry.get("model") if isinstance(entry, dict) else None
+        if isinstance(value, list) and value:
+            first = value[0]
+            return first.get("id") if isinstance(first, dict) else first
+        return value if isinstance(value, str) else None
+
+    def collect_string_paths(value, path: str = "") -> list[tuple[str, str]]:
+        found = []
+        if isinstance(value, str):
+            found.append((path, value))
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                found.extend(collect_string_paths(item, f"{path}[{index}]"))
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                child = f"{path}.{key}" if path else key
+                found.append((f"{child}#key", str(key)))
+                found.extend(collect_string_paths(item, child))
+        return found
+
+    presets = slim.get("presets", {})
+    council_presets = slim.get("council", {}).get("presets", {})
+    require(
+        "exact eight agent presets",
+        isinstance(presets, dict) and set(presets) == EXPECTED_PRESETS,
+        f"expected {sorted(EXPECTED_PRESETS)}",
+    )
+    require(
+        "exact eight council presets",
+        isinstance(council_presets, dict)
+        and set(council_presets) == EXPECTED_PRESETS,
+        f"expected {sorted(EXPECTED_PRESETS)}",
+    )
+
+    kimi_models = (
+        core.get("provider", {}).get("kimi-for-coding", {}).get("models", {})
+    )
+    require(
+        "sole direct Kimi model is K3 1M",
+        isinstance(kimi_models, dict) and set(kimi_models) == {"kimi-k3-1m"},
+        "expected only kimi-for-coding/kimi-k3-1m",
+    )
+    require(
+        "exact intrinsic-max K3 model config",
+        isinstance(kimi_models, dict)
+        and kimi_models.get("kimi-k3-1m") == KIMI_MODEL_SPEC,
+        "K3 must map to k3[1m], omit temperature support, use 1M/128K limits, "
+        "base effort max, and disable high/max variants",
+    )
+
+    openai_models = core.get("provider", {}).get("openai", {}).get("models", {})
+    require(
+        "exact Sol-high alias config",
+        isinstance(openai_models, dict)
+        and openai_models.get("gpt-5.6-sol-high") == SOL_HIGH_MODEL_SPEC,
+        "alias must map to gpt-5.6-sol with base high effort and disabled max",
+    )
+    openrouter_models = (
+        core.get("provider", {}).get("openrouter", {}).get("models", {})
+    )
+    require(
+        "exact OpenRouter K3 fallback model config",
+        isinstance(openrouter_models, dict)
+        and openrouter_models.get("moonshotai/kimi-k3")
+        == OPENROUTER_KIMI_MODEL_SPEC,
+        "OpenRouter K3 must use the configured name, capabilities, 1M/128K "
+        "limits, text+image input, text output, and attachments",
+    )
+
+    kimi = presets.get("kimi", {}) if isinstance(presets, dict) else {}
+    expected_roles = {
+        "orchestrator": (KIMI_MODEL_REF, None, None),
+        "oracle": ("openai/gpt-5.5", "xhigh", 0.2),
+        "librarian": ("openai/gpt-5.6-sol", "high", 0.2),
+        "explorer": ("openai/gpt-5.6-sol", "high", 0.1),
+        "fixer": (KIMI_MODEL_REF, None, None),
+        "designer": ("openai/gpt-5.6-sol", "high", 0.4),
+        "observer": ("openai/gpt-5.6-sol", "high", 0.2),
+        "council": ("openai/gpt-5.6-sol", "high", 0.2),
+    }
+    require(
+        "exact Kimi preset roles",
+        isinstance(kimi, dict) and set(kimi) == set(expected_roles),
+        f"expected roles {sorted(expected_roles)}",
+    )
+    for role, (expected_model, expected_variant, expected_temperature) in expected_roles.items():
+        entry = kimi.get(role, {}) if isinstance(kimi, dict) else {}
+        require(
+            f"Kimi {role} primary model",
+            first_model(entry) == expected_model,
+            f"expected {expected_model}",
+        )
+        if expected_variant is None:
+            require(
+                f"Kimi {role} has no top-level variant",
+                "variant" not in entry,
+                "intrinsic K3 effort must not be overridden",
+            )
+        else:
+            require(
+                f"Kimi {role} variant",
+                entry.get("variant") == expected_variant,
+                f"expected {expected_variant}",
+            )
+        if expected_temperature is None:
+            require(
+                f"Kimi {role} has no temperature",
+                "temperature" not in entry,
+                "K3 suppresses temperature",
+            )
+        else:
+            require(
+                f"Kimi {role} temperature",
+                entry.get("temperature") == expected_temperature,
+                f"expected {expected_temperature}",
+            )
+
+    for preset_name, roles in presets.items() if isinstance(presets, dict) else ():
+        if not isinstance(roles, dict):
+            continue
+        for role, entry in roles.items():
+            if first_model(entry) != KIMI_MODEL_REF:
+                continue
+            require(
+                f"Direct K3 primary has no top-level variant: {preset_name}.{role}",
+                "variant" not in entry,
+                "intrinsic K3 effort must not be overridden",
+            )
+            require(
+                f"Direct K3 primary has no temperature: {preset_name}.{role}",
+                "temperature" not in entry,
+                "K3 suppresses temperature",
+            )
+
+    allowed_alias_paths = {
+        "presets.kimi.orchestrator.model[1]",
+        "presets.kimi.fixer.model[1]",
+    }
+    alias_paths = {
+        path
+        for path, value in collect_string_paths(slim)
+        if value == SOL_HIGH_MODEL_REF
+    }
+    require(
+        "Sol-high alias restricted to Kimi first fallbacks",
+        alias_paths == allowed_alias_paths,
+        f"expected alias only at {sorted(allowed_alias_paths)}; got {sorted(alias_paths)}",
+    )
+    for role in ("orchestrator", "fixer"):
+        models = kimi.get(role, {}).get("model") if isinstance(kimi, dict) else None
+        require(
+            f"Kimi {role} first fallback is Sol-high alias",
+            isinstance(models, list)
+            and len(models) > 1
+            and models[1] == SOL_HIGH_MODEL_REF,
+            f"expected {SOL_HIGH_MODEL_REF} at model[1]",
+        )
+
+    require(
+        "exact Kimi council composition",
+        council_presets.get("kimi") == KIMI_COUNCIL_SPEC
+        if isinstance(council_presets, dict) else False,
+        "expected K3 intrinsic max, GPT-5.5 xhigh, and DeepSeek V4 Pro max",
+    )
+
+    active_strings = collect_string_paths(core) + collect_string_paths(slim)
+    stale = sorted({
+        value
+        for _path, value in active_strings
+        if "k2.7" in value.lower()
+        or "kimi-k2" in value.lower()
+        or value == "kimi-for-coding/kimi-for-coding"
+    })
+    require(
+        "no active K2.7 IDs",
+        not stale,
+        f"stale active values: {stale}",
+    )
+
+    if expected_default is not None:
+        require(
+            "expected Kimi-migration default preset",
+            slim.get("preset") == expected_default
+            and slim.get("council", {}).get("default_preset") == expected_default,
+            f"expected top-level and council default {expected_default!r}",
+        )
+
+    return errors, warnings
+
 
 def check_openai_fast_parity(
     core: dict,
@@ -449,12 +699,14 @@ def check_openai_fast_parity(
 
     if baseline is not None:
         existing_presets = {
-            name: value for name, value in presets.items() if name != "openai-fast"
+            name: value
+            for name, value in presets.items()
+            if name not in {"openai-fast", "kimi"}
         }
         existing_council = {
             name: value
             for name, value in council_presets.items()
-            if name != "openai-fast"
+            if name not in {"openai-fast", "kimi"}
         }
         require(
             "pre-existing preset baseline",
@@ -500,6 +752,36 @@ def check_openai_fast_parity(
         )
 
     return errors, warnings
+
+
+def discover_self_test_configs() -> tuple[Path, Path, str | None]:
+    """Find the complete repo or installed-root config pair for self-tests."""
+    root = Path(__file__).resolve().parent.parent
+    candidates = (
+        (
+            "repository",
+            root / "config" / "opencode.json",
+            root / "config" / "oh-my-opencode-slim.json",
+            "balanced",
+        ),
+        (
+            "installed",
+            root / "opencode.json",
+            root / "oh-my-opencode-slim.json",
+            None,
+        ),
+    )
+    for _layout, core_path, slim_path, expected_default in candidates:
+        if core_path.is_file() and slim_path.is_file():
+            return core_path, slim_path, expected_default
+
+    attempted = "; ".join(
+        f"{layout}: {core_path}, {slim_path}"
+        for layout, core_path, slim_path, _expected_default in candidates
+    )
+    raise FileNotFoundError(
+        f"Self-test requires a complete repository or installed config pair; tried {attempted}"
+    )
 
 
 def run_self_test() -> int:
@@ -751,6 +1033,44 @@ def run_self_test() -> int:
     approved_dedupe = OPENAI_FAST_REFERENCE_EQUIVALENCE
     assert generator.FAST_MODEL_DEDUPE_EQUIVALENCE == approved_dedupe
 
+    with tempfile.TemporaryDirectory(prefix="model-profile-self-test-") as tmp:
+        tmp_path = Path(tmp)
+        profile_path = tmp_path / "profile.jsonc"
+        output_path = tmp_path / "output.json"
+        profile_path.write_text('{"preset":"custom","presets":{}}\n', encoding="utf-8")
+        stdout = io.StringIO()
+        original_argv = generator.sys.argv
+        try:
+            generator.sys.argv = [str(generator_path), str(profile_path)]
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
+                assert generator.main() == 0
+            generator.sys.argv = [str(generator_path), str(profile_path), str(output_path)]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                assert generator.main() == 0
+        finally:
+            generator.sys.argv = original_argv
+        stdout_bytes = stdout.getvalue().encode("utf-8")
+        assert stdout_bytes == output_path.read_bytes(), (
+            "stdout and output-file generator modes differ"
+        )
+        assert stdout_bytes.endswith(b"\n") and not stdout_bytes.endswith(b"\n\n"), (
+            "generator stdout must end in exactly one newline"
+        )
+
+    null_variant = generator.build_agent_config(
+        "fixer", {"model": KIMI_MODEL_REF, "variant": None}, {"fixer": []}
+    )
+    assert "variant" not in null_variant, "explicit null variant was emitted"
+    assert "temperature" not in null_variant, "absent temperature was emitted"
+    non_null_variant = generator.build_agent_config(
+        "fixer", {"model": KIMI_MODEL_REF, "variant": "max"}, {"fixer": []}
+    )
+    assert non_null_variant["variant"] == "max", "non-null variant changed"
+    default_variant = generator.build_agent_config(
+        "fixer", {"model": KIMI_MODEL_REF}, {"fixer": []}
+    )
+    assert default_variant["variant"] == "high", "default variant behavior changed"
+
     def generated_models(candidates: list[str]):
         config = generator.build_agent_config(
             "orchestrator",
@@ -793,10 +1113,52 @@ def run_self_test() -> int:
     assert generated_council["openai"] == reviewers
     assert generated_council["openai-fast"] == fast_reviewers
 
+    core_path, slim_path, expected_default = discover_self_test_configs()
+    public_core = load_json(str(core_path))
+    public_slim = load_json(str(slim_path))
+    if expected_default is None:
+        expected_default = public_slim.get("preset")
+        assert isinstance(expected_default, str) and expected_default, (
+            "installed config must declare a non-empty default preset"
+        )
+    public_errors, _ = check_kimi_profile(
+        public_core, public_slim, expected_default=expected_default
+    )
+    assert public_errors == 0, "valid public Kimi profile was rejected"
+
+    def assert_kimi_mutation_rejected(name: str, edit) -> None:
+        mutated_core = copy.deepcopy(public_core)
+        mutated_slim = copy.deepcopy(public_slim)
+        edit(mutated_core, mutated_slim)
+        with contextlib.redirect_stdout(io.StringIO()):
+            mutation_errors, _ = check_kimi_profile(
+                mutated_core, mutated_slim, expected_default=expected_default
+            )
+        assert mutation_errors > 0, f"Kimi mutation was accepted: {name}"
+
+    drift_default = "openai-fast" if expected_default != "openai-fast" else "balanced"
+    kimi_mutations = {
+        "missing agent preset": lambda _core, slim: slim["presets"].pop("cheap"),
+        "missing council preset": lambda _core, slim: slim["council"]["presets"].pop("cheap"),
+        "K3 effort drift": lambda core, _slim: core["provider"]["kimi-for-coding"]["models"]["kimi-k3-1m"]["options"].update(effort="high"),
+        "OpenRouter K3 limit drift": lambda core, _slim: core["provider"]["openrouter"]["models"]["moonshotai/kimi-k3"]["limit"].update(context=1),
+        "Sol-high effort drift": lambda core, _slim: core["provider"]["openai"]["models"]["gpt-5.6-sol-high"]["options"].update(reasoningEffort="xhigh"),
+        "K3 top-level variant": lambda _core, slim: slim["presets"]["kimi"]["fixer"].update(variant="max"),
+        "non-kimi direct K3 controls": lambda _core, slim: slim["presets"]["custom"]["designer"].update(model=KIMI_MODEL_REF, variant="max", temperature=1.0),
+        "wrong first fallback": lambda _core, slim: slim["presets"]["kimi"]["orchestrator"]["model"].__setitem__(1, "openai/gpt-5.6-sol"),
+        "alias in existing preset": lambda _core, slim: slim["presets"]["balanced"]["orchestrator"].update(model=SOL_HIGH_MODEL_REF),
+        "council drift": lambda _core, slim: slim["council"]["presets"]["kimi"]["reviewer-1"].update(variant="max"),
+        "default drift": lambda _core, slim: slim.update(preset=drift_default),
+        "active K2 ID": lambda core, _slim: core["provider"]["openrouter"]["models"].update({"moonshotai/kimi-k2.7-code": {}}),
+    }
+    for mutation_name, edit in kimi_mutations.items():
+        assert_kimi_mutation_rejected(mutation_name, edit)
+
     print(
         "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
         "16 directional mutations, exact dedupe map, agent/council alias mapping, "
-        "and stable-first ordering."
+        "stable-first ordering, byte-identical generator output modes, null-variant "
+        "semantics, exact eight-preset Kimi config, and 12 Kimi negative mutations."
     )
     return 0
 
@@ -910,7 +1272,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--self-test", action="store_true",
-        help="Run focused model-reference and OpenAI Fast parity checks",
+        help="Run focused model-reference, OpenAI Fast, and Kimi checks",
     )
     parser.add_argument(
         "--expected-default",
@@ -979,6 +1341,15 @@ def main() -> int:
         expected_default=args.expected_default,
         baseline=baseline,
         require_fast=args.require_openai_fast,
+    )
+    total_errors += e
+    total_warnings += w
+
+    # ── Kimi K3 exact preset and alias contract ──
+    e, w = check_kimi_profile(
+        core,
+        slim,
+        expected_default=args.expected_default,
     )
     total_errors += e
     total_warnings += w

@@ -13,7 +13,7 @@ Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 
 Why this exists:
   - Most of the generated config is repetitive boilerplate
-  - Editing 7 presets × 8 role entries by hand is error-prone
+  - Editing 8 presets × 8 role entries by hand is error-prone
   - When models change, you update one mapping file, regenerate, deploy
 
 Design (Occam's Code):
@@ -114,13 +114,13 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/anthropic/claude-sonnet-4.6",
     ],
     "designer": [
-        "openrouter/moonshotai/kimi-k2.7-code",
+        "openrouter/moonshotai/kimi-k3",
         "openrouter/google/gemini-3.5-flash",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free",
     ],
     "observer": [
-        "openrouter/moonshotai/kimi-k2.7-code",
+        "openrouter/moonshotai/kimi-k3",
         "openrouter/google/gemini-3.5-flash",
         "anthropic/claude-sonnet-4-6",
         "openrouter/qwen/qwen3-coder:free",
@@ -138,7 +138,7 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
         "openrouter/google/gemini-3.5-flash",
     ],
     "fixer": [
-        "kimi-for-coding/kimi-for-coding",
+        "kimi-for-coding/kimi-k3-1m",
         "deepseek/deepseek-v4-pro",
         "openrouter/deepseek/deepseek-v4-pro",
         "openrouter/qwen/qwen3-coder:free",
@@ -175,6 +175,10 @@ PRESET_ROLE_PREFIXES: dict[str, dict[str, list[str | dict[str, str]]]] = {
         "librarian": [{"id": "openai/gpt-5.6-terra", "variant": "xhigh"}],
         "fixer": [{"id": "openai/gpt-5.6-sol", "variant": "xhigh"}],
     },
+    "kimi": {
+        "orchestrator": ["openai/gpt-5.6-sol-high"],
+        "fixer": ["openai/gpt-5.6-sol-high"],
+    },
 }
 
 
@@ -200,13 +204,18 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
         "reviewer-3": {"model": "openrouter/google/gemini-3.5-flash"},
     },
     "deepseek": {
-        "reviewer-1": {"model": "kimi-for-coding/kimi-for-coding"},
+        "reviewer-1": {"model": "kimi-for-coding/kimi-k3-1m"},
         "reviewer-2": {"model": "openrouter/deepseek/deepseek-v4-pro"},
         "reviewer-3": {"model": "openrouter/anthropic/claude-sonnet-4.6"},
     },
     "openai": {
         "reviewer-1": {"model": "zai-coding-plan/glm-5.2", "variant": "max"},
         "reviewer-2": {"model": "openrouter/anthropic/claude-sonnet-4.6", "variant": "high"},
+        "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
+    },
+    "kimi": {
+        "reviewer-1": {"model": "kimi-for-coding/kimi-k3-1m"},
+        "reviewer-2": {"model": "openai/gpt-5.5", "variant": "xhigh"},
         "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
     },
 }
@@ -254,7 +263,7 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     Rules:
       - model: primary, preset-role prefix, then global role chain with stable
         ID-based de-duplication
-      - variant: override > default (orchestrator/designer have no default variant)
+      - variant: non-null override > default; explicit null omits the field
       - temperature: emitted when present in the override
       - skills/mcps: from defaults (override can't change these)
       - model-specific options: not injected; they live in opencode.json
@@ -292,7 +301,8 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     # So it's safe and portable to always include the variant — if you later
     # switch to a model that supports variants, it Just Works.
     if "variant" in override:
-        config["variant"] = override["variant"]
+        if override["variant"] is not None:
+            config["variant"] = override["variant"]
     elif "variant" in defaults:
         config["variant"] = defaults["variant"]
     else:
@@ -443,7 +453,7 @@ def main() -> int:
         Path(sys.argv[2]).write_text(output, encoding="utf-8")
         print(f"✓ Generated {sys.argv[2]}", file=sys.stderr)
     else:
-        print(output)
+        sys.stdout.write(output)
 
     return 0
 

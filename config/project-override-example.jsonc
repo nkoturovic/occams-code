@@ -25,9 +25,9 @@
     //   "model": "openrouter/anthropic/claude-sonnet-4.6"
     // }
 
-    // Enable observer with Kimi multimodal:
+    // Enable observer with Kimi K3 text+image input:
     // "observer": {
-    //   "model": "openrouter/moonshotai/kimi-k2.7-code",
+    //   "model": "openrouter/moonshotai/kimi-k3",
     //   "mcps": ["zai_vision"]
     // }
   }

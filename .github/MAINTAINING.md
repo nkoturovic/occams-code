@@ -70,7 +70,7 @@ These differences are **deliberate** — do not "fix" them:
 | Council default | Your preset | `balanced` |
 | Providers table order | Your primary first | openrouter first |
 | Auth paths | May have personal paths (e.g., `~/.local/share/opencode/auth.json`) | Generic `auth.json` |
-| Presets | May include personal active preset/default | 7 (`balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`) — default remains `balanced`; OpenAI recommends normal `openai` |
+| Presets | May use a different active default | 8 (`balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`, `kimi`) — default remains `balanced`; OpenAI recommends normal `openai` |
 | Per-project config | `.opencode/oh-my-opencode-slim.jsonc` (preferred) or `.json` with personal overrides | Same file, plugin reads natively, deep-merges |
 | Direct provider routing | e.g., `anthropic/claude-sonnet-4-6` (no OpenRouter markup) | OpenRouter for general presets/chains; `custom` may keep subscription providers |
 | Agent workspace | `~/.agents/` | Managed by occams-agentic (bootstrap.sh); occams-code references it |
@@ -98,6 +98,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Default preset must be `balanced`
 - [ ] `openai-fast` stays opt-in and OAuth-specific, with `openai` parity; describe about 1.5× generation speed and increased usage without claiming an unpublished GPT-5.6 multiplier
+- [ ] `kimi` uses direct intrinsic-max `kimi-k3-1m` (`k3[1m]`) for orchestrator/fixer, Sol-high as first fallback, and never changes the repo default from `balanced`
 - [ ] **Z.AI MCPs (zai_vision + web-search-prime): no hardcoded keys** — default `config/opencode.json` may ship them enabled, but only with `{env:Z_AI_API_KEY}` / inherited env placeholders. Never commit a real key. The installer can also inject user-specific MCP blocks when opted in.
 - [ ] `opencode.json.instructions` should include `"~/.agents/AGENTS.md"` (provided by occams-agentic bootstrap.sh)
 - [ ] Observer skills: `["video-analysis", "lecture-notes", "audio-analysis"]` in all presets — keep `audio-analysis` (resolves AGENTS.md inconsistency).
@@ -124,6 +125,10 @@ rg -l '[a-f0-9]{32}\.[A-Za-z0-9]{16,22}' . --type-not binary || echo "✓ no lea
 
 # 3. JSON validity
 jq empty config/opencode.json && jq empty config/oh-my-opencode-slim.json && echo "✓ JSON valid"
+
+# 3a. Generated config matches the public source (never copy live generated JSON)
+python3 scripts/model-profile.py config/model-profile.jsonc /tmp/occams-code-generated.json
+cmp -s config/oh-my-opencode-slim.json /tmp/occams-code-generated.json
 
 # 4. balanced preset is OOB-usable with OpenRouter-only key
 jq -r '.presets.balanced | to_entries[] | "\(.key): \(.value.model)"' config/oh-my-opencode-slim.json

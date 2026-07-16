@@ -31,11 +31,9 @@
       // Librarian: GLM-5.2 has no xhigh; max is its highest effort. Terra is fallback #1.
       "librarian":    { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
       "fixer":        { "model": "zai-coding-plan/glm-5.2", "variant": "max", "temperature": 0.8 },
-      // Kimi K2.7 Code via subscription: multimodal (text+image+video), thinking always on (API-enforced).
-      // temperature: false in opencode.json — value here is documentation only.
-      // Thinking budget uses API default (no agent-level options injected — prevents fallback leak).
-      "designer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
-      "observer":     { "model": "kimi-for-coding/kimi-for-coding", "temperature": 1.0 },
+      // Kimi K3 via subscription: text+image, intrinsic max effort, no temperature.
+      "designer":     { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
+      "observer":     { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
       "council":      { "model": "deepseek/deepseek-v4-pro", "variant": "max", "temperature": 1.0 }
     },
 
@@ -112,6 +110,19 @@
       "designer":     { "model": "openai/gpt-5.6-terra-fast", "variant": "xhigh", "temperature": 1.0 },
       "observer":     { "model": "openai/gpt-5.6-terra-fast", "variant": "xhigh", "temperature": 1.0 },
       "council":      { "model": "openai/gpt-5.6-sol-fast", "variant": "max", "temperature": 1.0 }
+    },
+
+    // ============ KIMI (K3 1M intrinsic max + OpenAI support roles) ============
+    "kimi": {
+      // Explicit null omits the top-level variant; K3 max effort is model-level.
+      "orchestrator": { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
+      "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.2 },
+      "librarian":    { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 },
+      "explorer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.1 },
+      "fixer":        { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
+      "designer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.4 },
+      "observer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 },
+      "council":      { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 }
     }
   },
 
@@ -143,7 +154,7 @@
         "reviewer-3": { "model": "openrouter/google/gemini-3.5-flash" }
       },
       "deepseek": {
-        "reviewer-1": { "model": "kimi-for-coding/kimi-for-coding" },
+        "reviewer-1": { "model": "kimi-for-coding/kimi-k3-1m" },
         "reviewer-2": { "model": "openrouter/deepseek/deepseek-v4-pro" },
         "reviewer-3": { "model": "openrouter/anthropic/claude-sonnet-4.6" }
       },
@@ -159,6 +170,11 @@
       "openai-fast": {
         "reviewer-1": { "model": "zai-coding-plan/glm-5.2", "variant": "max" },
         "reviewer-2": { "model": "openrouter/anthropic/claude-sonnet-4.6", "variant": "high" },
+        "reviewer-3": { "model": "deepseek/deepseek-v4-pro", "variant": "max" }
+      },
+      "kimi": {
+        "reviewer-1": { "model": "kimi-for-coding/kimi-k3-1m" },
+        "reviewer-2": { "model": "openai/gpt-5.5", "variant": "xhigh" },
         "reviewer-3": { "model": "deepseek/deepseek-v4-pro", "variant": "max" }
       }
     }
