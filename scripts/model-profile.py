@@ -216,9 +216,15 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
 
 OPENROUTER_ONLY_PRESETS = {"balanced", "cheap"}
 
+OPENAI_FAST_MODEL_ALIASES = {
+    "openai/gpt-5.6-sol": "openai/gpt-5.6-sol-fast",
+    "openai/gpt-5.6-terra": "openai/gpt-5.6-terra-fast",
+    "openai/gpt-5.6-luna": "openai/gpt-5.6-luna-fast",
+    "openai/gpt-5.5": "openai/gpt-5.5-fast",
+}
+
 FAST_MODEL_DEDUPE_EQUIVALENCE = {
-    "openai/gpt-5.6-sol-fast": "openai/gpt-5.6-sol",
-    "openai/gpt-5.6-terra-fast": "openai/gpt-5.6-terra",
+    fast: base for base, fast in OPENAI_FAST_MODEL_ALIASES.items()
 }
 
 
@@ -227,10 +233,22 @@ def model_id(model: str | dict[str, Any]) -> str:
     return model["id"] if isinstance(model, dict) else model
 
 
+def map_model_refs(value: Any, aliases: dict[str, str] | None) -> Any:
+    """Map exact model references recursively while preserving structure."""
+    if isinstance(value, str):
+        return (aliases or {}).get(value, value)
+    if isinstance(value, list):
+        return [map_model_refs(item, aliases) for item in value]
+    if isinstance(value, dict):
+        return {key: map_model_refs(item, aliases) for key, item in value.items()}
+    return value
+
+
 def build_agent_config(agent_name: str, override: dict[str, Any],
                        fallback_chains: dict[str, list[str]] | None = None,
                        *, fallback_prefix: list[str | dict[str, str]] | None = None,
-                       openrouter_only: bool = False) -> dict[str, Any]:
+                       openrouter_only: bool = False,
+                       model_aliases: dict[str, str] | None = None) -> dict[str, Any]:
     """Merge per-agent defaults with preset-specific overrides.
 
     Rules:
@@ -245,13 +263,14 @@ def build_agent_config(agent_name: str, override: dict[str, Any],
     config: dict[str, Any] = {}
 
     # Build model array for the v2.0.4+ fallback mechanism.
-    primary = override["model"]
     chains = fallback_chains or {}
     candidates: list[str | dict[str, Any]] = [
-        primary,
+        override["model"],
         *(fallback_prefix or []),
         *chains.get(agent_name, []),
     ]
+    candidates = [map_model_refs(model, model_aliases) for model in candidates]
+    primary = candidates[0]
     if openrouter_only:
         candidates = [model for model in candidates if model_id(model).startswith("openrouter/")]
 
@@ -318,6 +337,9 @@ def build_presets(preset_map: dict[str, dict[str, Any]],
                 fallback_chains,
                 fallback_prefix=PRESET_ROLE_PREFIXES.get(preset_name, {}).get(agent_name),
                 openrouter_only=preset_name in OPENROUTER_ONLY_PRESETS,
+                model_aliases=(
+                    OPENAI_FAST_MODEL_ALIASES if preset_name == "openai-fast" else None
+                ),
             )
         presets[preset_name] = preset_agents
 
@@ -338,14 +360,20 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
     # Allowed keys per reviewer (omo-slim CouncillorConfigSchema)
     REVIEWER_KEYS = {"model", "variant", "prompt"}
 
-    def _filter_reviewer(raw: dict[str, Any]) -> dict[str, Any]:
-        return {k: v for k, v in raw.items() if k in REVIEWER_KEYS}
+    def _filter_reviewer(raw: dict[str, Any], *, fast: bool = False) -> dict[str, Any]:
+        reviewer = {k: v for k, v in raw.items() if k in REVIEWER_KEYS}
+        if fast and "model" in reviewer:
+            reviewer["model"] = map_model_refs(
+                reviewer["model"], OPENAI_FAST_MODEL_ALIASES
+            )
+        return reviewer
 
     # Start from hardcoded defaults
     result: dict[str, Any] = {
         "default_preset": active_preset,
         "councillor_execution_mode": "parallel",
-        "presets": {name: {k: _filter_reviewer(r) for k, r in preset.items()}
+        "presets": {name: {k: _filter_reviewer(r, fast=name == "openai-fast")
+                            for k, r in preset.items()}
                     for name, preset in COUNCIL_PRESETS.items()},
     }
 
@@ -358,7 +386,8 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
         if "presets" in council_map:
             for preset_name, reviewers in council_map["presets"].items():
                 result["presets"][preset_name] = {
-                    k: _filter_reviewer(r) for k, r in reviewers.items()
+                    k: _filter_reviewer(r, fast=preset_name == "openai-fast")
+                    for k, r in reviewers.items()
                 }
 
     return result
@@ -367,7 +396,7 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
     """Generate the complete oh-my-opencode-slim.json from model-map input."""
     return {
-        "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+        "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.2/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
         "multiplexer": model_map.get("multiplexer", {"type": "none"}),

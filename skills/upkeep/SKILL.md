@@ -34,7 +34,15 @@ Universal pieces go to occams-agentic; OpenCode-specific pieces go to occams-cod
 Record current state before changing anything.
 
 1. **Live git status**: `git -C ~/.config/opencode status --short`
-2. **Live versions**: `opencode --version`, `node -p "require('~/.cache/opencode/packages/oh-my-opencode-slim@latest/node_modules/oh-my-opencode-slim/package.json').version"` (adjust spec), `opencode debug config | grep plugin_origins`
+2. **Live versions**:
+   ```bash
+   opencode --version
+   plugin_spec="$(jq -r '.plugin[] | select(startswith("oh-my-opencode-slim@"))' ~/.config/opencode/opencode.json)"
+   node -p "require(process.env.HOME + '/.cache/opencode/packages/${plugin_spec}/node_modules/oh-my-opencode-slim/package.json').version"
+   opencode debug config | grep plugin_origins
+   ```
+   Read the exact configured spec first. The cache directory must match that
+   exact pin; never substitute an `@latest` cache path.
 3. **npm latest**: `npm view oh-my-opencode-slim version` (network; read-only query, OK without approval)
 4. **Repo states**: `git -C ~/personal/repos/occams-code status --short` and `git -C ~/personal/repos/occams-agentic status --short`
 5. **Classify pre-existing dirty changes** in live before staging upgrade edits.

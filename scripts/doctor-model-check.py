@@ -239,6 +239,13 @@ def check_referential_integrity(core: dict, slim: dict) -> tuple[int, int]:
     return errors, warnings
 
 
+OPENAI_FAST_REFERENCE_EQUIVALENCE = {
+    "openai/gpt-5.6-sol-fast": "openai/gpt-5.6-sol",
+    "openai/gpt-5.6-terra-fast": "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-luna-fast": "openai/gpt-5.6-luna",
+    "openai/gpt-5.5-fast": "openai/gpt-5.5",
+}
+
 OPENAI_FAST_SPEC = {
     "gpt-5.6-sol-fast": {
         "base": "gpt-5.6-sol",
@@ -266,6 +273,30 @@ OPENAI_FAST_SPEC = {
             (("variants", "max", "reasoningEffort"), "max", "max variant"),
         ),
     },
+    "gpt-5.6-luna-fast": {
+        "base": "gpt-5.6-luna",
+        "fields": (
+            (("id",), "gpt-5.6-luna", "canonical id"),
+            (("name",), "GPT-5.6 Luna Fast (ChatGPT OAuth)", "name"),
+            (("limit", "context"), 500000, "context limit"),
+            (("limit", "input"), 372000, "input limit"),
+            (("limit", "output"), 128000, "output limit"),
+            (("options", "reasoningEffort"), "xhigh", "xhigh effort"),
+            (("options", "serviceTier"), "priority", "Priority tier"),
+            (("variants", "max", "reasoningEffort"), "max", "max variant"),
+        ),
+    },
+    "gpt-5.5-fast": {
+        "base": "gpt-5.5",
+        "fields": (
+            (("id",), "gpt-5.5", "canonical id"),
+            (("name",), "GPT-5.5 Fast (ChatGPT OAuth)", "name"),
+            (("limit", "context"), 400000, "context limit"),
+            (("limit", "input"), 272000, "input limit"),
+            (("limit", "output"), 128000, "output limit"),
+            (("options", "serviceTier"), "priority", "Priority tier"),
+        ),
+    },
 }
 
 
@@ -286,19 +317,31 @@ def check_openai_fast_parity(
             "CRITICAL", label, predicate, detail, errors, warnings
         )
 
-    canonical_refs = {
-        f"openai/{fast}": f"openai/{spec['base']}"
-        for fast, spec in OPENAI_FAST_SPEC.items()
-    }
-
     def normalize_fast_refs(value):
         if isinstance(value, str):
-            return canonical_refs.get(value, value)
+            return OPENAI_FAST_REFERENCE_EQUIVALENCE.get(value, value)
         if isinstance(value, list):
             return [normalize_fast_refs(item) for item in value]
         if isinstance(value, dict):
             return {key: normalize_fast_refs(item) for key, item in value.items()}
         return value
+
+    base_openai_refs = frozenset(OPENAI_FAST_REFERENCE_EQUIVALENCE.values())
+
+    def find_base_openai_refs(value) -> set[str]:
+        if isinstance(value, str):
+            return {value} if value in base_openai_refs else set()
+        if isinstance(value, list):
+            found = set()
+            for item in value:
+                found.update(find_base_openai_refs(item))
+            return found
+        if isinstance(value, dict):
+            found = set()
+            for item in value.values():
+                found.update(find_base_openai_refs(item))
+            return found
+        return set()
 
     models = core.get("provider", {}).get("openai", {}).get("models", {})
     presets = slim.get("presets", {})
@@ -320,10 +363,24 @@ def check_openai_fast_parity(
     require(
         "complete OpenAI Fast configuration",
         all(surfaces.values()),
-        "both aliases, agent preset, and council preset must be present together",
+        "all configured Fast provider aliases, agent preset, and council preset must be present together",
     )
     if not all(surfaces.values()):
         return errors, warnings
+
+    agent_base_refs = find_base_openai_refs(presets["openai-fast"])
+    require(
+        "openai-fast agent direction",
+        not agent_base_refs,
+        f"base OpenAI IDs are forbidden: {sorted(agent_base_refs)}",
+    )
+
+    council_base_refs = find_base_openai_refs(council_presets["openai-fast"])
+    require(
+        "openai-fast council direction",
+        not council_base_refs,
+        f"base OpenAI IDs are forbidden: {sorted(council_base_refs)}",
+    )
 
     require(
         "openai-fast agent parity",
@@ -335,8 +392,9 @@ def check_openai_fast_parity(
     require(
         "openai-fast council parity",
         "openai" in council_presets
-        and council_presets["openai-fast"] == council_presets.get("openai"),
-        "openai-fast council reviewers must exactly equal openai",
+        and normalize_fast_refs(council_presets["openai-fast"])
+        == council_presets.get("openai"),
+        "normalized openai-fast council reviewers must equal openai",
     )
 
     def field_value(model: dict, path: tuple[str, ...]):
@@ -369,6 +427,8 @@ def check_openai_fast_parity(
         normalized_fast.pop("name", None)
         if isinstance(normalized_fast.get("options"), dict):
             normalized_fast["options"].pop("serviceTier", None)
+            if not normalized_fast["options"]:
+                normalized_fast.pop("options")
         require(
             f"OpenAI Fast provider parity: {fast_id}",
             normalized_fast == models.get(base_id),
@@ -428,6 +488,16 @@ def check_openai_fast_parity(
             models.get("gpt-5.6-terra") == base_models.get("terra"),
             "base Terra provider object changed from checkpoint",
         )
+        require(
+            "baseline OpenAI Luna provider object",
+            models.get("gpt-5.6-luna") == base_models.get("luna"),
+            "base Luna provider object changed from checkpoint",
+        )
+        require(
+            "baseline OpenAI GPT-5.5 provider object",
+            models.get("gpt-5.5") == base_models.get("gpt-5.5"),
+            "base GPT-5.5 provider object changed from checkpoint",
+        )
 
     return errors, warnings
 
@@ -469,6 +539,8 @@ def run_self_test() -> int:
         model.pop("id")
         model.pop("name")
         model["options"].pop("serviceTier")
+        if not model["options"]:
+            model.pop("options")
         return model
 
     parity_core = {"provider": {"openai": {"models": {}}}}
@@ -480,11 +552,37 @@ def run_self_test() -> int:
         "orchestrator": {
             "model": ["openai/gpt-5.6-sol", "test/fallback"],
             "variant": "xhigh",
-        }
+        },
+        "librarian": {
+            "model": [
+                "openai/gpt-5.6-sol",
+                {"id": "openai/gpt-5.6-terra", "variant": "xhigh"},
+            ],
+            "variant": "medium",
+        },
+        "designer": {"model": "openai/gpt-5.6-luna", "variant": "xhigh"},
+        "oracle": {"model": "openai/gpt-5.5", "variant": "xhigh"},
     }
     fast_agent = copy.deepcopy(openai_agent)
     fast_agent["orchestrator"]["model"][0] = "openai/gpt-5.6-sol-fast"
-    reviewers = {"reviewer-1": {"model": "test/reviewer"}}
+    fast_agent["librarian"]["model"][0] = "openai/gpt-5.6-sol-fast"
+    fast_agent["librarian"]["model"][1]["id"] = "openai/gpt-5.6-terra-fast"
+    fast_agent["designer"]["model"] = "openai/gpt-5.6-luna-fast"
+    fast_agent["oracle"]["model"] = "openai/gpt-5.5-fast"
+    reviewers = {
+        "reviewer-1": {"model": "openai/gpt-5.6-sol"},
+        "reviewer-2": {"model": [
+            "openai/gpt-5.5",
+            {"id": "openai/gpt-5.6-terra", "variant": "high"},
+            "openai/gpt-5.6-luna",
+            "test/reviewer",
+        ]},
+    }
+    fast_reviewers = copy.deepcopy(reviewers)
+    fast_reviewers["reviewer-1"]["model"] = "openai/gpt-5.6-sol-fast"
+    fast_reviewers["reviewer-2"]["model"][0] = "openai/gpt-5.5-fast"
+    fast_reviewers["reviewer-2"]["model"][1]["id"] = "openai/gpt-5.6-terra-fast"
+    fast_reviewers["reviewer-2"]["model"][2] = "openai/gpt-5.6-luna-fast"
     parity_slim = {
         "preset": "openai",
         "presets": {
@@ -496,7 +594,7 @@ def run_self_test() -> int:
             "default_preset": "openai",
             "presets": {
                 "openai": reviewers,
-                "openai-fast": copy.deepcopy(reviewers),
+                "openai-fast": fast_reviewers,
                 "balanced": {"reviewer-1": {"model": "test/reviewer"}},
             },
         },
@@ -515,6 +613,8 @@ def run_self_test() -> int:
         "baseModels": {
             "sol": copy.deepcopy(parity_models["gpt-5.6-sol"]),
             "terra": copy.deepcopy(parity_models["gpt-5.6-terra"]),
+            "luna": copy.deepcopy(parity_models["gpt-5.6-luna"]),
+            "gpt-5.5": copy.deepcopy(parity_models["gpt-5.5"]),
         },
     }
     parity_errors, _ = check_openai_fast_parity(
@@ -596,15 +696,59 @@ def run_self_test() -> int:
             )
         assert mutation_errors > 0, f"negative mutation was accepted: {name}"
 
+    agent_shapes = {
+        "agent string": lambda base: {"model": base},
+        "agent list entry": lambda base: {"model": ["test/fallback", base]},
+        "agent dict id": lambda base: {
+            "model": [{"id": base, "variant": "high"}]
+        },
+    }
+    directional_mutations = 0
+    for base in OPENAI_FAST_REFERENCE_EQUIVALENCE.values():
+        for label, build_shape in agent_shapes.items():
+            mutated_slim = copy.deepcopy(parity_slim)
+            shape = build_shape(base)
+            mutated_slim["presets"]["openai"]["directional"] = copy.deepcopy(shape)
+            mutated_slim["presets"]["openai-fast"]["directional"] = shape
+            with contextlib.redirect_stdout(io.StringIO()):
+                directional_errors, _ = check_openai_fast_parity(
+                    parity_core,
+                    mutated_slim,
+                    expected_default="openai",
+                    require_fast=True,
+                )
+            assert directional_errors == 1, (
+                f"{label} did not directionally reject {base}"
+            )
+            directional_mutations += 1
+
+        mutated_slim = copy.deepcopy(parity_slim)
+        reviewer = {
+            "model": ["test/reviewer", {"id": base, "variant": "high"}]
+        }
+        mutated_slim["council"]["presets"]["openai"]["directional"] = (
+            copy.deepcopy(reviewer)
+        )
+        mutated_slim["council"]["presets"]["openai-fast"]["directional"] = reviewer
+        with contextlib.redirect_stdout(io.StringIO()):
+            directional_errors, _ = check_openai_fast_parity(
+                parity_core,
+                mutated_slim,
+                expected_default="openai",
+                require_fast=True,
+            )
+        assert directional_errors == 1, (
+            f"council structure did not directionally reject {base}"
+        )
+        directional_mutations += 1
+    assert directional_mutations == 16
+
     generator_path = Path(__file__).with_name("model-profile.py")
     spec = importlib.util.spec_from_file_location("model_profile_self_test", generator_path)
     assert spec and spec.loader, f"cannot load generator: {generator_path}"
     generator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator)
-    approved_dedupe = {
-        f"openai/{fast}": f"openai/{fast_spec['base']}"
-        for fast, fast_spec in OPENAI_FAST_SPEC.items()
-    }
+    approved_dedupe = OPENAI_FAST_REFERENCE_EQUIVALENCE
     assert generator.FAST_MODEL_DEDUPE_EQUIVALENCE == approved_dedupe
 
     def generated_models(candidates: list[str]):
@@ -621,9 +765,38 @@ def run_self_test() -> int:
     unrelated = ["example/model-fast", "example/model"]
     assert generated_models(unrelated) == unrelated, "unrelated -fast ID was de-duplicated"
 
+    base_candidates = [
+        "openai/gpt-5.6-sol",
+        {"id": "openai/gpt-5.6-terra", "variant": "xhigh"},
+        "openai/gpt-5.6-luna",
+        "openai/gpt-5.5",
+        "example/model",
+    ]
+    mapped_models = generator.build_presets(
+        {"openai-fast": {"designer": {"model": base_candidates[0]}}},
+        {"designer": base_candidates[1:]},
+    )["openai-fast"]["designer"]["model"]
+    assert mapped_models == [
+        "openai/gpt-5.6-sol-fast",
+        {"id": "openai/gpt-5.6-terra-fast", "variant": "xhigh"},
+        "openai/gpt-5.6-luna-fast",
+        "openai/gpt-5.5-fast",
+        "example/model",
+    ], "OpenAI Fast candidate mapping lost aliases or per-model fields"
+
+    generated_council = generator.build_council({
+        "presets": {
+            "openai": copy.deepcopy(reviewers),
+            "openai-fast": copy.deepcopy(reviewers),
+        },
+    })["presets"]
+    assert generated_council["openai"] == reviewers
+    assert generated_council["openai-fast"] == fast_reviewers
+
     print(
-        "Self-test passed: absent/partial gating, 19 independent Fast parity "
-        "mutations, exact dedupe map, and Sol/Terra stable-first ordering."
+        "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
+        "16 directional mutations, exact dedupe map, agent/council alias mapping, "
+        "and stable-first ordering."
     )
     return 0
 

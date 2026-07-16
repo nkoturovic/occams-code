@@ -3,7 +3,7 @@ name: oh-my-opencode-slim
 description: Configure and improve oh-my-opencode-slim for the current user. Use when users want to tune agents, models, prompts, custom agents, skills, MCPs, presets, or plugin behavior. Also use when recurring workflow friction suggests a safe config or prompt improvement.
 ---
 
-# oh-my-opencode-slim v2.1.1 Configuration Skill
+# oh-my-opencode-slim v2.2.2 Configuration Skill
 
 Help users configure, customize, and safely improve their
 oh-my-opencode-slim setup. Prefer the smallest durable change: tune models,
@@ -74,7 +74,7 @@ When a preset is active, prompt files resolve in this order:
 At each location, `{agent}.md` is a full replacement and
 `{agent}_append.md` appends to the selected base prompt.
 
-## v2.1.0 Merge Rules
+## v2.1.0+ Merge Rules
 
 - Project config is loaded automatically at startup; no generator is needed.
 - Project `preset` selects the active preset for that project.
@@ -118,39 +118,64 @@ Cross-preset built-in override:
 }
 ```
 
-## v2.1.1 Features
+## v2.2.2 Runtime and Features
 
-- **Council fallback chains**: a councillor's `model` field now accepts an array
+- **Council fallback chains remain supported**: a councillor's `model` field
+  accepts an array
   for ordered fallback. Entries may be plain model ID strings or `{ "id", "variant" }`
   objects. The chain runs top-to-bottom; the first model that succeeds is used.
 - **`fallback.maxRetries`** (default `3`): number of consecutive rate-limit
   responses before the chain aborts or swaps to the next model.
-- **`fallback.runtimeOverride`** (default `true`): whether an out-of-chain
-  `/model` pick still triggers the fallback chain on failure.
+- **`fallback.runtimeOverride` is deprecated**: it remains schema-accepted but
+  is a no-op. In 2.2.x, interactive `/model` selection opts out of fallback only
+  when the selection is persisted into resolved agent config and differs from
+  that agent's configured chain primary. The opt-out lasts for the rest of the
+  session; switching back to the primary does not re-enable fallback. A
+  request-scoped `opencode run --model ...` does not mutate agent config, so it
+  does not trigger the opt-out and can still enter the configured chain after
+  the requested model fails.
+- **`stripOrchestratorModel`** is optional, but is not recommended for this
+  setup; leave it unset unless there is a separately validated need.
+- **`image_routing`** supports `auto` and `direct`. Omission or `auto` preserves
+  Observer-first image routing; select `direct` only intentionally.
+- **Built-in and preset permission support** is restored. Keep overrides
+  least-privileged and preserve existing permissions unless a task requires a
+  change.
+- **Multiplexer support** now includes cmux in addition to the existing
+  supported backends.
+- **Bundled skills changed**: `verification-planning` is newly bundled.
+  `release-smoke-test` is no longer bundled, but this setup's customized local
+  copy remains available and should be treated as local, not plugin-managed.
 - **`compactSidebar`** now defaults to `true`: the agent sidebar renders
   compactly out of the box; set it `false` to restore the old spacing.
+- **v2.2.2 fixes** harden fallback handling and fix reminder-cache regression
+  and background agent mapping.
+- **Connection-refusal retry limitation**: OpenCode 1.18.3 can normalize a
+  refusal as `Cannot connect to API: Unable to connect...`. omo-slim 2.2.2's
+  transport patterns do not match that shape, so core retry may continue. This
+  shape was also unsupported in 2.1.1 and is not a 2.2.2 regression. Manual
+  cancellation remains the escape hatch for an unbounded retry.
 
 Configure runtime fallback behavior under the top-level `fallback` object.
 Configure a councillor's ordered fallback chain in that councillor's `model`
 array; there is no per-councillor `fallback` object.
+
+Plugin or configuration changes require an OpenCode restart.
 
 ### GPT-5.6 reasoning and OAuth limits
 
 - OpenAI hides raw chain-of-thought by design. OpenCode already requests
   reasoning summaries and encrypted multi-turn continuity; do not duplicate
   those options in agent config.
-- OpenCode 1.17.18 does not generate GPT-5.6's `max` variant. Define `max` in
-  the model's `variants` and keep fallback effort in model-level `options` so
-  cross-provider agent fallback arrays do not leak OpenAI-specific settings.
-- OpenCode 1.17.18 advertises GPT-5.6's larger direct-API context, but the Codex
-  OAuth backend accepts less. Until
-  [issue #36247](https://github.com/anomalyco/opencode/issues/36247) is fixed,
-  set each local GPT-5.6 model's `limit` to `context: 500000`, `input: 372000`,
-  and `output: 128000`. These explicit limits restore automatic compaction;
-  manually compact before roughly 350K input only as a backstop.
-- Do not use GPT-5.6 `*-pro` aliases on OpenCode 1.17.18: the bundled SDK does
-  not serialize `reasoning.mode`. Sol with `max` is the strongest reliable
-  quality-first route; keep `max` on the normal AI-SDK runtime.
+- OpenCode 1.18.3 improves GPT-5.6 variant and OAuth handling. This setup still
+  keeps its explicit, tested OAuth-safe `limit` values (`context: 500000`,
+  `input: 372000`, `output: 128000`) and explicit `max` variants. Keep fallback
+  effort in model-level `options` so cross-provider agent fallback arrays do
+  not leak OpenAI-specific settings.
+- Pro serialization is now supported, but do not change this setup's current
+  Sol route speculatively. Evaluate any Pro route separately before adopting it.
+- OpenCode 1.18.3 supports `subagent_depth` with a default of `1`; this setup
+  explicitly sets `"subagent_depth": 1` in `opencode.json`.
 
 ## Common Customizations
 
@@ -174,7 +199,7 @@ array; there is no per-councillor `fallback` object.
 
 - Built-in agents (`orchestrator`, `oracle`, `librarian`, `explorer`,
   `designer`, `fixer`, `observer`, `council`) can set models, variants, skills,
-  MCPs, options, and display names in config.
+  MCPs, options, permissions, and display names in config.
 - Built-in agent `prompt` and `orchestratorPrompt` fields are not supported in
   `oh-my-opencode-slim.json[c]`; use markdown prompt files instead.
 - Unknown keys under top-level `agents` are custom agents. Custom agents may use

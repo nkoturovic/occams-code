@@ -318,23 +318,25 @@ if [[ "$PRESET" == "openai-fast" ]]; then
   _fast_core="$(_effective_config opencode.json)" || _fast_config_error
   _fast_slim="$(_effective_config oh-my-opencode-slim.json)" || _fast_config_error
   _fast_profile="$(_effective_config model-profile.jsonc)" || _fast_config_error
+  _fast_doctor="$REPO_ROOT/scripts/doctor-model-check.py"
+  _fast_generator="$REPO_ROOT/scripts/model-profile.py"
 
-  jq -e '
-    (.provider.openai.models["gpt-5.6-sol-fast"] | type == "object") and
-    (.provider.openai.models["gpt-5.6-terra-fast"] | type == "object")
-  ' "$_fast_core" >/dev/null 2>&1 || _fast_config_error
+  [[ -f "$_fast_doctor" && -f "$_fast_generator" ]] || _fast_config_error
 
-  jq -e '
-    (.presets["openai-fast"] | type == "object") and
-    (.council.presets["openai-fast"] | type == "object")
-  ' "$_fast_slim" >/dev/null 2>&1 || _fast_config_error
+  if ! python3 "$_fast_doctor" \
+      --core-config "$_fast_core" \
+      --slim-config "$_fast_slim" \
+      --require-openai-fast \
+      --quiet; then
+    _fast_config_error
+  fi
 
-  if [[ ! -f "$REPO_ROOT/scripts/model-profile.py" ]] ||
-     ! python3 "$REPO_ROOT/scripts/model-profile.py" "$_fast_profile" 2>/dev/null |
-       jq -e '
-         (.presets["openai-fast"] | type == "object") and
-         (.council.presets["openai-fast"] | type == "object")
-       ' >/dev/null; then
+  if ! python3 "$_fast_generator" "$_fast_profile" 2>/dev/null |
+      python3 "$_fast_doctor" \
+        --core-config "$_fast_core" \
+        --slim-config /dev/stdin \
+        --require-openai-fast \
+        --quiet; then
     _fast_config_error
   fi
 fi
