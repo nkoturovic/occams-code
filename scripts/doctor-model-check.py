@@ -304,7 +304,7 @@ EXPECTED_PRESETS = {
     "openai-fast", "kimi",
 }
 KIMI_MODEL_REF = "kimi-for-coding/kimi-k3-1m"
-SOL_HIGH_MODEL_REF = "openai/gpt-5.6-sol-high"
+SOL_FAST_HIGH_MODEL_REF = "openai/gpt-5.6-sol-fast-high"
 KIMI_MODEL_SPEC = {
     "id": "k3[1m]",
     "name": "Kimi K3 1M (Kimi Coding API)",
@@ -327,16 +327,16 @@ OPENROUTER_KIMI_MODEL_SPEC = {
     "modalities": {"input": ["text", "image"], "output": ["text"]},
     "attachment": True,
 }
-SOL_HIGH_MODEL_SPEC = {
+SOL_FAST_HIGH_MODEL_SPEC = {
     "id": "gpt-5.6-sol",
-    "name": "GPT-5.6 Sol High (ChatGPT OAuth)",
+    "name": "GPT-5.6 Sol Fast High (ChatGPT OAuth)",
     "limit": {"context": 500000, "input": 372000, "output": 128000},
-    "options": {"reasoningEffort": "high"},
+    "options": {"reasoningEffort": "high", "serviceTier": "priority"},
     "variants": {"max": {"disabled": True}},
 }
 KIMI_COUNCIL_SPEC = {
     "reviewer-1": {"model": KIMI_MODEL_REF},
-    "reviewer-2": {"model": "openai/gpt-5.5", "variant": "xhigh"},
+    "reviewer-2": {"model": "openai/gpt-5.5-fast", "variant": "xhigh"},
     "reviewer-3": {
         "model": "deepseek/deepseek-v4-pro",
         "variant": "max",
@@ -412,10 +412,25 @@ def check_kimi_profile(
 
     openai_models = core.get("provider", {}).get("openai", {}).get("models", {})
     require(
-        "exact Sol-high alias config",
+        "exact Sol Fast-high alias config",
         isinstance(openai_models, dict)
-        and openai_models.get("gpt-5.6-sol-high") == SOL_HIGH_MODEL_SPEC,
-        "alias must map to gpt-5.6-sol with base high effort and disabled max",
+        and openai_models.get("gpt-5.6-sol-fast-high")
+        == SOL_FAST_HIGH_MODEL_SPEC,
+        "alias must map to gpt-5.6-sol with base high effort, Priority tier, "
+        "and disabled max",
+    )
+    unexpected_sol_high_aliases = [
+        model_id
+        for model_id, model in openai_models.items()
+        if isinstance(model, dict)
+        and model_id != "gpt-5.6-sol-fast-high"
+        and model.get("id") == "gpt-5.6-sol"
+        and model.get("options", {}).get("reasoningEffort") == "high"
+    ] if isinstance(openai_models, dict) else []
+    require(
+        "orphaned non-fast Sol-high alias removed",
+        not unexpected_sol_high_aliases,
+        f"unexpected high-effort Sol aliases: {unexpected_sol_high_aliases}",
     )
     openrouter_models = (
         core.get("provider", {}).get("openrouter", {}).get("models", {})
@@ -432,13 +447,13 @@ def check_kimi_profile(
     kimi = presets.get("kimi", {}) if isinstance(presets, dict) else {}
     expected_roles = {
         "orchestrator": (KIMI_MODEL_REF, None, None),
-        "oracle": ("openai/gpt-5.5", "xhigh", 0.2),
-        "librarian": ("openai/gpt-5.6-sol", "high", 0.2),
-        "explorer": ("openai/gpt-5.6-sol", "high", 0.1),
-        "fixer": (KIMI_MODEL_REF, None, None),
-        "designer": ("openai/gpt-5.6-sol", "high", 0.4),
-        "observer": ("openai/gpt-5.6-sol", "high", 0.2),
-        "council": ("openai/gpt-5.6-sol", "high", 0.2),
+        "oracle": ("openai/gpt-5.5-fast", "xhigh", 0.2),
+        "librarian": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "explorer": ("openai/gpt-5.6-sol-fast", "high", 0.1),
+        "fixer": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "designer": ("openai/gpt-5.6-sol-fast", "high", 0.4),
+        "observer": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "council": ("openai/gpt-5.6-sol-fast", "high", 0.2),
     }
     require(
         "exact Kimi preset roles",
@@ -496,33 +511,61 @@ def check_kimi_profile(
 
     allowed_alias_paths = {
         "presets.kimi.orchestrator.model[1]",
-        "presets.kimi.fixer.model[1]",
     }
     alias_paths = {
         path
         for path, value in collect_string_paths(slim)
-        if value == SOL_HIGH_MODEL_REF
+        if value == SOL_FAST_HIGH_MODEL_REF
     }
     require(
-        "Sol-high alias restricted to Kimi first fallbacks",
+        "Sol Fast-high alias restricted to Kimi first fallbacks",
         alias_paths == allowed_alias_paths,
         f"expected alias only at {sorted(allowed_alias_paths)}; got {sorted(alias_paths)}",
     )
-    for role in ("orchestrator", "fixer"):
-        models = kimi.get(role, {}).get("model") if isinstance(kimi, dict) else None
-        require(
-            f"Kimi {role} first fallback is Sol-high alias",
-            isinstance(models, list)
-            and len(models) > 1
-            and models[1] == SOL_HIGH_MODEL_REF,
-            f"expected {SOL_HIGH_MODEL_REF} at model[1]",
-        )
+    orchestrator_models = (
+        kimi.get("orchestrator", {}).get("model") if isinstance(kimi, dict) else None
+    )
+    require(
+        "Kimi orchestrator first fallback is Sol Fast-high alias",
+        isinstance(orchestrator_models, list)
+        and len(orchestrator_models) > 1
+        and orchestrator_models[1] == SOL_FAST_HIGH_MODEL_REF,
+        f"expected {SOL_FAST_HIGH_MODEL_REF} at model[1]",
+    )
+    expected_fixer_chain = [
+        "openai/gpt-5.6-sol-fast",
+        KIMI_MODEL_REF,
+        "deepseek/deepseek-v4-pro",
+        "openrouter/deepseek/deepseek-v4-pro",
+        "openrouter/qwen/qwen3-coder:free",
+    ]
+    fixer_models = kimi.get("fixer", {}).get("model") if isinstance(kimi, dict) else None
+    require(
+        "exact Kimi fixer fallback chain",
+        fixer_models == expected_fixer_chain,
+        f"expected {expected_fixer_chain}",
+    )
 
     require(
         "exact Kimi council composition",
         council_presets.get("kimi") == KIMI_COUNCIL_SPEC
         if isinstance(council_presets, dict) else False,
-        "expected K3 intrinsic max, GPT-5.5 xhigh, and DeepSeek V4 Pro max",
+        "expected K3 intrinsic max, GPT-5.5 Fast xhigh, and DeepSeek V4 Pro max",
+    )
+
+    kimi_gpt_refs = [
+        (path, value)
+        for path, value in collect_string_paths({
+            "preset": kimi,
+            "council": council_presets.get("kimi", {})
+            if isinstance(council_presets, dict) else {},
+        })
+        if value.startswith("openai/gpt-") and "-fast" not in value
+    ]
+    require(
+        "all Kimi GPT routes use Fast/Priority models",
+        not kimi_gpt_refs,
+        f"non-fast GPT references: {kimi_gpt_refs}",
     )
 
     active_strings = collect_string_paths(core) + collect_string_paths(slim)
@@ -1031,7 +1074,9 @@ def run_self_test() -> int:
     generator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator)
     approved_dedupe = OPENAI_FAST_REFERENCE_EQUIVALENCE
+    approved_aliases = {base: fast for fast, base in approved_dedupe.items()}
     assert generator.FAST_MODEL_DEDUPE_EQUIVALENCE == approved_dedupe
+    assert generator.KIMI_COUNCIL_MODEL_ALIASES == approved_aliases
 
     with tempfile.TemporaryDirectory(prefix="model-profile-self-test-") as tmp:
         tmp_path = Path(tmp)
@@ -1108,10 +1153,31 @@ def run_self_test() -> int:
         "presets": {
             "openai": copy.deepcopy(reviewers),
             "openai-fast": copy.deepcopy(reviewers),
+            "kimi": copy.deepcopy(reviewers),
         },
     })["presets"]
     assert generated_council["openai"] == reviewers
     assert generated_council["openai-fast"] == fast_reviewers
+    assert generated_council["kimi"] == fast_reviewers
+
+    default_kimi_council = generator.build_council(None)["presets"]["kimi"]
+    assert default_kimi_council == KIMI_COUNCIL_SPEC, (
+        "default Kimi council drifted from the exact Fast/Priority contract"
+    )
+
+    def collect_openai_gpt_refs(value) -> list[str]:
+        if isinstance(value, str):
+            return [value] if value.startswith("openai/gpt-") else []
+        if isinstance(value, list):
+            return [ref for item in value for ref in collect_openai_gpt_refs(item)]
+        if isinstance(value, dict):
+            return [ref for item in value.values() for ref in collect_openai_gpt_refs(item)]
+        return []
+
+    default_kimi_gpt_refs = collect_openai_gpt_refs(default_kimi_council)
+    assert default_kimi_gpt_refs and all(
+        "-fast" in ref for ref in default_kimi_gpt_refs
+    ), f"default Kimi council retained non-fast GPT refs: {default_kimi_gpt_refs}"
 
     core_path, slim_path, expected_default = discover_self_test_configs()
     public_core = load_json(str(core_path))
@@ -1142,11 +1208,13 @@ def run_self_test() -> int:
         "missing council preset": lambda _core, slim: slim["council"]["presets"].pop("cheap"),
         "K3 effort drift": lambda core, _slim: core["provider"]["kimi-for-coding"]["models"]["kimi-k3-1m"]["options"].update(effort="high"),
         "OpenRouter K3 limit drift": lambda core, _slim: core["provider"]["openrouter"]["models"]["moonshotai/kimi-k3"]["limit"].update(context=1),
-        "Sol-high effort drift": lambda core, _slim: core["provider"]["openai"]["models"]["gpt-5.6-sol-high"]["options"].update(reasoningEffort="xhigh"),
-        "K3 top-level variant": lambda _core, slim: slim["presets"]["kimi"]["fixer"].update(variant="max"),
+        "Fast Sol-high effort drift": lambda core, _slim: core["provider"]["openai"]["models"]["gpt-5.6-sol-fast-high"]["options"].update(reasoningEffort="xhigh"),
+        "Fast Sol-high Priority drift": lambda core, _slim: core["provider"]["openai"]["models"]["gpt-5.6-sol-fast-high"]["options"].update(serviceTier="default"),
+        "K3 top-level variant": lambda _core, slim: slim["presets"]["kimi"]["orchestrator"].update(variant="max"),
         "non-kimi direct K3 controls": lambda _core, slim: slim["presets"]["custom"]["designer"].update(model=KIMI_MODEL_REF, variant="max", temperature=1.0),
         "wrong first fallback": lambda _core, slim: slim["presets"]["kimi"]["orchestrator"]["model"].__setitem__(1, "openai/gpt-5.6-sol"),
-        "alias in existing preset": lambda _core, slim: slim["presets"]["balanced"]["orchestrator"].update(model=SOL_HIGH_MODEL_REF),
+        "alias in Kimi fixer": lambda _core, slim: slim["presets"]["kimi"]["fixer"]["model"].insert(1, SOL_FAST_HIGH_MODEL_REF),
+        "non-fast Kimi council GPT": lambda _core, slim: slim["council"]["presets"]["kimi"]["reviewer-2"].update(model="openai/gpt-5.5"),
         "council drift": lambda _core, slim: slim["council"]["presets"]["kimi"]["reviewer-1"].update(variant="max"),
         "default drift": lambda _core, slim: slim.update(preset=drift_default),
         "active K2 ID": lambda core, _slim: core["provider"]["openrouter"]["models"].update({"moonshotai/kimi-k2.7-code": {}}),
@@ -1158,7 +1226,8 @@ def run_self_test() -> int:
         "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
         "16 directional mutations, exact dedupe map, agent/council alias mapping, "
         "stable-first ordering, byte-identical generator output modes, null-variant "
-        "semantics, exact eight-preset Kimi config, and 12 Kimi negative mutations."
+        "semantics, exact default Kimi council, exact eight-preset Kimi config, "
+        "and 14 Kimi negative mutations."
     )
     return 0
 

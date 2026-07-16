@@ -116,13 +116,13 @@
     "kimi": {
       // Explicit null omits the top-level variant; K3 max effort is model-level.
       "orchestrator": { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
-      "oracle":       { "model": "openai/gpt-5.5", "variant": "xhigh", "temperature": 0.2 },
-      "librarian":    { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 },
-      "explorer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.1 },
-      "fixer":        { "model": "kimi-for-coding/kimi-k3-1m", "variant": null },
-      "designer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.4 },
-      "observer":     { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 },
-      "council":      { "model": "openai/gpt-5.6-sol", "variant": "high", "temperature": 0.2 }
+      "oracle":       { "model": "openai/gpt-5.5-fast", "variant": "xhigh", "temperature": 0.2 },
+      "librarian":    { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "explorer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.1 },
+      "fixer":        { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "designer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.4 },
+      "observer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "council":      { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 }
     }
   },
 
@@ -174,7 +174,7 @@
       },
       "kimi": {
         "reviewer-1": { "model": "kimi-for-coding/kimi-k3-1m" },
-        "reviewer-2": { "model": "openai/gpt-5.5", "variant": "xhigh" },
+        "reviewer-2": { "model": "openai/gpt-5.5-fast", "variant": "xhigh" },
         "reviewer-3": { "model": "deepseek/deepseek-v4-pro", "variant": "max" }
       }
     }

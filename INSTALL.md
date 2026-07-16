@@ -43,7 +43,7 @@ You need **at least one** provider. The default `balanced` preset works with jus
 
 `openai-fast` uses the OAuth Fast/Priority route while keeping `openai`'s GPT-5.6 Sol/Terra roles, capabilities, reasoning, fallbacks, and council unchanged. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
-The `kimi` preset uses intrinsic-max Kimi K3 1M for orchestrator/fixer, OpenAI OAuth support roles, and direct DeepSeek fallbacks/council. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
+The `kimi` preset uses intrinsic-max Kimi K3 1M for the orchestrator, GPT-5.6 Sol Fast high for the fixer and other OpenAI OAuth support roles, GPT-5.5 Fast xhigh for the oracle, and direct DeepSeek fallbacks/council. Every GPT route in the preset and council uses Fast/Priority transport. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
 
 Fresh installs provision the bundled K3 model, profile, and generated config directly. Existing installations keep preserve-only user configs unchanged. If those configs predate Kimi support, merge or sync bundled `config/opencode.json`, `config/model-profile.jsonc`, and `config/oh-my-opencode-slim.json` before selecting `--preset kimi`; the installer preflight fails safely instead of overwriting them.
 

@@ -98,7 +98,7 @@ When copying live → repo, check for and remove ALL of these:
 - [ ] Council default pointing to your preset → point to `balanced`
 - [ ] Default preset must be `balanced`
 - [ ] `openai-fast` stays opt-in and OAuth-specific, with `openai` parity; describe about 1.5× generation speed and increased usage without claiming an unpublished GPT-5.6 multiplier
-- [ ] `kimi` uses direct intrinsic-max `kimi-k3-1m` (`k3[1m]`) for orchestrator/fixer, Sol-high as first fallback, and never changes the repo default from `balanced`
+- [ ] `kimi` uses direct intrinsic-max `kimi-k3-1m` (`k3[1m]`) for the orchestrator; every GPT route uses Fast/Priority, including Sol Fast high for the fixer and the dedicated Sol Fast-high orchestrator fallback; the repo default remains `balanced`
 - [ ] **Z.AI MCPs (zai_vision + web-search-prime): no hardcoded keys** — default `config/opencode.json` may ship them enabled, but only with `{env:Z_AI_API_KEY}` / inherited env placeholders. Never commit a real key. The installer can also inject user-specific MCP blocks when opted in.
 - [ ] `opencode.json.instructions` should include `"~/.agents/AGENTS.md"` (provided by occams-agentic bootstrap.sh)
 - [ ] Observer skills: `["video-analysis", "lecture-notes", "audio-analysis"]` in all presets — keep `audio-analysis` (resolves AGENTS.md inconsistency).

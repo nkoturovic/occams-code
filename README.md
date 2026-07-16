@@ -119,13 +119,13 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 | `custom` | Subscription-based | Z.AI + OpenAI OAuth + Kimi + DeepSeek | GLM-5.2 (orchestrator/librarian/fixer), GPT-5.6 Sol (oracle), GPT-5.6 Terra (explorer), Kimi K3 1M (designer/observer), DeepSeek V4 Pro (council) |
 | `openai` | OpenAI-first via OAuth | OpenAI OAuth (`/connect`) | GPT-5.6 Sol (orchestrator/oracle/fixer/council), GPT-5.6 Terra (explorer/librarian/designer/observer) |
 | `openai-fast` | Opt-in faster OpenAI route | OpenAI OAuth (`/connect`) | Fast/Priority transport with the same GPT-5.6 Sol/Terra role configuration as `openai` |
-| `kimi` | K3-first coding | Kimi + OpenAI OAuth (`/connect`) + DeepSeek | Intrinsic-max Kimi K3 1M (orchestrator/fixer), GPT-5.5 xhigh (oracle), GPT-5.6 Sol high (support roles/chair), K3 + GPT-5.5 + DeepSeek council reviewers |
+| `kimi` | K3-first coding | Kimi + OpenAI OAuth (`/connect`) + DeepSeek | Intrinsic-max Kimi K3 1M (orchestrator), GPT-5.5 Fast xhigh (oracle), GPT-5.6 Sol Fast high (fixer/support roles/chair), K3 + GPT-5.5 Fast + DeepSeek council reviewers |
 
 **The default `balanced` and budget `cheap` presets work fully with just an OpenRouter key.** The other presets require additional API keys or subscriptions for their primary routes.
 
 `openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`. Its roles, capabilities, reasoning effort, fallbacks, and council configuration are identical. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 usage multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
-`kimi` maps the direct `kimi-k3-1m` alias to API model `k3[1m]`. K3 uses intrinsic max effort, a 1,048,576-token context, 131,072-token output, text+image input, and no temperature. Its orchestrator/fixer fallback starts with the dedicated GPT-5.6 Sol high alias. The repository default remains `balanced`.
+`kimi` maps the direct `kimi-k3-1m` alias to API model `k3[1m]`. K3 uses intrinsic max effort, a 1,048,576-token context, 131,072-token output, text+image input, and no temperature. Every GPT route in the preset and council uses Fast/Priority transport. The K3 orchestrator's first fallback is the dedicated GPT-5.6 Sol Fast-high alias; the fixer uses GPT-5.6 Sol Fast high with K3 and DeepSeek fallbacks. The repository default remains `balanced`.
 
 ### Per-Project Config
 

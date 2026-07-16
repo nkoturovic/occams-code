@@ -176,8 +176,7 @@ PRESET_ROLE_PREFIXES: dict[str, dict[str, list[str | dict[str, str]]]] = {
         "fixer": [{"id": "openai/gpt-5.6-sol", "variant": "xhigh"}],
     },
     "kimi": {
-        "orchestrator": ["openai/gpt-5.6-sol-high"],
-        "fixer": ["openai/gpt-5.6-sol-high"],
+        "orchestrator": ["openai/gpt-5.6-sol-fast-high"],
     },
 }
 
@@ -215,7 +214,7 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
     },
     "kimi": {
         "reviewer-1": {"model": "kimi-for-coding/kimi-k3-1m"},
-        "reviewer-2": {"model": "openai/gpt-5.5", "variant": "xhigh"},
+        "reviewer-2": {"model": "openai/gpt-5.5-fast", "variant": "xhigh"},
         "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
     },
 }
@@ -230,6 +229,13 @@ OPENAI_FAST_MODEL_ALIASES = {
     "openai/gpt-5.6-terra": "openai/gpt-5.6-terra-fast",
     "openai/gpt-5.6-luna": "openai/gpt-5.6-luna-fast",
     "openai/gpt-5.5": "openai/gpt-5.5-fast",
+}
+
+KIMI_COUNCIL_MODEL_ALIASES = dict(OPENAI_FAST_MODEL_ALIASES)
+
+COUNCIL_MODEL_ALIASES_BY_PRESET = {
+    "openai-fast": OPENAI_FAST_MODEL_ALIASES,
+    "kimi": KIMI_COUNCIL_MODEL_ALIASES,
 }
 
 FAST_MODEL_DEDUPE_EQUIVALENCE = {
@@ -348,7 +354,9 @@ def build_presets(preset_map: dict[str, dict[str, Any]],
                 fallback_prefix=PRESET_ROLE_PREFIXES.get(preset_name, {}).get(agent_name),
                 openrouter_only=preset_name in OPENROUTER_ONLY_PRESETS,
                 model_aliases=(
-                    OPENAI_FAST_MODEL_ALIASES if preset_name == "openai-fast" else None
+                    OPENAI_FAST_MODEL_ALIASES
+                    if preset_name in {"openai-fast", "kimi"}
+                    else None
                 ),
             )
         presets[preset_name] = preset_agents
@@ -370,20 +378,21 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
     # Allowed keys per reviewer (omo-slim CouncillorConfigSchema)
     REVIEWER_KEYS = {"model", "variant", "prompt"}
 
-    def _filter_reviewer(raw: dict[str, Any], *, fast: bool = False) -> dict[str, Any]:
+    def _filter_reviewer(
+        raw: dict[str, Any], model_aliases: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         reviewer = {k: v for k, v in raw.items() if k in REVIEWER_KEYS}
-        if fast and "model" in reviewer:
-            reviewer["model"] = map_model_refs(
-                reviewer["model"], OPENAI_FAST_MODEL_ALIASES
-            )
+        if model_aliases and "model" in reviewer:
+            reviewer["model"] = map_model_refs(reviewer["model"], model_aliases)
         return reviewer
 
     # Start from hardcoded defaults
     result: dict[str, Any] = {
         "default_preset": active_preset,
         "councillor_execution_mode": "parallel",
-        "presets": {name: {k: _filter_reviewer(r, fast=name == "openai-fast")
-                            for k, r in preset.items()}
+        "presets": {name: {k: _filter_reviewer(
+                                r, COUNCIL_MODEL_ALIASES_BY_PRESET.get(name))
+                             for k, r in preset.items()}
                     for name, preset in COUNCIL_PRESETS.items()},
     }
 
@@ -396,7 +405,9 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
         if "presets" in council_map:
             for preset_name, reviewers in council_map["presets"].items():
                 result["presets"][preset_name] = {
-                    k: _filter_reviewer(r, fast=preset_name == "openai-fast")
+                    k: _filter_reviewer(
+                        r, COUNCIL_MODEL_ALIASES_BY_PRESET.get(preset_name)
+                    )
                     for k, r in reviewers.items()
                 }
 

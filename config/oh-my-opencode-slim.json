@@ -911,9 +911,9 @@
       "orchestrator": {
         "model": [
           "kimi-for-coding/kimi-k3-1m",
-          "openai/gpt-5.6-sol-high",
+          "openai/gpt-5.6-sol-fast-high",
           "deepseek/deepseek-v4-pro",
-          "openai/gpt-5.6-sol",
+          "openai/gpt-5.6-sol-fast",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
@@ -927,7 +927,7 @@
       },
       "oracle": {
         "model": [
-          "openai/gpt-5.5",
+          "openai/gpt-5.5-fast",
           "deepseek/deepseek-v4-pro",
           "anthropic/claude-opus-4-7",
           "openrouter/deepseek/deepseek-v4-pro",
@@ -944,9 +944,9 @@
       },
       "librarian": {
         "model": [
-          "openai/gpt-5.6-sol",
+          "openai/gpt-5.6-sol-fast",
           "zai-coding-plan/glm-5.2",
-          "openai/gpt-5.6-terra",
+          "openai/gpt-5.6-terra-fast",
           "deepseek/deepseek-v4-pro",
           "openrouter/google/gemini-3.5-flash"
         ],
@@ -962,7 +962,7 @@
       },
       "explorer": {
         "model": [
-          "openai/gpt-5.6-sol",
+          "openai/gpt-5.6-sol-fast",
           "zai-coding-plan/glm-5.2",
           "openrouter/google/gemini-3.5-flash",
           "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
@@ -978,20 +978,22 @@
       },
       "fixer": {
         "model": [
+          "openai/gpt-5.6-sol-fast",
           "kimi-for-coding/kimi-k3-1m",
-          "openai/gpt-5.6-sol-high",
           "deepseek/deepseek-v4-pro",
           "openrouter/deepseek/deepseek-v4-pro",
           "openrouter/qwen/qwen3-coder:free"
         ],
+        "variant": "high",
         "skills": [],
         "mcps": [
           "context7"
-        ]
+        ],
+        "temperature": 0.2
       },
       "designer": {
         "model": [
-          "openai/gpt-5.6-sol",
+          "openai/gpt-5.6-sol-fast",
           "openrouter/moonshotai/kimi-k3",
           "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
@@ -1011,7 +1013,7 @@
       },
       "observer": {
         "model": [
-          "openai/gpt-5.6-sol",
+          "openai/gpt-5.6-sol-fast",
           "openrouter/moonshotai/kimi-k3",
           "openrouter/google/gemini-3.5-flash",
           "anthropic/claude-sonnet-4-6",
@@ -1029,7 +1031,7 @@
         "temperature": 0.2
       },
       "council": {
-        "model": "openai/gpt-5.6-sol",
+        "model": "openai/gpt-5.6-sol-fast",
         "variant": "high",
         "skills": [],
         "mcps": [],
@@ -1117,7 +1119,7 @@
           "model": "kimi-for-coding/kimi-k3-1m"
         },
         "reviewer-2": {
-          "model": "openai/gpt-5.5",
+          "model": "openai/gpt-5.5-fast",
           "variant": "xhigh"
         },
         "reviewer-3": {
