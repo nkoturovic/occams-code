@@ -35,6 +35,8 @@ SETUP_PATH=1
 ENABLE_ZAI_MCPS=0
 ZAI_KEY=""
 SETUP_SECRETS=1
+OMO_SLIM_PACKAGE="oh-my-opencode-slim@2.2.5"
+ZAI_MCP_PACKAGE="@z_ai/mcp-server@0.1.4"
 
 # Preserve-only configs are never modified when already present.
 OPENCODE_CONFIG_PREEXISTED=0
@@ -417,7 +419,9 @@ fi
 echo -e "${BOLD}Summary${RESET}"
 echo "  Providers:       $PROVIDERS"
 echo "  Preset:          $PRESET"
+echo "  omo-slim:        $OMO_SLIM_PACKAGE"
 echo "  Z.AI MCPs:       $([[ $ENABLE_ZAI_MCPS -eq 1 ]] && echo "enabled" || echo "disabled")"
+[[ "$ENABLE_ZAI_MCPS" -eq 1 ]] && echo "  Z.AI MCP package: $ZAI_MCP_PACKAGE"
 [[ -n "$ZAI_KEY" ]] && echo "  Z.AI key:        ***set***"
 echo "  defuddle:        $([[ $INSTALL_DEFUDDLE -eq 1 ]] && echo "yes" || echo "no")"
 echo "  agent-browser:   $([[ $INSTALL_AGENT_BROWSER -eq 1 ]] && echo "yes" || echo "no")"
@@ -537,10 +541,10 @@ if [[ "$ENABLE_ZAI_MCPS" -eq 1 && -n "$ZAI_KEY" && -f "$OPENCODE_DIR/opencode.js
   if [[ "$OPENCODE_CONFIG_PREEXISTED" -eq 1 ]]; then
     echo -e "  ${YELLOW}⊙${RESET} existing opencode.json preserved; merge Z.AI MCPs manually"
   else
-    jq '
+    jq --arg zai_mcp_package "$ZAI_MCP_PACKAGE" '
     .mcp.zai_vision = {
       "type": "local",
-      "command": ["npx", "-y", "@z_ai/mcp-server"],
+      "command": ["npx", "-y", $zai_mcp_package],
       "environment": { "Z_AI_API_KEY": "{env:Z_AI_API_KEY}", "Z_AI_MODE": "ZAI" },
       "enabled": true,
       "timeout": 600000
@@ -605,19 +609,19 @@ echo -e "${BOLD}Installing oh-my-opencode-slim plugin...${RESET}"
 (
   cd "$OPENCODE_DIR"
   if command -v bun &>/dev/null; then
-    if bun install oh-my-opencode-slim; then
+    if bun install "$OMO_SLIM_PACKAGE"; then
       echo -e "  ${GREEN}✓${RESET} Installed via bun"
     else
-      echo -e "  ${YELLOW}⚠${RESET} bun install failed — install oh-my-opencode-slim manually"
+      echo -e "  ${YELLOW}⚠${RESET} bun install failed — install $OMO_SLIM_PACKAGE manually"
     fi
   elif command -v npm &>/dev/null; then
-    if npm install oh-my-opencode-slim; then
+    if npm install "$OMO_SLIM_PACKAGE"; then
       echo -e "  ${GREEN}✓${RESET} Installed via npm"
     else
-      echo -e "  ${YELLOW}⚠${RESET} npm install failed — install oh-my-opencode-slim manually"
+      echo -e "  ${YELLOW}⚠${RESET} npm install failed — install $OMO_SLIM_PACKAGE manually"
     fi
   else
-    echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found. Install oh-my-opencode-slim manually."
+    echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found. Install $OMO_SLIM_PACKAGE manually."
   fi
 )
 

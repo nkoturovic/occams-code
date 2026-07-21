@@ -43,7 +43,7 @@ You need **at least one** provider. The default `balanced` preset works with jus
 
 `openai-fast` uses the OAuth Fast/Priority route while keeping `openai`'s GPT-5.6 Sol/Terra roles, capabilities, reasoning, fallbacks, and council unchanged. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
-The `kimi` preset uses intrinsic-max Kimi K3 1M for the orchestrator, GPT-5.6 Sol Fast high for the fixer and other OpenAI OAuth support roles, GPT-5.5 Fast xhigh for the oracle, and direct DeepSeek fallbacks/council. Every GPT route in the preset and council uses Fast/Priority transport. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
+The `kimi` preset uses intrinsic-max Kimi K3 1M for the orchestrator, GPT-5.6 Sol Fast high for the fixer and other OpenAI OAuth support roles, GPT-5.5 Fast xhigh for the oracle, and direct DeepSeek fallbacks/council. The local selector `kimi-for-coding/kimi-k3-1m` maps to the canonical direct API wire ID `k3`, not `k3[1m]`. The declared 1M/128K metadata is expected for entitled plans, but no successful request above 262K tokens has been locally proven. Every GPT route in the preset and council uses Fast/Priority transport. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
 
 Fresh installs provision the bundled K3 model, profile, and generated config directly. Existing installations keep preserve-only user configs unchanged. If those configs predate Kimi support, merge or sync bundled `config/opencode.json`, `config/model-profile.jsonc`, and `config/oh-my-opencode-slim.json` before selecting `--preset kimi`; the installer preflight fails safely instead of overwriting them.
 
@@ -201,7 +201,7 @@ Preview the Kimi preset and its configuration preflight without writing:
 ./scripts/install.sh --unattended --dry-run --providers kimi,openai,deepseek --preset kimi
 ```
 
-The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
+The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). It installs exact `oh-my-opencode-slim@2.2.5`; when Z.AI MCPs are enabled, their generated local command uses exact `@z_ai/mcp-server@0.1.4`. `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
 
 ---
 
@@ -242,7 +242,7 @@ cp -r skills/simplify        ~/.config/opencode/skills/
 cp -r skills/clonedeps       ~/.config/opencode/skills/
 
 # Plugin
-cd ~/.config/opencode && npm install oh-my-opencode-slim   # or 'bun install ...'
+cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.5   # or 'bun install oh-my-opencode-slim@2.2.5'
 
 # Obsidian-skills bundle (optional)
 mkdir -p ~/.opencode/skills
@@ -274,7 +274,9 @@ export Z_AI_API_KEY="your-zai-api-key"
 source ~/.profile
 ```
 
-The installer also offers to set this up during interactive install (Q3).
+The installer also offers to set this up during interactive install (Q3). Its
+generated local command is pinned to
+`["npx", "-y", "@z_ai/mcp-server@0.1.4"]`.
 
 The agent-config `mcps` lists in `oh-my-opencode-slim.json` already reference these names — no further changes needed.
 
@@ -377,7 +379,7 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `bash: bin/oc: bash 4 required` | macOS bash 3.2 | `brew install bash`; see [macOS Bash 5](#macos-bash-5) |
-| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim` |
+| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.5` |
 | `jq: command not found` | jq missing | `apt install jq` / `brew install jq` |
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
 | `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |

@@ -303,10 +303,23 @@ EXPECTED_PRESETS = {
     "custom", "balanced", "premium", "deepseek", "cheap", "openai",
     "openai-fast", "kimi",
 }
+OMO_VERSION = "2.2.5"
+OMO_PIN = f"oh-my-opencode-slim@{OMO_VERSION}"
+OMO_SCHEMA = (
+    f"https://unpkg.com/oh-my-opencode-slim@{OMO_VERSION}/"
+    "oh-my-opencode-slim.schema.json"
+)
+REMOVED_TOP_LEVEL_KEYS = {"tmux"}
+REMOVED_COUNCIL_KEYS = {
+    "councillor_execution_mode",
+    "timeout",
+    "councillor_retries",
+    "master",
+}
 KIMI_MODEL_REF = "kimi-for-coding/kimi-k3-1m"
 SOL_FAST_HIGH_MODEL_REF = "openai/gpt-5.6-sol-fast-high"
 KIMI_MODEL_SPEC = {
-    "id": "k3[1m]",
+    "id": "k3",
     "name": "Kimi K3 1M (Kimi Coding API)",
     "reasoning": True,
     "temperature": False,
@@ -342,6 +355,74 @@ KIMI_COUNCIL_SPEC = {
         "variant": "max",
     },
 }
+
+
+def check_omo_contract(
+    core: dict,
+    slim: dict,
+    tui: dict | None = None,
+) -> tuple[int, int]:
+    """Validate the exact omo-slim pin/schema and v2.2.5 config surface."""
+    errors = warnings = 0
+
+    def require(label: str, predicate: bool, detail: str) -> None:
+        nonlocal errors, warnings
+        errors, warnings = check(
+            "CRITICAL", label, predicate, detail, errors, warnings
+        )
+
+    def omo_plugins(config: dict) -> list[str]:
+        plugins = config.get("plugin", []) if isinstance(config, dict) else []
+        if not isinstance(plugins, list):
+            return []
+        return [
+            entry
+            for entry in plugins
+            if isinstance(entry, str)
+            and entry.split("@", 1)[0] == "oh-my-opencode-slim"
+        ]
+
+    require(
+        "exact omo-slim core pin",
+        omo_plugins(core) == [OMO_PIN],
+        f"expected exactly {OMO_PIN!r}",
+    )
+    if tui is not None:
+        require(
+            "exact omo-slim TUI pin",
+            omo_plugins(tui) == [OMO_PIN],
+            f"expected exactly {OMO_PIN!r}",
+        )
+    require(
+        "exact omo-slim schema",
+        slim.get("$schema") == OMO_SCHEMA,
+        f"expected {OMO_SCHEMA!r}",
+    )
+
+    removed_top_level = sorted(REMOVED_TOP_LEVEL_KEYS.intersection(slim))
+    require(
+        "no removed omo-slim 2.2.5 top-level keys",
+        not removed_top_level,
+        f"removed keys present: {removed_top_level}",
+    )
+
+    council = slim.get("council", {})
+    removed = sorted(
+        REMOVED_COUNCIL_KEYS.intersection(council)
+        if isinstance(council, dict) else REMOVED_COUNCIL_KEYS
+    )
+    require(
+        "no removed omo-slim 2.2.5 council keys",
+        not removed,
+        f"removed keys present: {removed}",
+    )
+    background_jobs = slim.get("backgroundJobs", {})
+    require(
+        "backgroundJobs.strategy omitted (schema default latest)",
+        isinstance(background_jobs, dict) and "strategy" not in background_jobs,
+        "omit strategy; do not adopt checkpoint-compatible without cache telemetry",
+    )
+    return errors, warnings
 
 
 def check_kimi_profile(
@@ -406,8 +487,10 @@ def check_kimi_profile(
         "exact intrinsic-max K3 model config",
         isinstance(kimi_models, dict)
         and kimi_models.get("kimi-k3-1m") == KIMI_MODEL_SPEC,
-        "K3 must map to k3[1m], omit temperature support, use 1M/128K limits, "
-        "base effort max, and disable high/max variants",
+        "local K3 alias must map to canonical wire ID k3, suppress temperature, "
+        "retain declared 1M/128K metadata expected for entitled plans, use base "
+        "effort max, and disable high/max variants; no successful request above "
+        "262K has been locally proven",
     )
 
     openai_models = core.get("provider", {}).get("openai", {}).get("models", {})
@@ -575,9 +658,10 @@ def check_kimi_profile(
         if "k2.7" in value.lower()
         or "kimi-k2" in value.lower()
         or value == "kimi-for-coding/kimi-for-coding"
+        or value == "k3[1m]"
     })
     require(
-        "no active K2.7 IDs",
+        "no stale Kimi API IDs",
         not stale,
         f"stale active values: {stale}",
     )
@@ -797,30 +881,32 @@ def check_openai_fast_parity(
     return errors, warnings
 
 
-def discover_self_test_configs() -> tuple[Path, Path, str | None]:
-    """Find the complete repo or installed-root config pair for self-tests."""
+def discover_self_test_configs() -> tuple[Path, Path, Path, str | None]:
+    """Find the complete repo or installed-root config set for self-tests."""
     root = Path(__file__).resolve().parent.parent
     candidates = (
         (
             "repository",
             root / "config" / "opencode.json",
             root / "config" / "oh-my-opencode-slim.json",
+            root / "config" / "tui.json",
             "balanced",
         ),
         (
             "installed",
             root / "opencode.json",
             root / "oh-my-opencode-slim.json",
+            root / "tui.json",
             None,
         ),
     )
-    for _layout, core_path, slim_path, expected_default in candidates:
-        if core_path.is_file() and slim_path.is_file():
-            return core_path, slim_path, expected_default
+    for _layout, core_path, slim_path, tui_path, expected_default in candidates:
+        if core_path.is_file() and slim_path.is_file() and tui_path.is_file():
+            return core_path, slim_path, tui_path, expected_default
 
     attempted = "; ".join(
-        f"{layout}: {core_path}, {slim_path}"
-        for layout, core_path, slim_path, _expected_default in candidates
+        f"{layout}: {core_path}, {slim_path}, {tui_path}"
+        for layout, core_path, slim_path, tui_path, _expected_default in candidates
     )
     raise FileNotFoundError(
         f"Self-test requires a complete repository or installed config pair; tried {attempted}"
@@ -1179,18 +1265,64 @@ def run_self_test() -> int:
         "-fast" in ref for ref in default_kimi_gpt_refs
     ), f"default Kimi council retained non-fast GPT refs: {default_kimi_gpt_refs}"
 
-    core_path, slim_path, expected_default = discover_self_test_configs()
+    core_path, slim_path, tui_path, expected_default = discover_self_test_configs()
     public_core = load_json(str(core_path))
     public_slim = load_json(str(slim_path))
+    public_tui = load_json(str(tui_path))
     if expected_default is None:
         expected_default = public_slim.get("preset")
         assert isinstance(expected_default, str) and expected_default, (
             "installed config must declare a non-empty default preset"
         )
+    public_omo_errors, _ = check_omo_contract(
+        public_core, public_slim, public_tui
+    )
+    assert public_omo_errors == 0, "valid public omo-slim 2.2.5 contract was rejected"
     public_errors, _ = check_kimi_profile(
         public_core, public_slim, expected_default=expected_default
     )
     assert public_errors == 0, "valid public Kimi profile was rejected"
+
+    def assert_omo_mutation_rejected(name: str, edit) -> None:
+        mutated_core = copy.deepcopy(public_core)
+        mutated_slim = copy.deepcopy(public_slim)
+        mutated_tui = copy.deepcopy(public_tui)
+        edit(mutated_core, mutated_slim, mutated_tui)
+        with contextlib.redirect_stdout(io.StringIO()):
+            mutation_errors, _ = check_omo_contract(
+                mutated_core, mutated_slim, mutated_tui
+            )
+        assert mutation_errors > 0, f"omo mutation was accepted: {name}"
+
+    omo_mutations = {
+        "stale core pin": lambda core, _slim, _tui: core.update(
+            plugin=["oh-my-opencode-slim@2.2.4"]
+        ),
+        "stale TUI pin": lambda _core, _slim, tui: tui.update(
+            plugin=["oh-my-opencode-slim@2.2.4"]
+        ),
+        "stale schema": lambda _core, slim, _tui: slim.update(
+            {"$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.4/oh-my-opencode-slim.schema.json"}
+        ),
+        "removed top-level tmux": lambda _core, slim, _tui: slim.update(
+            tmux={"enabled": True}
+        ),
+        "checkpoint-compatible background strategy": (
+            lambda _core, slim, _tui: slim["backgroundJobs"].update(
+                strategy="checkpoint-compatible"
+            )
+        ),
+        **{
+            f"removed council key {key}": (
+                lambda _core, slim, _tui, removed_key=key: slim["council"].update(
+                    {removed_key: "stale"}
+                )
+            )
+            for key in REMOVED_COUNCIL_KEYS
+        },
+    }
+    for mutation_name, edit in omo_mutations.items():
+        assert_omo_mutation_rejected(mutation_name, edit)
 
     def assert_kimi_mutation_rejected(name: str, edit) -> None:
         mutated_core = copy.deepcopy(public_core)
@@ -1206,6 +1338,7 @@ def run_self_test() -> int:
     kimi_mutations = {
         "missing agent preset": lambda _core, slim: slim["presets"].pop("cheap"),
         "missing council preset": lambda _core, slim: slim["council"]["presets"].pop("cheap"),
+        "stale direct K3 wire ID": lambda core, _slim: core["provider"]["kimi-for-coding"]["models"]["kimi-k3-1m"].update(id="k3[1m]"),
         "K3 effort drift": lambda core, _slim: core["provider"]["kimi-for-coding"]["models"]["kimi-k3-1m"]["options"].update(effort="high"),
         "OpenRouter K3 limit drift": lambda core, _slim: core["provider"]["openrouter"]["models"]["moonshotai/kimi-k3"]["limit"].update(context=1),
         "Fast Sol-high effort drift": lambda core, _slim: core["provider"]["openai"]["models"]["gpt-5.6-sol-fast-high"]["options"].update(reasoningEffort="xhigh"),
@@ -1226,8 +1359,9 @@ def run_self_test() -> int:
         "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
         "16 directional mutations, exact dedupe map, agent/council alias mapping, "
         "stable-first ordering, byte-identical generator output modes, null-variant "
-        "semantics, exact default Kimi council, exact eight-preset Kimi config, "
-        "and 14 Kimi negative mutations."
+        f"semantics, {len(omo_mutations)} omo 2.2.5 contract mutations, exact "
+        "default Kimi council, exact eight-preset Kimi config, and "
+        f"{len(kimi_mutations)} Kimi negative mutations."
     )
     return 0
 
@@ -1331,6 +1465,10 @@ def main() -> int:
         help="Path to oh-my-opencode-slim.json (plugin preset config)",
     )
     parser.add_argument(
+        "--tui-config",
+        help="Path to tui.json; defaults to the core config's sibling when present",
+    )
+    parser.add_argument(
         "--auth-config",
         default=os.path.expanduser("~/.local/share/opencode/auth.json"),
         help="Path to auth.json (API keys)",
@@ -1374,6 +1512,9 @@ def main() -> int:
     try:
         core = load_json(args.core_config)
         slim = load_json(args.slim_config)
+        inferred_tui = Path(args.core_config).expanduser().with_name("tui.json")
+        tui_path = Path(args.tui_config).expanduser() if args.tui_config else inferred_tui
+        tui = load_json(str(tui_path)) if args.tui_config or tui_path.is_file() else None
         baseline = None
         if args.baseline_manifest:
             if not args.baseline_target:
@@ -1386,7 +1527,14 @@ def main() -> int:
     print(f"{BOLD}Model config doctor{RESET}")
     print(f"  {DIM}core:  {args.core_config}{RESET}")
     print(f"  {DIM}slim:  {args.slim_config}{RESET}")
+    if tui is not None:
+        print(f"  {DIM}tui:   {tui_path}{RESET}")
     print()
+
+    # ── omo-slim 2.2.5 contract ──
+    e, w = check_omo_contract(core, slim, tui)
+    total_errors += e
+    total_warnings += w
 
     # ── C1: temperature ──
     e, w = check_temperature(core)

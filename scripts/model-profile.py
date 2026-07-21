@@ -389,7 +389,6 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
     # Start from hardcoded defaults
     result: dict[str, Any] = {
         "default_preset": active_preset,
-        "councillor_execution_mode": "parallel",
         "presets": {name: {k: _filter_reviewer(
                                 r, COUNCIL_MODEL_ALIASES_BY_PRESET.get(name))
                              for k, r in preset.items()}
@@ -400,8 +399,6 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
     if council_map:
         if "default_preset" in council_map:
             result["default_preset"] = council_map["default_preset"]
-        if "councillor_execution_mode" in council_map:
-            result["councillor_execution_mode"] = council_map["councillor_execution_mode"]
         if "presets" in council_map:
             for preset_name, reviewers in council_map["presets"].items():
                 result["presets"][preset_name] = {
@@ -417,7 +414,7 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
     """Generate the complete oh-my-opencode-slim.json from model-map input."""
     return {
-        "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.2/oh-my-opencode-slim.schema.json",
+        "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.5/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
         "multiplexer": model_map.get("multiplexer", {"type": "none"}),

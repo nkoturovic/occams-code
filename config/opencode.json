@@ -92,7 +92,7 @@
       },
       "models": {
         "kimi-k3-1m": {
-          "id": "k3[1m]",
+          "id": "k3",
           "name": "Kimi K3 1M (Kimi Coding API)",
           "reasoning": true,
           "temperature": false,
@@ -494,7 +494,7 @@
     }
   },
   "plugin": [
-    "oh-my-opencode-slim@2.2.2"
+    "oh-my-opencode-slim@2.2.5"
   ],
   "mcp": {
     "zai_vision": {

@@ -3,7 +3,7 @@ name: oh-my-opencode-slim
 description: Configure and improve oh-my-opencode-slim for the current user. Use when users want to tune agents, models, prompts, custom agents, skills, MCPs, presets, or plugin behavior. Also use when recurring workflow friction suggests a safe config or prompt improvement.
 ---
 
-# oh-my-opencode-slim v2.2.2 Configuration Skill
+# oh-my-opencode-slim v2.2.5 Configuration Skill
 
 Help users configure, customize, and safely improve their
 oh-my-opencode-slim setup. Prefer the smallest durable change: tune models,
@@ -118,12 +118,22 @@ Cross-preset built-in override:
 }
 ```
 
-## v2.2.2 Runtime and Features
+## v2.2.5 Runtime and Features
 
 - **Council fallback chains remain supported**: a councillor's `model` field
   accepts an array
   for ordered fallback. Entries may be plain model ID strings or `{ "id", "variant" }`
   objects. The chain runs top-to-bottom; the first model that succeeds is used.
+- **Council manager controls were removed**: do not configure
+  `council.councillor_execution_mode`, `council.timeout`, or
+  `council.councillor_retries`, and do not use `council.master`. Councillors
+  dispatch in parallel through native councillor subagents; keep the synthesis
+  agent under `presets.<preset>.council`.
+- **Legacy top-level `tmux` was removed**: keep terminal integration under the
+  supported top-level `multiplexer` object.
+- **Background strategy stays schema-defaulted**: omit
+  `backgroundJobs.strategy` so the 2.2.5 default `latest` preserves current
+  behavior. Do not opt into `checkpoint-compatible` without cache telemetry.
 - **`fallback.maxRetries`** (default `3`): number of consecutive rate-limit
   responses before the chain aborts or swaps to the next model.
 - **`fallback.runtimeOverride` is deprecated**: it remains schema-accepted but
@@ -143,18 +153,26 @@ Cross-preset built-in override:
   change.
 - **Multiplexer support** now includes cmux in addition to the existing
   supported backends.
-- **Bundled skills changed**: `verification-planning` is newly bundled.
+- **v2.2.4 bundled-skill baseline**: `verification-planning` is bundled.
   `release-smoke-test` is no longer bundled, but this setup's customized local
   copy remains available and should be treated as local, not plugin-managed.
+- **v2.2.5 managed skill hashes are unchanged**: do not overwrite bundled or
+  customized local skill content solely for this version roll-forward.
 - **`compactSidebar`** now defaults to `true`: the agent sidebar renders
   compactly out of the box; set it `false` to restore the old spacing.
-- **v2.2.2 fixes** harden fallback handling and fix reminder-cache regression
-  and background agent mapping.
-- **Connection-refusal retry limitation**: OpenCode 1.18.3 can normalize a
-  refusal as `Cannot connect to API: Unable to connect...`. omo-slim 2.2.2's
-  transport patterns do not match that shape, so core retry may continue. This
-  shape was also unsupported in 2.1.1 and is not a 2.2.2 regression. Manual
-  cancellation remains the escape hatch for an unbounded retry.
+- **Background result handling is corrected**: child events are attributed to
+  the actual child session, background `session.error` results are reported,
+  and fallback races reconcile to the winning child result instead of a stale
+  competing outcome.
+- **Task-fit rejection is deliberate**: a child that rejects an assignment as
+  outside its role has not completed the task. Re-route to a fitting agent or
+  surface the rejection; do not retry the same mismatched assignment as if it
+  were an ordinary fallback failure.
+- **Council is still native and parallel**: it remains compatible with
+  `subagent_depth: 1`. Councillor rows are hidden from the sidebar, while their
+  tasks and multiplexer panes remain operational.
+- **Foreground fallback and Kimi routing are unchanged from 2.2.4**: preserve
+  current fallback chains and the canonical direct Kimi wire ID `k3`.
 
 Configure runtime fallback behavior under the top-level `fallback` object.
 Configure a councillor's ordered fallback chain in that councillor's `model`
@@ -167,15 +185,28 @@ Plugin or configuration changes require an OpenCode restart.
 - OpenAI hides raw chain-of-thought by design. OpenCode already requests
   reasoning summaries and encrypted multi-turn continuity; do not duplicate
   those options in agent config.
-- OpenCode 1.18.3 improves GPT-5.6 variant and OAuth handling. This setup still
+- OpenCode 1.18.4 improves provider effort handling and context-overflow
+  recognition. This setup still
   keeps its explicit, tested OAuth-safe `limit` values (`context: 500000`,
   `input: 372000`, `output: 128000`) and explicit `max` variants. Keep fallback
   effort in model-level `options` so cross-provider agent fallback arrays do
   not leak OpenAI-specific settings.
 - Pro serialization is now supported, but do not change this setup's current
   Sol route speculatively. Evaluate any Pro route separately before adopting it.
-- OpenCode 1.18.3 supports `subagent_depth` with a default of `1`; this setup
+- OpenCode 1.18.4 supports `subagent_depth` with a default of `1`; this setup
   explicitly sets `"subagent_depth": 1` in `opencode.json`.
+
+### Direct Kimi K3 routing
+
+- Keep the local selector `kimi-for-coding/kimi-k3-1m`, but map it to the
+  canonical direct API wire ID `k3`; `k3[1m]` is not a valid direct wire ID.
+- `options.effort: "max"` is intrinsic. OpenCode 1.18.4 may serialize
+  `thinking: {"type":"adaptive","display":"summarized"}` alongside
+  `output_config.effort: "max"`. The request must still omit `temperature`,
+  `budgetTokens`, `budget_tokens`, and `reasoningEffort`.
+- The local 1M context / 128K output values (1,048,576 / 131,072 tokens) are
+  declared metadata expected for entitled plans. No successful request above
+  262K tokens has been locally proven.
 
 ## Common Customizations
 

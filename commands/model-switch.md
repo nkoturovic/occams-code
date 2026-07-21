@@ -15,7 +15,10 @@ Every temperature-capable model in your config has an example in at least one pr
 Temperature is set explicitly except for Kimi K3, whose model definition
 suppresses it. For thinking-mode models, use these rules:
 - DeepSeek V4 Pro: 0.8 (explorer), 1.0 (council)
-- Kimi K3: omit `temperature` and use `"variant": null`; intrinsic model effort is max
+- Kimi K3: omit `temperature`; max effort is intrinsic. In source
+  `model-profile.jsonc`, prefer `"variant": null` when selecting K3 directly.
+  An explicit `"variant": "max"` is redundant and ignored because K3's
+  generated `high`/`max` variants are disabled.
 - GLM 5.2: 0.8 (orchestrator/librarian/fixer)
 - Claude: 0.6 (premium preset)
 - All other models: 1.0 unless you have a specific reason to lower it
