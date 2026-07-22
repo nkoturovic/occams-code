@@ -3,7 +3,7 @@ name: oh-my-opencode-slim
 description: Configure and improve oh-my-opencode-slim for the current user. Use when users want to tune agents, models, prompts, custom agents, skills, MCPs, presets, or plugin behavior. Also use when recurring workflow friction suggests a safe config or prompt improvement.
 ---
 
-# oh-my-opencode-slim v2.2.5 Configuration Skill
+# oh-my-opencode-slim v2.2.7 Configuration Skill
 
 Help users configure, customize, and safely improve their
 oh-my-opencode-slim setup. Prefer the smallest durable change: tune models,
@@ -118,7 +118,11 @@ Cross-preset built-in override:
 }
 ```
 
-## v2.2.5 Runtime and Features
+## v2.2.7 Runtime and Features
+
+- **`/preset` writes configuration; it is not a hot swap**: use the TUI
+  autocomplete selection, apply the preset, then reload OpenCode or start a new
+  conversation. The active conversation keeps its already-loaded agent config.
 
 - **Council fallback chains remain supported**: a councillor's `model` field
   accepts an array
@@ -132,8 +136,12 @@ Cross-preset built-in override:
 - **Legacy top-level `tmux` was removed**: keep terminal integration under the
   supported top-level `multiplexer` object.
 - **Background strategy stays schema-defaulted**: omit
-  `backgroundJobs.strategy` so the 2.2.5 default `latest` preserves current
+  `backgroundJobs.strategy` so the default `latest` preserves current
   behavior. Do not opt into `checkpoint-compatible` without cache telemetry.
+- **Background retention and idle continuation stay off**: also omit
+  `backgroundJobs.maxRetainedSnapshots` and `backgroundJobs.continueOnIdle`.
+  Omission means no retained checkpoint snapshots and the 2.2.7 default
+  `continueOnIdle: false`; do not restore the 2.2.6 default-on idle nudges.
 - **`fallback.maxRetries`** (default `3`): number of consecutive rate-limit
   responses before the chain aborts or swaps to the next model.
 - **`fallback.runtimeOverride` is deprecated**: it remains schema-accepted but
@@ -156,14 +164,23 @@ Cross-preset built-in override:
 - **v2.2.4 bundled-skill baseline**: `verification-planning` is bundled.
   `release-smoke-test` is no longer bundled, but this setup's customized local
   copy remains available and should be treated as local, not plugin-managed.
-- **v2.2.5 managed skill hashes are unchanged**: do not overwrite bundled or
-  customized local skill content solely for this version roll-forward.
+- **v2.2.5 managed-skill history**: its managed skill hashes were unchanged, so
+  no bundled or customized local skill content was overwritten for that
+  roll-forward.
+- **v2.2.7 managed skill hashes are still unchanged**: do not overwrite
+  plugin-managed bundled skill content for this roll-forward.
 - **`compactSidebar`** now defaults to `true`: the agent sidebar renders
   compactly out of the box; set it `false` to restore the old spacing.
 - **Background result handling is corrected**: child events are attributed to
   the actual child session, background `session.error` results are reported,
   and fallback races reconcile to the winning child result instead of a stale
   competing outcome.
+- **Terminal reconciliation is state-only**: `reconcile_task` updates scheduler
+  state for an already-terminal job and cannot dispatch or spawn another task.
+  This prevents task-spawn reconciliation loops.
+- **Manual-operation waits are process-local**: `wait_for_user` is the explicit
+  boundary for user action in the current process. It is not durable state and
+  must not be described as surviving a restart.
 - **Task-fit rejection is deliberate**: a child that rejects an assignment as
   outside its role has not completed the task. Re-route to a fitting agent or
   surface the rejection; do not retry the same mismatched assignment as if it
@@ -210,7 +227,9 @@ Plugin or configuration changes require an OpenCode restart.
 
 ## Common Customizations
 
-- **Switch presets**: choose which generated or custom preset is active.
+- **Switch presets**: use `/preset` autocomplete to write the selected generated
+  or custom preset, then reload or start a new conversation; it does not hot
+  swap the active conversation.
 - **Tune models**: assign different models/variants per agent.
 - **Limit costs**: use cheaper models for `explorer`, `librarian`, and `fixer`.
 - **Improve quality**: use stronger models for `orchestrator`, `oracle`, or
@@ -304,8 +323,8 @@ When making or proposing changes:
 4. Ask for confirmation unless already explicitly authorized.
 5. Apply the edit carefully and preserve unrelated settings.
 6. Validate that JSON/JSONC remains parseable or run the available config check.
-7. Explain activation: "This should apply on the next OpenCode run; restart
-   OpenCode if you need it immediately."
+7. Explain activation: "Reload OpenCode or start a new conversation after
+   applying this change."
 
 ## Prompt Tuning Pattern
 
@@ -338,4 +357,4 @@ future runs handle it automatically. Want me to make that config change?
 - [ ] Did the edit preserve existing settings?
 - [ ] Is the active preset still valid?
 - [ ] Are skill/MCP/tool permissions intentional and minimal?
-- [ ] Did you mention OpenCode restart/next-run behavior?
+- [ ] Did you mention reload/new-conversation behavior?

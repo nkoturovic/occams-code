@@ -1,7 +1,12 @@
 ---
-description: Show active preset and agent models
+description: Select and persist an agent preset (reload required)
 ---
-1. Run this bash command to show the current preset and models (checks project config first, then global):
+`/preset` uses the omo-slim TUI autocomplete selection and writes the chosen
+preset to configuration. It does not hot-swap the active conversation. After
+applying a preset, reload OpenCode or start a new conversation.
+
+For inspection, run this bash command to show the current preset and models
+(checks project config first, then global):
 
 ```bash
 python3 <<'PY'
@@ -121,7 +126,8 @@ print(f'Active: {preset} ({source})')
 for agent, conf in agents.items():
     print(f'  {agent}: {model_label(conf.get("model"))}')
 print(f'Available: {", ".join(cfg["presets"].keys())}')
-print('Switch: oc --preset <name>')
+print('TUI selection: /preset (use autocomplete; reload or start a new conversation after applying)')
+print('Launcher: oc --preset <name>')
 PY
 ```
 

@@ -39,7 +39,8 @@ python3 ~/.config/opencode/scripts/model-profile.py \
   ~/.config/opencode/oh-my-opencode-slim.json
 ```
 
-3. Tell the user to restart OpenCode.
+3. Tell the user to reload OpenCode or start a new conversation. The applied
+   configuration does not hot-swap the active conversation.
 
 ## Per-project model switch (this project only)
 
@@ -49,6 +50,7 @@ Edit `.opencode/oh-my-opencode-slim.jsonc`. In v2.1.0, project config deep-merge
 {"agents":{"explorer":{"model":"openrouter/google/gemini-3.5-flash","temperature":1.0}}}
 ```
 
-No generator needed — omo-slim reads this at startup. Restart after saving.
+No generator needed — omo-slim reads this at startup. Reload OpenCode or start
+a new conversation after saving.
 
 Docs: `~/.agents/wiki/concepts/model-profile-guide.md`

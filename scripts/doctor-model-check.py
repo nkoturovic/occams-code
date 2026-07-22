@@ -303,7 +303,7 @@ EXPECTED_PRESETS = {
     "custom", "balanced", "premium", "deepseek", "cheap", "openai",
     "openai-fast", "kimi",
 }
-OMO_VERSION = "2.2.5"
+OMO_VERSION = "2.2.7"
 OMO_PIN = f"oh-my-opencode-slim@{OMO_VERSION}"
 OMO_SCHEMA = (
     f"https://unpkg.com/oh-my-opencode-slim@{OMO_VERSION}/"
@@ -362,7 +362,7 @@ def check_omo_contract(
     slim: dict,
     tui: dict | None = None,
 ) -> tuple[int, int]:
-    """Validate the exact omo-slim pin/schema and v2.2.5 config surface."""
+    """Validate the exact omo-slim pin/schema and v2.2.7 config surface."""
     errors = warnings = 0
 
     def require(label: str, predicate: bool, detail: str) -> None:
@@ -401,7 +401,7 @@ def check_omo_contract(
 
     removed_top_level = sorted(REMOVED_TOP_LEVEL_KEYS.intersection(slim))
     require(
-        "no removed omo-slim 2.2.5 top-level keys",
+        "no removed omo-slim 2.2.7 top-level keys",
         not removed_top_level,
         f"removed keys present: {removed_top_level}",
     )
@@ -412,7 +412,7 @@ def check_omo_contract(
         if isinstance(council, dict) else REMOVED_COUNCIL_KEYS
     )
     require(
-        "no removed omo-slim 2.2.5 council keys",
+        "no removed omo-slim 2.2.7 council keys",
         not removed,
         f"removed keys present: {removed}",
     )
@@ -421,6 +421,17 @@ def check_omo_contract(
         "backgroundJobs.strategy omitted (schema default latest)",
         isinstance(background_jobs, dict) and "strategy" not in background_jobs,
         "omit strategy; do not adopt checkpoint-compatible without cache telemetry",
+    )
+    require(
+        "backgroundJobs.maxRetainedSnapshots omitted (no retention)",
+        isinstance(background_jobs, dict)
+        and "maxRetainedSnapshots" not in background_jobs,
+        "omit maxRetainedSnapshots to keep checkpoint retention disabled",
+    )
+    require(
+        "backgroundJobs.continueOnIdle omitted (schema default false)",
+        isinstance(background_jobs, dict) and "continueOnIdle" not in background_jobs,
+        "omit continueOnIdle to keep 2.2.7 idle continuation disabled",
     )
     return errors, warnings
 
@@ -1277,7 +1288,7 @@ def run_self_test() -> int:
     public_omo_errors, _ = check_omo_contract(
         public_core, public_slim, public_tui
     )
-    assert public_omo_errors == 0, "valid public omo-slim 2.2.5 contract was rejected"
+    assert public_omo_errors == 0, "valid public omo-slim 2.2.7 contract was rejected"
     public_errors, _ = check_kimi_profile(
         public_core, public_slim, expected_default=expected_default
     )
@@ -1296,20 +1307,30 @@ def run_self_test() -> int:
 
     omo_mutations = {
         "stale core pin": lambda core, _slim, _tui: core.update(
-            plugin=["oh-my-opencode-slim@2.2.4"]
+            plugin=["oh-my-opencode-slim@2.2.5"]
         ),
         "stale TUI pin": lambda _core, _slim, tui: tui.update(
-            plugin=["oh-my-opencode-slim@2.2.4"]
+            plugin=["oh-my-opencode-slim@2.2.5"]
         ),
         "stale schema": lambda _core, slim, _tui: slim.update(
-            {"$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.4/oh-my-opencode-slim.schema.json"}
+            {"$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.5/oh-my-opencode-slim.schema.json"}
         ),
         "removed top-level tmux": lambda _core, slim, _tui: slim.update(
             tmux={"enabled": True}
         ),
-        "checkpoint-compatible background strategy": (
+        "explicit background strategy": (
             lambda _core, slim, _tui: slim["backgroundJobs"].update(
-                strategy="checkpoint-compatible"
+                strategy="latest"
+            )
+        ),
+        "retained background snapshots": (
+            lambda _core, slim, _tui: slim["backgroundJobs"].update(
+                maxRetainedSnapshots=1
+            )
+        ),
+        "idle background continuation": (
+            lambda _core, slim, _tui: slim["backgroundJobs"].update(
+                continueOnIdle=True
             )
         ),
         **{
@@ -1359,7 +1380,7 @@ def run_self_test() -> int:
         "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
         "16 directional mutations, exact dedupe map, agent/council alias mapping, "
         "stable-first ordering, byte-identical generator output modes, null-variant "
-        f"semantics, {len(omo_mutations)} omo 2.2.5 contract mutations, exact "
+        f"semantics, {len(omo_mutations)} omo 2.2.7 contract mutations, exact "
         "default Kimi council, exact eight-preset Kimi config, and "
         f"{len(kimi_mutations)} Kimi negative mutations."
     )
@@ -1531,7 +1552,7 @@ def main() -> int:
         print(f"  {DIM}tui:   {tui_path}{RESET}")
     print()
 
-    # ── omo-slim 2.2.5 contract ──
+    # ── omo-slim 2.2.7 contract ──
     e, w = check_omo_contract(core, slim, tui)
     total_errors += e
     total_warnings += w

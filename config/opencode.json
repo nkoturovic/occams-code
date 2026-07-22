@@ -494,7 +494,7 @@
     }
   },
   "plugin": [
-    "oh-my-opencode-slim@2.2.5"
+    "oh-my-opencode-slim@2.2.7"
   ],
   "mcp": {
     "zai_vision": {

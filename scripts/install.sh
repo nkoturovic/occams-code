@@ -35,7 +35,7 @@ SETUP_PATH=1
 ENABLE_ZAI_MCPS=0
 ZAI_KEY=""
 SETUP_SECRETS=1
-OMO_SLIM_PACKAGE="oh-my-opencode-slim@2.2.5"
+OMO_SLIM_PACKAGE="oh-my-opencode-slim@2.2.7"
 ZAI_MCP_PACKAGE="@z_ai/mcp-server@0.1.4"
 
 # Preserve-only configs are never modified when already present.

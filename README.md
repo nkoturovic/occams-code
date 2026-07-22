@@ -24,11 +24,11 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
 - **8 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, `openai`, opt-in `openai-fast`, and `kimi` use additional providers
 - **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
-- **6 slash commands** — `/preset`, `/wiki`, `/remember`, `/permissions`, `/wiki-lint`, `/model-switch` (plus `/auto-continue` from oh-my-opencode-slim)
+- **Slash commands** — Repository-provided commands are tracked under `commands/`. Installed oh-my-opencode-slim may also expose prompt commands such as `/deepwork`, `/loop`, and `/reflect`; these inject workflow prompts rather than providing execution engines or automatic continuation.
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
 - **model-profile.jsonc** — Model-mapping source of truth. Edit, run `oc --sync-profile` to regenerate oh-my-opencode-slim.json, restart. Per-agent MCP/skill assignments live in oh-my-opencode-slim.json (committed preset). Plus per-project overrides via `.opencode/oh-my-opencode-slim.jsonc`
 - **5 MCP servers** — context7 (library docs), gh_grep (grep.app code search), websearch (Exa), zai_vision (image analysis), and web-search-prime (Z.AI web search). Z.AI MCPs require `Z_AI_API_KEY`.
-- **3 OpenCode skills** — codemap, simplify, clonedeps (universal skills like audio-analysis, video-analysis, lecture-notes come from occams-agentic)
+- **OpenCode skills** — OpenCode-specific skills are tracked under `skills/`; universal skills such as audio-analysis, video-analysis, and lecture-notes come from occams-agentic.
 
 ### Prerequisites
 
@@ -57,7 +57,7 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 The installer:
 
 1. Copies OpenCode-specific scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
-2. Installs the exact `oh-my-opencode-slim@2.2.5` plugin
+2. Installs the exact `oh-my-opencode-slim@2.2.7` plugin
 3. Sets up API keys (interactively, shell-visible in `~/.config/secrets/env`)
 
 > **Note:** `~/.agents/` (skills, scripts, wiki) is set up by occams-agentic's `bootstrap.sh` — run that first.
@@ -126,6 +126,10 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 `openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`. Its roles, capabilities, reasoning effort, fallbacks, and council configuration are identical. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 usage multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
 `kimi` keeps the local selector `kimi-for-coding/kimi-k3-1m` but maps it to the canonical direct API wire model `k3`; `k3[1m]` is not a valid direct wire ID. K3 uses intrinsic max effort, text+image input, and no temperature. Its 1,048,576-token context and 131,072-token output are declared metadata expected for entitled plans; no successful request above 262,144 tokens has been locally proven. Every GPT route in the preset and council uses Fast/Priority transport. The K3 orchestrator's first fallback is the dedicated GPT-5.6 Sol Fast-high alias; the fixer uses GPT-5.6 Sol Fast high with K3 and DeepSeek fallbacks. The repository default remains `balanced`.
+
+`/preset` uses TUI autocomplete to select a preset and writes that choice to
+configuration. It does not hot-swap the active conversation; reload OpenCode or
+start a new conversation after applying it.
 
 ### Per-Project Config
 
@@ -196,17 +200,23 @@ OpenCode-specific scripts (universal scripts like `project-init.py`, `transcribe
 
 Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel and synthesizes their responses.
 
-omo-slim 2.2.5 keeps council native and parallel with `subagent_depth: 1`.
+omo-slim 2.2.7 keeps council native and parallel with `subagent_depth: 1`.
 Councillor rows are hidden from the sidebar, while their tasks and multiplexer
 panes remain operational. The release also corrects child attribution,
 background `session.error` reporting, and fallback-race reconciliation. A
 task-fit rejection is not successful completion: re-route the assignment or
 surface the rejection instead of retrying the same mismatched child.
 
+`reconcile_task` is state-only for already-terminal jobs and cannot spawn a new
+task, preventing task-spawn reconciliation loops. `wait_for_user` is an
+explicit process-local manual-operation boundary, not durable restart state.
+
 Current config uses supported `multiplexer` and preset-scoped council synthesis;
 removed top-level `tmux` and `council.master` keys are invalid. Keep
 `backgroundJobs.strategy` omitted so the schema default `latest` remains active;
-do not adopt `checkpoint-compatible` without cache telemetry.
+also omit `backgroundJobs.maxRetainedSnapshots` and
+`backgroundJobs.continueOnIdle` for no snapshot retention and the 2.2.7 default
+`false`. Do not adopt `checkpoint-compatible` without cache telemetry.
 
 ### MCP Servers
 

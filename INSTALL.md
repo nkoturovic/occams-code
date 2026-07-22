@@ -201,7 +201,7 @@ Preview the Kimi preset and its configuration preflight without writing:
 ./scripts/install.sh --unattended --dry-run --providers kimi,openai,deepseek --preset kimi
 ```
 
-The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). It installs exact `oh-my-opencode-slim@2.2.5`; when Z.AI MCPs are enabled, their generated local command uses exact `@z_ai/mcp-server@0.1.4`. `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
+The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). It installs exact `oh-my-opencode-slim@2.2.7`; when Z.AI MCPs are enabled, their generated local command uses exact `@z_ai/mcp-server@0.1.4`. `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
 
 ---
 
@@ -242,7 +242,7 @@ cp -r skills/simplify        ~/.config/opencode/skills/
 cp -r skills/clonedeps       ~/.config/opencode/skills/
 
 # Plugin
-cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.5   # or 'bun install oh-my-opencode-slim@2.2.5'
+cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.7   # or 'bun install oh-my-opencode-slim@2.2.7'
 
 # Obsidian-skills bundle (optional)
 mkdir -p ~/.opencode/skills
@@ -379,7 +379,7 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `bash: bin/oc: bash 4 required` | macOS bash 3.2 | `brew install bash`; see [macOS Bash 5](#macos-bash-5) |
-| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.5` |
+| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.7` |
 | `jq: command not found` | jq missing | `apt install jq` / `brew install jq` |
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
 | `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |
