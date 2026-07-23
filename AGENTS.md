@@ -44,27 +44,32 @@ Before any non-trivial task, ensure sufficient context is available locally. Thi
 
 ## DeepWork Integration
 
-DeepWork is oh-my-opencode-slim's first-class structured execution workflow for heavy coding tasks: broad refactors, multi-phase features, risky architecture changes.
+DeepWork is the agent-managed structured workflow for heavy coding tasks: broad refactors, multi-phase features, and risky architecture changes. In the installed oh-my-opencode-slim version, `/deepwork <task>` is prompt activation only; it does not create or enforce durable state by itself.
 
 **When to use:** `/deepwork <task>` for large refactors, multi-module features, risky arch changes.
 **When NOT to use:** single-file edits, trivial fixes, quick changes — execute directly.
 
 **Workflow:**
-1. Orchestrator creates a persistent plan artifact at `.slim/deepwork/<task>.md`
-2. Draft plan → **Oracle review** → revise until acceptable
-3. Create phased implementation plan → **Oracle review**
-4. Execute phase by phase with validation
-5. After each phase: validate → **Oracle review** → fix issues → continue
+1. After `/deepwork` prompt activation or an equivalent explicit entry, the orchestrator creates or updates the durable Markdown record at `.slim/deepwork/<task>.md`
+2. Draft the phase/delegation plan with verification gates
+3. Before dispatch, show the user the compact phase order, owners/scopes, and planned Oracle gates
+4. Execute the planned phases
+5. After each planned phase: validate → **Oracle review** → remediate if needed → continue
+
+The phase plan itself is not a mandatory Oracle gate. If planning, research, or
+architecture selection carries the task's main risk—or the user requests a
+planning review—make it explicit Phase 0 and review that phase before
+implementation.
 
 **Key capabilities:**
-- Persistent session state in markdown files
-- Mandatory Oracle gates at plan approval + every phase boundary (includes simplify/readability feedback)
-- V2 scheduler integration (dispatch background specialists, wait for hook-driven completion, reconcile)
-- OpenCode todo lists for progress tracking
+- Agents create and maintain the durable Markdown record, Todos, reviews, phases, and validation evidence
+- Required Oracle gates apply at planned phase boundaries by default, including an explicit Phase 0 when the rule above applies
+- V2 scheduler integration dispatches background specialists and reconciles observed results within the active process
+- OpenCode Todo lists project current work; they are not durable recovery truth
 
-**Wiki integration:** DeepWork artifacts in `.slim/deepwork/` are execution records. After completion, record a brief summary in wiki `log.md` and promote any durable architectural decisions or patterns to wiki project/concept pages. DeepWork handles execution; wiki handles compiled knowledge.
+**Wiki integration:** DeepWork artifacts in `.slim/deepwork/` are agent-maintained execution records. After completion, record a brief summary in wiki `log.md` and promote any durable architectural decisions or patterns to wiki project/concept pages. The DeepWork record coordinates execution; wiki handles compiled knowledge.
 
-**Background orchestration model:** The orchestrator is a scheduler, not a default implementation worker. It plans, dispatches background specialists, tracks task IDs, avoids conflicting writes, reconciles results, and verifies. Enabled via `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=1` in `bin/oc`. See oh-my-opencode-slim docs for the full scheduler model.
+**Background orchestration model:** The orchestrator is a scheduler, not a default implementation worker. It plans, dispatches background specialists, tracks task IDs, avoids conflicting writes, reconciles results, and verifies. Scheduler/background state is process-local and provides no automatic durable recovery or continuation; agents reconcile it into the DeepWork record. Enabled via `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=1` in `bin/oc`. See oh-my-opencode-slim docs for the full scheduler model.
 
 ## Agent Instructions
 
