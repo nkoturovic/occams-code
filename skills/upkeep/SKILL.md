@@ -38,12 +38,15 @@ Record current state before changing anything.
    ```bash
    opencode --version
    plugin_spec="$(jq -r '.plugin[] | select(startswith("oh-my-opencode-slim@"))' ~/.config/opencode/opencode.json)"
-   node -p "require(process.env.HOME + '/.cache/opencode/packages/${plugin_spec}/node_modules/oh-my-opencode-slim/package.json').version"
+    cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/opencode"
+    plugin_cache="$cache_root/packages/$plugin_spec/node_modules/oh-my-opencode-slim"
+    node -p "require(process.argv[1] + '/package.json').version" "$plugin_cache"
    opencode debug config | grep plugin_origins
    ```
    Read the exact configured spec first. The cache directory must match that
    exact pin; never substitute an `@latest` cache path.
-3. **npm latest**: `npm view oh-my-opencode-slim version` (network; read-only query, OK without approval)
+3. **npm latest**: with explicit user approval for the network query, run
+   `npm view oh-my-opencode-slim version`.
 4. **Repo states**: `git -C ~/personal/repos/occams-code status --short` and `git -C ~/personal/repos/occams-agentic status --short`
 5. **Classify pre-existing dirty changes** in live before staging upgrade edits.
 
@@ -76,6 +79,10 @@ Apply changes to live `~/.config/opencode` first.
   `python3 scripts/model-profile.py model-profile.jsonc oh-my-opencode-slim.json`
 - Keep provider timeouts and output caps as deliberate mitigations; do not silently revert.
 - Launcher edits (`bin/oc`): keep multiplexer detection covering all supported backends (tmux/zellij/herdr).
+- After any approved package resolution or install, immediately run
+  `git status --short` and inspect the focused diffs for `package.json`,
+  `package-lock.json`, `opencode.json`, and `tui.json`. Stop before continuing if
+  resolution changed anything outside the approved package mutation set.
 
 ## Phase 4 — Verify (live)
 
@@ -96,6 +103,16 @@ Optional deeper checks:
 - Synthetic project override merge test (proves omo-slim `presets` deep-merge semantics).
 - `/loop` command registration visible in `opencode debug config`.
 - Stale-string grep across live docs (Phase 5).
+
+For omo-slim 2.2.8 background verification, terminal jobs automatically
+lifecycle-reconcile after their result is injected, but the Orchestrator must
+still consume and verify the result. Do not call the removed `reconcile_task`
+tool. Calling `task()` with an active task ID or alias must fail; queue amendments
+until terminal and resume only sessions shown under **Reusable Sessions**.
+Running task tool-result history is normalized for prompt-cache stability while
+terminal results remain intact. ACP now sends `clientInfo.version`. `/preset`,
+process-local `wait_for_user`, council, attribution, fallback/error handling, and
+task-fit rejection remain unchanged.
 
 ## Phase 5 — Sync to Repos
 

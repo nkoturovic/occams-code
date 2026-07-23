@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.7/oh-my-opencode-slim.schema.json",
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.8/oh-my-opencode-slim.schema.json",
   "preset": "balanced",
   "disabled_agents": [],
   "multiplexer": {
@@ -1037,6 +1037,138 @@
         "mcps": [],
         "temperature": 0.2
       }
+    },
+    "qwen": {
+      "orchestrator": {
+        "model": [
+          "alibaba-token-plan/qwen3.8-max-preview",
+          "openai/gpt-5.6-sol-fast-high",
+          "deepseek/deepseek-v4-pro",
+          "openai/gpt-5.6-sol-fast",
+          "openrouter/deepseek/deepseek-v4-pro",
+          "openrouter/qwen/qwen3-coder:free"
+        ],
+        "variant": "xhigh",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "web-search-prime",
+          "websearch"
+        ]
+      },
+      "oracle": {
+        "model": [
+          "openai/gpt-5.5-fast",
+          "deepseek/deepseek-v4-pro",
+          "anthropic/claude-opus-4-7",
+          "openrouter/deepseek/deepseek-v4-pro",
+          "openrouter/anthropic/claude-sonnet-4.6"
+        ],
+        "variant": "xhigh",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7"
+        ],
+        "temperature": 0.2
+      },
+      "librarian": {
+        "model": [
+          "openai/gpt-5.6-sol-fast",
+          "zai-coding-plan/glm-5.2",
+          "openai/gpt-5.6-terra-fast",
+          "deepseek/deepseek-v4-pro",
+          "openrouter/google/gemini-3.5-flash"
+        ],
+        "variant": "high",
+        "skills": [],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "gh_grep"
+        ],
+        "temperature": 0.2
+      },
+      "explorer": {
+        "model": [
+          "openai/gpt-5.6-sol-fast",
+          "zai-coding-plan/glm-5.2",
+          "openrouter/google/gemini-3.5-flash",
+          "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+          "openrouter/qwen/qwen3-coder:free"
+        ],
+        "variant": "high",
+        "skills": [],
+        "mcps": [
+          "context7",
+          "gh_grep"
+        ],
+        "temperature": 0.1
+      },
+      "fixer": {
+        "model": [
+          "openai/gpt-5.6-sol-fast",
+          "kimi-for-coding/kimi-k3-1m",
+          "deepseek/deepseek-v4-pro",
+          "openrouter/deepseek/deepseek-v4-pro",
+          "openrouter/qwen/qwen3-coder:free"
+        ],
+        "variant": "high",
+        "skills": [],
+        "mcps": [
+          "context7"
+        ],
+        "temperature": 0.2
+      },
+      "designer": {
+        "model": [
+          "openai/gpt-5.6-sol-fast",
+          "openrouter/moonshotai/kimi-k3",
+          "openrouter/google/gemini-3.5-flash",
+          "anthropic/claude-sonnet-4-6",
+          "openrouter/qwen/qwen3-coder:free"
+        ],
+        "variant": "high",
+        "skills": [
+          "agent-browser"
+        ],
+        "mcps": [
+          "web-search-prime",
+          "websearch",
+          "context7",
+          "zai_vision"
+        ],
+        "temperature": 0.4
+      },
+      "observer": {
+        "model": [
+          "openai/gpt-5.6-sol-fast",
+          "openrouter/moonshotai/kimi-k3",
+          "openrouter/google/gemini-3.5-flash",
+          "anthropic/claude-sonnet-4-6",
+          "openrouter/qwen/qwen3-coder:free"
+        ],
+        "variant": "high",
+        "skills": [
+          "video-analysis",
+          "lecture-notes",
+          "audio-analysis"
+        ],
+        "mcps": [
+          "zai_vision"
+        ],
+        "temperature": 0.2
+      },
+      "council": {
+        "model": "openai/gpt-5.6-sol-fast",
+        "variant": "high",
+        "skills": [],
+        "mcps": [],
+        "temperature": 0.2
+      }
     }
   },
   "fallback": {
@@ -1116,6 +1248,20 @@
       "kimi": {
         "reviewer-1": {
           "model": "kimi-for-coding/kimi-k3-1m"
+        },
+        "reviewer-2": {
+          "model": "openai/gpt-5.5-fast",
+          "variant": "xhigh"
+        },
+        "reviewer-3": {
+          "model": "deepseek/deepseek-v4-pro",
+          "variant": "max"
+        }
+      },
+      "qwen": {
+        "reviewer-1": {
+          "model": "alibaba-token-plan/qwen3.8-max-preview",
+          "variant": "xhigh"
         },
         "reviewer-2": {
           "model": "openai/gpt-5.5-fast",

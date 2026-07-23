@@ -13,7 +13,7 @@ Per-project overrides: use .opencode/oh-my-opencode-slim.jsonc
 
 Why this exists:
   - Most of the generated config is repetitive boilerplate
-  - Editing 8 presets × 8 role entries by hand is error-prone
+  - Editing 9 presets × 8 role entries by hand is error-prone
   - When models change, you update one mapping file, regenerate, deploy
 
 Design (Occam's Code):
@@ -178,6 +178,9 @@ PRESET_ROLE_PREFIXES: dict[str, dict[str, list[str | dict[str, str]]]] = {
     "kimi": {
         "orchestrator": ["openai/gpt-5.6-sol-fast-high"],
     },
+    "qwen": {
+        "orchestrator": ["openai/gpt-5.6-sol-fast-high"],
+    },
 }
 
 
@@ -217,6 +220,14 @@ COUNCIL_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
         "reviewer-2": {"model": "openai/gpt-5.5-fast", "variant": "xhigh"},
         "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
     },
+    "qwen": {
+        "reviewer-1": {
+            "model": "alibaba-token-plan/qwen3.8-max-preview",
+            "variant": "xhigh",
+        },
+        "reviewer-2": {"model": "openai/gpt-5.5-fast", "variant": "xhigh"},
+        "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
+    },
 }
 
 
@@ -232,10 +243,12 @@ OPENAI_FAST_MODEL_ALIASES = {
 }
 
 KIMI_COUNCIL_MODEL_ALIASES = dict(OPENAI_FAST_MODEL_ALIASES)
+QWEN_COUNCIL_MODEL_ALIASES = dict(OPENAI_FAST_MODEL_ALIASES)
 
 COUNCIL_MODEL_ALIASES_BY_PRESET = {
     "openai-fast": OPENAI_FAST_MODEL_ALIASES,
     "kimi": KIMI_COUNCIL_MODEL_ALIASES,
+    "qwen": QWEN_COUNCIL_MODEL_ALIASES,
 }
 
 FAST_MODEL_DEDUPE_EQUIVALENCE = {
@@ -355,7 +368,7 @@ def build_presets(preset_map: dict[str, dict[str, Any]],
                 openrouter_only=preset_name in OPENROUTER_ONLY_PRESETS,
                 model_aliases=(
                     OPENAI_FAST_MODEL_ALIASES
-                    if preset_name in {"openai-fast", "kimi"}
+                    if preset_name in {"openai-fast", "kimi", "qwen"}
                     else None
                 ),
             )
@@ -414,7 +427,7 @@ def build_council(council_map: dict[str, Any] | None, active_preset: str = "cust
 def build_full_config(model_map: dict[str, Any]) -> dict[str, Any]:
     """Generate the complete oh-my-opencode-slim.json from model-map input."""
     return {
-        "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.7/oh-my-opencode-slim.schema.json",
+        "$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.8/oh-my-opencode-slim.schema.json",
         "preset": model_map.get("preset", "custom"),
         "disabled_agents": model_map.get("disabled_agents", []),
         "multiplexer": model_map.get("multiplexer", {"type": "none"}),

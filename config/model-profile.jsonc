@@ -123,6 +123,19 @@
       "designer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.4 },
       "observer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
       "council":      { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 }
+    },
+
+    // ============ QWEN (Alibaba Token Plan auth via /connect) ============
+    "qwen": {
+      // Built-in preview selector: no stable alias and no explicit temperature.
+      "orchestrator": { "model": "alibaba-token-plan/qwen3.8-max-preview", "variant": "xhigh" },
+      "oracle":       { "model": "openai/gpt-5.5-fast", "variant": "xhigh", "temperature": 0.2 },
+      "librarian":    { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "explorer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.1 },
+      "fixer":        { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "designer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.4 },
+      "observer":     { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 },
+      "council":      { "model": "openai/gpt-5.6-sol-fast", "variant": "high", "temperature": 0.2 }
     }
   },
 
@@ -173,6 +186,11 @@
       },
       "kimi": {
         "reviewer-1": { "model": "kimi-for-coding/kimi-k3-1m" },
+        "reviewer-2": { "model": "openai/gpt-5.5-fast", "variant": "xhigh" },
+        "reviewer-3": { "model": "deepseek/deepseek-v4-pro", "variant": "max" }
+      },
+      "qwen": {
+        "reviewer-1": { "model": "alibaba-token-plan/qwen3.8-max-preview", "variant": "xhigh" },
         "reviewer-2": { "model": "openai/gpt-5.5-fast", "variant": "xhigh" },
         "reviewer-3": { "model": "deepseek/deepseek-v4-pro", "variant": "max" }
       }

@@ -5,7 +5,7 @@
 
 The OpenCode-specific configuration layer for the [occams-agentic](https://github.com/nkoturovic/occams-agentic) AI framework. Provides multi-model orchestration, a smart launcher (`oc`), and curated agent presets on top of the universal skills, scripts, and wiki from occams-agentic.
 
-**The default `balanced` and budget `cheap` presets work fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys or OpenAI OAuth, but you don't need them to start.
+**The default `balanced` and budget `cheap` presets work fully with just an OpenRouter API key.** Other presets unlock additional capabilities if you have Anthropic / DeepSeek / Z.AI / Kimi keys, OpenAI OAuth, or Alibaba Qwen `/connect` auth, but you don't need them to start.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 ## What's Included
 
 - **`oc` launcher** (`bin/oc`) — Interactive preset picker, project initialization, health checks, and permission toggles
-- **8 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, `openai`, opt-in `openai-fast`, and `kimi` use additional providers
+- **9 presets** — `balanced` (default) and `cheap` are OpenRouter-only; `deepseek`, `premium`, `custom`, `openai`, opt-in `openai-fast`, `kimi`, and `qwen` use additional providers
 - **6 OpenCode scripts** — Config generator, model health check, project init, state detection, log cleanup, interactive installer
 - **Slash commands** — Repository-provided commands are tracked under `commands/`. Installed oh-my-opencode-slim may also expose prompt commands such as `/deepwork`, `/loop`, and `/reflect`; these inject workflow prompts rather than providing execution engines or automatic continuation.
 - **oh-my-opencode-slim** plugin — 7 agent roles with curated models, fallback chains, and council multi-LLM consensus
@@ -57,7 +57,7 @@ git clone https://github.com/nkoturovic/occams-code.git && cd occams-code
 The installer:
 
 1. Copies OpenCode-specific scripts, commands, configs, AGENTS.md to `~/.config/opencode/`
-2. Installs the exact `oh-my-opencode-slim@2.2.7` plugin
+2. Installs the exact `oh-my-opencode-slim@2.2.8` plugin
 3. Sets up API keys (interactively, shell-visible in `~/.config/secrets/env`)
 
 > **Note:** `~/.agents/` (skills, scripts, wiki) is set up by occams-agentic's `bootstrap.sh` — run that first.
@@ -120,12 +120,15 @@ Open `~/.agents/wiki/` in [Obsidian](https://obsidian.md) for the best experienc
 | `openai` | OpenAI-first via OAuth | OpenAI OAuth (`/connect`) | GPT-5.6 Sol (orchestrator/oracle/fixer/council), GPT-5.6 Terra (explorer/librarian/designer/observer) |
 | `openai-fast` | Opt-in faster OpenAI route | OpenAI OAuth (`/connect`) | Fast/Priority transport with the same GPT-5.6 Sol/Terra role configuration as `openai` |
 | `kimi` | K3-first coding | Kimi + OpenAI OAuth (`/connect`) + DeepSeek | Intrinsic-max Kimi K3 1M (orchestrator), GPT-5.5 Fast xhigh (oracle), GPT-5.6 Sol Fast high (fixer/support roles/chair), K3 + GPT-5.5 Fast + DeepSeek council reviewers |
+| `qwen` | Qwen-first coding | Alibaba Qwen (`/connect`) + OpenAI OAuth (`/connect`) + DeepSeek | Qwen 3.8 Max Preview xhigh (orchestrator), GPT-5.5 Fast xhigh (oracle), GPT-5.6 Sol Fast high (fixer/support roles/chair), Qwen xhigh + GPT-5.5 Fast xhigh + DeepSeek V4 Pro max council reviewers |
 
 **The default `balanced` and budget `cheap` presets work fully with just an OpenRouter key.** The other presets require additional API keys or subscriptions for their primary routes.
 
 `openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`. Its roles, capabilities, reasoning effort, fallbacks, and council configuration are identical. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 usage multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
 `kimi` keeps the local selector `kimi-for-coding/kimi-k3-1m` but maps it to the canonical direct API wire model `k3`; `k3[1m]` is not a valid direct wire ID. K3 uses intrinsic max effort, text+image input, and no temperature. Its 1,048,576-token context and 131,072-token output are declared metadata expected for entitled plans; no successful request above 262,144 tokens has been locally proven. Every GPT route in the preset and council uses Fast/Priority transport. The K3 orchestrator's first fallback is the dedicated GPT-5.6 Sol Fast-high alias; the fixer uses GPT-5.6 Sol Fast high with K3 and DeepSeek fallbacks. The repository default remains `balanced`.
+
+`qwen` is the public/source Qwen counterpart to `kimi`: only the direct Kimi lead and council reviewer are replaced. It uses the exact built-in selector `alibaba-token-plan/qwen3.8-max-preview` at explicit `xhigh` reasoning with no explicit temperature; there is no stable `qwen3.8-max` alias. OpenCode 1.18.4/models.dev supplies the OpenAI-compatible adapter, base URL, 1,000,000-token context, 131,072-token output, text/image/video input, and low/medium/xhigh variants, so `config/opencode.json` intentionally has no Alibaba provider block. The built-in `alibaba-token-plan` path is preferred for OpenCode; do not copy the official manual `@ai-sdk/anthropic` + `/compatible-mode/v1` recipe over it because that recipe conflicts with Qwen's protocol-specific endpoint table and creates a separate provider. `/connect` writes provider-keyed credentials to `~/.local/share/opencode/auth.json`, outside this repository; no Qwen secret belongs in the repo or installer prompts. One minimal live empty-directory `--pure` canary with the exact preview ID and `--variant xhigh` identified `qwen3.8-max-preview` and returned exactly `QWEN_CANARY_OK`, proving stored `/connect` auth, built-in routing, preview-ID acceptance, and a response. It did not test long context, vision/video, tools, or large reasoning consumption. Qwen's direct-role temperature remains omitted because the server default/clamp yields 0.6 and a role temperature would propagate to fallback models. The built-in limit remains 1,000,000 context / 131,072 output; 983,616 is a manual-client cap, not the built-in model limit. The inherited Kimi and OpenRouter Kimi fallbacks, public skills/MCPs, GPT-5.5 Fast xhigh oracle, Sol Fast support roles/chair, and DeepSeek V4 Pro max council reviewer remain unchanged. The repository default remains `balanced`.
 
 `/preset` uses TUI autocomplete to select a preset and writes that choice to
 configuration. It does not hot-swap the active conversation; reload OpenCode or
@@ -200,22 +203,29 @@ OpenCode-specific scripts (universal scripts like `project-init.py`, `transcribe
 
 Multi-LLM consensus for high-stakes decisions. Runs multiple models in parallel and synthesizes their responses.
 
-omo-slim 2.2.7 keeps council native and parallel with `subagent_depth: 1`.
+omo-slim 2.2.8 keeps council native and parallel with `subagent_depth: 1`.
 Councillor rows are hidden from the sidebar, while their tasks and multiplexer
 panes remain operational. The release also corrects child attribution,
 background `session.error` reporting, and fallback-race reconciliation. A
 task-fit rejection is not successful completion: re-route the assignment or
 surface the rejection instead of retrying the same mismatched child.
 
-`reconcile_task` is state-only for already-terminal jobs and cannot spawn a new
-task, preventing task-spawn reconciliation loops. `wait_for_user` is an
-explicit process-local manual-operation boundary, not durable restart state.
+Terminal jobs automatically lifecycle-reconcile after their result is injected,
+but the Orchestrator must still consume and verify the result. The
+`reconcile_task` tool was removed in 2.2.8 and must not be called. Calling
+`task()` with an active task ID or alias errors: queue amendments until terminal,
+then resume only sessions listed under **Reusable Sessions**. Running task
+tool-result history is normalized for prompt-cache stability while terminal
+results remain intact. ACP requests now include `clientInfo.version`.
+`wait_for_user` remains an explicit process-local manual-operation boundary, not
+durable restart state; `/preset`, council, attribution, fallback/error handling,
+and task-fit rejection retain their established semantics.
 
 Current config uses supported `multiplexer` and preset-scoped council synthesis;
 removed top-level `tmux` and `council.master` keys are invalid. Keep
 `backgroundJobs.strategy` omitted so the schema default `latest` remains active;
 also omit `backgroundJobs.maxRetainedSnapshots` and
-`backgroundJobs.continueOnIdle` for no snapshot retention and the 2.2.7 default
+`backgroundJobs.continueOnIdle` for no snapshot retention and the 2.2.8 default
 `false`. Do not adopt `checkpoint-compatible` without cache telemetry.
 
 ### MCP Servers
@@ -252,25 +262,6 @@ The installer also offers to set this up during interactive install.
 ## Workflow Principles
 
 See [AGENTS.md](AGENTS.md) for the complete agent rules, delegation table, pipeline workflows, and specialist instructions.
-
-## Autonomous Mode
-
-Want to step away and let the agent work? Use `/auto-continue on` (built into oh-my-opencode-slim).
-
-The agent will keep working through incomplete TODOs without stopping. It stops when:
-- All TODOs are completed
-- It asks you a question
-- You press Esc
-- Max iterations reached (configurable, default 15)
-
-**Best practice:** Write a design doc with clear TODOs before enabling. Descriptive TODOs help the agent recover context after long sessions.
-
-**Example workflow:**
-```
-/remember → "Write design doc with TODOs"
-/auto-continue on
-# ... go make coffee, come back to finished work
-```
 
 ## Directory Structure
 

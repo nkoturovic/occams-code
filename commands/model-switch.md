@@ -12,20 +12,30 @@ Every temperature-capable model in your config has an example in at least one pr
 1. Search for that model string across all presets in `model-profile.jsonc`
 2. Copy its `"temperature"` field — same model, same temp regardless of role
 
-Temperature is set explicitly except for Kimi K3, whose model definition
-suppresses it. For thinking-mode models, use these rules:
+Temperature is set explicitly except for direct Kimi K3 and the built-in Qwen
+lead. For thinking-mode models, use these rules:
 - DeepSeek V4 Pro: 0.8 (explorer), 1.0 (council)
 - Kimi K3: omit `temperature`; max effort is intrinsic. In source
   `model-profile.jsonc`, prefer `"variant": null` when selecting K3 directly.
   An explicit `"variant": "max"` is redundant and ignored because K3's
   generated `high`/`max` variants are disabled.
+- Qwen 3.8 Max Preview: use the exact built-in selector
+  `alibaba-token-plan/qwen3.8-max-preview`, explicit `"variant": "xhigh"`, and
+  no explicit `temperature`. The server default/clamp yields 0.6, while a
+  role-level temperature would propagate to fallback models. There is no stable
+  `qwen3.8-max` alias. Prefer the built-in OpenAI-compatible path; do not replace
+  it with the separate manual `@ai-sdk/anthropic` + `/compatible-mode/v1`
+  provider recipe. Built-in limits remain 1,000,000 context / 131,072 output;
+  983,616 is only a manual-client cap. One minimal live empty-directory `--pure`
+  xhigh canary returned exactly `QWEN_CANARY_OK`; it did not test long context,
+  vision/video, tools, or large reasoning consumption.
 - GLM 5.2: 0.8 (orchestrator/librarian/fixer)
 - Claude: 0.6 (premium preset)
 - All other models: 1.0 unless you have a specific reason to lower it
 
 ## Global model switch (applies everywhere)
 
-Valid presets (8): `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`, `kimi`.
+Valid presets (9): `balanced`, `cheap`, `deepseek`, `premium`, `custom`, `openai`, `openai-fast`, `kimi`, `qwen`.
 Valid agents: `orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`, `observer`.
 
 `openai-fast` is the opt-in ChatGPT OAuth Fast/Priority sibling of `openai`; model roles, capabilities, reasoning, fallbacks, and council stay identical.

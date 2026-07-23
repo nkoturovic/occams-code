@@ -35,7 +35,7 @@ SETUP_PATH=1
 ENABLE_ZAI_MCPS=0
 ZAI_KEY=""
 SETUP_SECRETS=1
-OMO_SLIM_PACKAGE="oh-my-opencode-slim@2.2.7"
+OMO_SLIM_PACKAGE="oh-my-opencode-slim@2.2.8"
 ZAI_MCP_PACKAGE="@z_ai/mcp-server@0.1.4"
 
 # Preserve-only configs are never modified when already present.
@@ -143,6 +143,20 @@ if [[ "$UNATTENDED" -eq 1 ]]; then
       PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
     fi
   fi
+  if [[ "$PRESET" == "qwen" ]]; then
+    if [[ "$PROVIDERS" != *"qwen"* ]]; then
+      echo -e "${YELLOW}Note: qwen preset requires Alibaba/Qwen. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}qwen"
+    fi
+    if [[ "$PROVIDERS" != *"openai"* ]]; then
+      echo -e "${YELLOW}Note: qwen preset uses OpenAI support roles. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai"
+    fi
+    if [[ "$PROVIDERS" != *"deepseek"* ]]; then
+      echo -e "${YELLOW}Note: qwen preset uses direct DeepSeek fallbacks/council. Adding to providers.${RESET}" >&2
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
+    fi
+  fi
 fi
 
 # ── Header ───────────────────────────────────────────────────────────
@@ -180,6 +194,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  4) Z.AI"
   echo "  5) Kimi"
   echo "  6) OpenAI (ChatGPT Plus OAuth via /connect)"
+  echo "  7) Alibaba/Qwen Token Plan (auth via /connect)"
   read -rp "  Enter space-separated numbers [1]: " _q1 < /dev/tty
   _q1="${_q1:-1}"
   PROVIDERS=""
@@ -191,6 +206,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
       4) PROVIDERS="${PROVIDERS:+$PROVIDERS,}zai" ;;
       5) PROVIDERS="${PROVIDERS:+$PROVIDERS,}kimi" ;;
       6) PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai" ;;
+      7) PROVIDERS="${PROVIDERS:+$PROVIDERS,}qwen" ;;
     esac
   done
   [[ -z "$PROVIDERS" ]] && PROVIDERS="openrouter"
@@ -199,7 +215,9 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
 
   # Auto-recommend preset
   _rec="balanced"
-  if [[ "$PROVIDERS" == *"kimi"* && "$PROVIDERS" == *"openai"* && "$PROVIDERS" == *"deepseek"* ]]; then
+  if [[ "$PROVIDERS" == *"qwen"* ]]; then
+    _rec="qwen"
+  elif [[ "$PROVIDERS" == *"kimi"* && "$PROVIDERS" == *"openai"* && "$PROVIDERS" == *"deepseek"* ]]; then
     _rec="kimi"
   elif [[ "$PROVIDERS" == *"openai"* ]]; then
     _rec="openai"
@@ -219,6 +237,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     custom)    _def_num=5 ;;
     openai)    _def_num=6 ;;
     kimi)      _def_num=8 ;;
+    qwen)      _def_num=9 ;;
     *)         _def_num=1 ;;
   esac
 
@@ -231,6 +250,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
   echo "  6) openai     $([[ "$_rec" == "openai" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (ChatGPT Plus OAuth via /connect)"
   echo "  7) openai-fast (opt-in OAuth Fast/Priority; increased usage)"
   echo "  8) kimi       $([[ "$_rec" == "kimi" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (K3 1M + OpenAI support roles)"
+  echo "  9) qwen       $([[ "$_rec" == "qwen" ]] && echo -e "${GREEN}(recommended)${RESET}" || echo "") (Qwen 3.8 Max Preview xhigh + OpenAI support roles)"
   read -rp "  Enter number [$_def_num]: " _q2 < /dev/tty
   _q2="${_q2:-$_def_num}"
   case "$_q2" in
@@ -241,6 +261,7 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     6) PRESET="openai" ;;
     7) PRESET="openai-fast" ;;
     8) PRESET="kimi" ;;
+    9) PRESET="qwen" ;;
     *) PRESET="balanced" ;;
   esac
   echo -e "  ${GREEN}→${RESET} $PRESET"
@@ -261,6 +282,20 @@ if [[ "$UNATTENDED" -eq 0 ]]; then
     fi
     if [[ "$PROVIDERS" != *"deepseek"* ]]; then
       echo -e "  ${YELLOW}⚠${RESET} The kimi preset uses direct DeepSeek fallbacks/council. Adding deepseek to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
+    fi
+  fi
+  if [[ "$PRESET" == "qwen" ]]; then
+    if [[ "$PROVIDERS" != *"qwen"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The qwen preset requires Alibaba/Qwen. Adding qwen to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}qwen"
+    fi
+    if [[ "$PROVIDERS" != *"openai"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The qwen preset uses OpenAI support roles. Adding openai to providers."
+      PROVIDERS="${PROVIDERS:+$PROVIDERS,}openai"
+    fi
+    if [[ "$PROVIDERS" != *"deepseek"* ]]; then
+      echo -e "  ${YELLOW}⚠${RESET} The qwen preset uses direct DeepSeek fallbacks/council. Adding deepseek to providers."
       PROVIDERS="${PROVIDERS:+$PROVIDERS,}deepseek"
     fi
   fi
@@ -326,7 +361,7 @@ fi
 # Validate preset before summary/dry-run.
 if [[ -n "${PRESET:-}" ]]; then
   case "$PRESET" in
-    custom|balanced|cheap|premium|deepseek|openai|openai-fast|kimi) ;;
+    custom|balanced|cheap|premium|deepseek|openai|openai-fast|kimi|qwen) ;;
     *) echo -e "${RED}Error: unknown preset '$PRESET'${RESET}" >&2; exit 1 ;;
   esac
 fi
@@ -413,6 +448,139 @@ if [[ "$PRESET" == "kimi" ]]; then
         --quiet; then
     _kimi_config_error
   fi
+fi
+
+_qwen_config_error() {
+  echo -e "${RED}Error: qwen is unavailable in the effective configuration.${RESET}" >&2
+  echo "  Upgrade or merge opencode.json, oh-my-opencode-slim.json, and model-profile.jsonc, then retry; no files were changed." >&2
+  exit 1
+}
+
+_qwen_preset_available() {
+  python3 - "$1" "$2" <<'PY'
+import json
+import sys
+
+QWEN = "alibaba-token-plan/qwen3.8-max-preview"
+SOL_FAST = "openai/gpt-5.6-sol-fast"
+GPT55_FAST = "openai/gpt-5.5-fast"
+MISSING = object()
+
+with open(sys.argv[1], encoding="utf-8") as core_file:
+    core = json.load(core_file)
+with open(sys.argv[2], encoding="utf-8") as slim_file:
+    slim = json.load(slim_file)
+
+providers = core.get("provider", {})
+if not isinstance(providers, dict) or "alibaba-token-plan" in providers:
+    raise SystemExit(1)
+
+valid_models = {QWEN}
+for provider_name, provider in providers.items():
+    models = provider.get("models", {}) if isinstance(provider, dict) else {}
+    if isinstance(models, dict):
+        valid_models.update(f"{provider_name}/{model_name}" for model_name in models)
+
+presets = slim.get("presets", {})
+council_presets = slim.get("council", {}).get("presets", {})
+qwen = presets.get("qwen", {}) if isinstance(presets, dict) else {}
+qwen_council = (
+    council_presets.get("qwen", {}) if isinstance(council_presets, dict) else {}
+)
+expected_roles = {
+    "orchestrator", "oracle", "librarian", "explorer", "fixer",
+    "designer", "observer", "council",
+}
+if not isinstance(qwen, dict) or set(qwen) != expected_roles:
+    raise SystemExit(1)
+
+def model_refs(value):
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [ref for item in value for ref in model_refs(item)]
+    if isinstance(value, dict):
+        model_id = value.get("id")
+        return [model_id] if isinstance(model_id, str) else []
+    return []
+
+def signature(role):
+    entry = qwen.get(role, {})
+    refs = model_refs(entry.get("model")) if isinstance(entry, dict) else []
+    primary = refs[0] if refs else None
+    temperature = entry["temperature"] if "temperature" in entry else MISSING
+    return primary, entry.get("variant"), temperature
+
+public_leads = (
+    (QWEN, "xhigh", MISSING),
+    (GPT55_FAST, "xhigh", 0.2),
+)
+live_leads = (
+    (SOL_FAST, "high", 0.2),
+    (QWEN, "xhigh", MISSING),
+)
+lead_layout = (signature("orchestrator"), signature("oracle"))
+if lead_layout not in (public_leads, live_leads):
+    raise SystemExit(1)
+
+shared_roles = {
+    "librarian": (SOL_FAST, "high", 0.2),
+    "explorer": (SOL_FAST, "high", 0.1),
+    "fixer": (SOL_FAST, "high", 0.2),
+    "designer": (SOL_FAST, "high", 0.4),
+    "observer": (SOL_FAST, "high", 0.2),
+    "council": (SOL_FAST, "high", 0.2),
+}
+if any(signature(role) != expected for role, expected in shared_roles.items()):
+    raise SystemExit(1)
+
+expected_council = {
+    "reviewer-1": {"model": QWEN, "variant": "xhigh"},
+    "reviewer-2": {"model": GPT55_FAST, "variant": "xhigh"},
+    "reviewer-3": {"model": "deepseek/deepseek-v4-pro", "variant": "max"},
+}
+if qwen_council != expected_council:
+    raise SystemExit(1)
+
+all_refs = []
+for entry in qwen.values():
+    all_refs.extend(model_refs(entry.get("model")) if isinstance(entry, dict) else [])
+for entry in qwen_council.values():
+    all_refs.extend(model_refs(entry.get("model")) if isinstance(entry, dict) else [])
+if any(ref not in valid_models for ref in all_refs):
+    raise SystemExit(1)
+if sum(ref == QWEN for ref in all_refs) != 2:
+    raise SystemExit(1)
+if any(
+    ref.startswith("alibaba-token-plan/") and ref != QWEN
+    for ref in all_refs
+):
+    raise SystemExit(1)
+if any(ref.startswith("openai/gpt-") and "-fast" not in ref for ref in all_refs):
+    raise SystemExit(1)
+PY
+}
+
+if [[ "$PRESET" == "qwen" ]]; then
+  _qwen_core="$(_effective_config opencode.json)" || _qwen_config_error
+  _qwen_slim="$(_effective_config oh-my-opencode-slim.json)" || _qwen_config_error
+  _qwen_profile="$(_effective_config model-profile.jsonc)" || _qwen_config_error
+  _qwen_generator="$REPO_ROOT/scripts/model-profile.py"
+
+  [[ -f "$_qwen_generator" ]] || _qwen_config_error
+
+  if ! _qwen_preset_available "$_qwen_core" "$_qwen_slim"; then
+    _qwen_config_error
+  fi
+
+  _qwen_generated="$(mktemp "${TMPDIR:-/tmp}/occams-qwen-preflight.XXXXXX")"
+  if ! python3 "$_qwen_generator" "$_qwen_profile" "$_qwen_generated" \
+      >/dev/null 2>&1 ||
+      ! _qwen_preset_available "$_qwen_core" "$_qwen_generated"; then
+    rm -f "$_qwen_generated"
+    _qwen_config_error
+  fi
+  rm -f "$_qwen_generated"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────

@@ -165,9 +165,13 @@ def check_reasoning(core: dict) -> tuple[int, int]:
     return errors, warnings
 
 
+QWEN_MODEL_REF = "alibaba-token-plan/qwen3.8-max-preview"
+BUILTIN_MODEL_REFS = {QWEN_MODEL_REF}
+
+
 def collect_valid_models(core: dict) -> set[str]:
     """Build set of 'providerId/modelId' strings from opencode.json."""
-    valid = set()
+    valid = set(BUILTIN_MODEL_REFS)
     for pn, pv in core.get("provider", {}).items():
         for mn, _mv in iter_models(pv):
             valid.add(f"{pn}/{mn}")
@@ -301,9 +305,11 @@ OPENAI_FAST_SPEC = {
 
 EXPECTED_PRESETS = {
     "custom", "balanced", "premium", "deepseek", "cheap", "openai",
-    "openai-fast", "kimi",
+    "openai-fast", "kimi", "qwen",
 }
-OMO_VERSION = "2.2.7"
+EXPECTED_CORE_MODEL_COUNT = 21
+EXPECTED_CUSTOM_PROVIDER_COUNT = 4
+OMO_VERSION = "2.2.8"
 OMO_PIN = f"oh-my-opencode-slim@{OMO_VERSION}"
 OMO_SCHEMA = (
     f"https://unpkg.com/oh-my-opencode-slim@{OMO_VERSION}/"
@@ -355,6 +361,14 @@ KIMI_COUNCIL_SPEC = {
         "variant": "max",
     },
 }
+QWEN_COUNCIL_SPEC = {
+    "reviewer-1": {"model": QWEN_MODEL_REF, "variant": "xhigh"},
+    "reviewer-2": {"model": "openai/gpt-5.5-fast", "variant": "xhigh"},
+    "reviewer-3": {
+        "model": "deepseek/deepseek-v4-pro",
+        "variant": "max",
+    },
+}
 
 
 def check_omo_contract(
@@ -362,7 +376,7 @@ def check_omo_contract(
     slim: dict,
     tui: dict | None = None,
 ) -> tuple[int, int]:
-    """Validate the exact omo-slim pin/schema and v2.2.7 config surface."""
+    """Validate the exact omo-slim pin/schema and v2.2.8 config surface."""
     errors = warnings = 0
 
     def require(label: str, predicate: bool, detail: str) -> None:
@@ -401,7 +415,7 @@ def check_omo_contract(
 
     removed_top_level = sorted(REMOVED_TOP_LEVEL_KEYS.intersection(slim))
     require(
-        "no removed omo-slim 2.2.7 top-level keys",
+        "no removed omo-slim 2.2.8 top-level keys",
         not removed_top_level,
         f"removed keys present: {removed_top_level}",
     )
@@ -412,7 +426,7 @@ def check_omo_contract(
         if isinstance(council, dict) else REMOVED_COUNCIL_KEYS
     )
     require(
-        "no removed omo-slim 2.2.7 council keys",
+        "no removed omo-slim 2.2.8 council keys",
         not removed,
         f"removed keys present: {removed}",
     )
@@ -431,7 +445,7 @@ def check_omo_contract(
     require(
         "backgroundJobs.continueOnIdle omitted (schema default false)",
         isinstance(background_jobs, dict) and "continueOnIdle" not in background_jobs,
-        "omit continueOnIdle to keep 2.2.7 idle continuation disabled",
+        "omit continueOnIdle to keep 2.2.8 idle continuation disabled",
     )
     return errors, warnings
 
@@ -475,12 +489,12 @@ def check_kimi_profile(
     presets = slim.get("presets", {})
     council_presets = slim.get("council", {}).get("presets", {})
     require(
-        "exact eight agent presets",
+        "exact nine agent presets",
         isinstance(presets, dict) and set(presets) == EXPECTED_PRESETS,
         f"expected {sorted(EXPECTED_PRESETS)}",
     )
     require(
-        "exact eight council presets",
+        "exact nine council presets",
         isinstance(council_presets, dict)
         and set(council_presets) == EXPECTED_PRESETS,
         f"expected {sorted(EXPECTED_PRESETS)}",
@@ -605,6 +619,7 @@ def check_kimi_profile(
 
     allowed_alias_paths = {
         "presets.kimi.orchestrator.model[1]",
+        "presets.qwen.orchestrator.model[1]",
     }
     alias_paths = {
         path
@@ -612,7 +627,7 @@ def check_kimi_profile(
         if value == SOL_FAST_HIGH_MODEL_REF
     }
     require(
-        "Sol Fast-high alias restricted to Kimi first fallbacks",
+        "Sol Fast-high alias restricted to Kimi-derived first fallbacks",
         alias_paths == allowed_alias_paths,
         f"expected alias only at {sorted(allowed_alias_paths)}; got {sorted(alias_paths)}",
     )
@@ -680,6 +695,207 @@ def check_kimi_profile(
     if expected_default is not None:
         require(
             "expected Kimi-migration default preset",
+            slim.get("preset") == expected_default
+            and slim.get("council", {}).get("default_preset") == expected_default,
+            f"expected top-level and council default {expected_default!r}",
+        )
+
+    return errors, warnings
+
+
+def check_qwen_profile(
+    core: dict,
+    slim: dict,
+    *,
+    expected_default: str | None = None,
+) -> tuple[int, int]:
+    """Validate the built-in Qwen preset and its structural Kimi parity."""
+    errors = warnings = 0
+
+    def require(label: str, predicate: bool, detail: str) -> None:
+        nonlocal errors, warnings
+        errors, warnings = check(
+            "CRITICAL", label, predicate, detail, errors, warnings
+        )
+
+    def first_model(entry: dict) -> str | None:
+        value = entry.get("model") if isinstance(entry, dict) else None
+        if isinstance(value, list) and value:
+            first = value[0]
+            return first.get("id") if isinstance(first, dict) else first
+        return value if isinstance(value, str) else None
+
+    def collect_string_paths(value, path: str = "") -> list[tuple[str, str]]:
+        found = []
+        if isinstance(value, str):
+            found.append((path, value))
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                found.extend(collect_string_paths(item, f"{path}[{index}]"))
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                child = f"{path}.{key}" if path else key
+                found.extend(collect_string_paths(item, child))
+        return found
+
+    providers = core.get("provider", {})
+    total_models = sum(
+        len(provider.get("models", {}))
+        for provider in providers.values()
+        if isinstance(provider, dict) and isinstance(provider.get("models"), dict)
+    ) if isinstance(providers, dict) else 0
+    custom_provider_count = sum(
+        1 for provider in providers.values()
+        if isinstance(provider, dict) and "npm" in provider
+    ) if isinstance(providers, dict) else 0
+    require(
+        "exact public core model count",
+        total_models == EXPECTED_CORE_MODEL_COUNT,
+        f"expected {EXPECTED_CORE_MODEL_COUNT} explicit models; got {total_models}",
+    )
+    require(
+        "exact custom npm-provider count",
+        custom_provider_count == EXPECTED_CUSTOM_PROVIDER_COUNT,
+        f"expected {EXPECTED_CUSTOM_PROVIDER_COUNT} custom npm providers; "
+        f"got {custom_provider_count}",
+    )
+    require(
+        "built-in Qwen adds no explicit core provider",
+        isinstance(providers, dict) and "alibaba-token-plan" not in providers,
+        "models.dev supplies the adapter, base URL, limits, and modalities; "
+        "/connect writes provider-keyed credentials to "
+        "~/.local/share/opencode/auth.json; one minimal live empty-directory "
+        "--pure xhigh canary proved stored auth, built-in routing, exact preview "
+        "ID acceptance, and response QWEN_CANARY_OK, but not long context, "
+        "vision/video, tools, or large reasoning consumption",
+    )
+
+    presets = slim.get("presets", {})
+    council_presets = slim.get("council", {}).get("presets", {})
+    require(
+        "exact nine agent presets for Qwen",
+        isinstance(presets, dict) and set(presets) == EXPECTED_PRESETS,
+        f"expected {sorted(EXPECTED_PRESETS)}",
+    )
+    require(
+        "exact nine council presets for Qwen",
+        isinstance(council_presets, dict)
+        and set(council_presets) == EXPECTED_PRESETS,
+        f"expected {sorted(EXPECTED_PRESETS)}",
+    )
+
+    qwen = presets.get("qwen", {}) if isinstance(presets, dict) else {}
+    expected_roles = {
+        "orchestrator": (QWEN_MODEL_REF, "xhigh", None),
+        "oracle": ("openai/gpt-5.5-fast", "xhigh", 0.2),
+        "librarian": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "explorer": ("openai/gpt-5.6-sol-fast", "high", 0.1),
+        "fixer": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "designer": ("openai/gpt-5.6-sol-fast", "high", 0.4),
+        "observer": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+        "council": ("openai/gpt-5.6-sol-fast", "high", 0.2),
+    }
+    require(
+        "exact public Qwen preset roles",
+        isinstance(qwen, dict) and set(qwen) == set(expected_roles),
+        f"expected roles {sorted(expected_roles)}",
+    )
+    for role, (expected_model, expected_variant, expected_temperature) in expected_roles.items():
+        entry = qwen.get(role, {}) if isinstance(qwen, dict) else {}
+        require(
+            f"Qwen {role} primary model",
+            first_model(entry) == expected_model,
+            f"expected {expected_model}",
+        )
+        require(
+            f"Qwen {role} variant",
+            entry.get("variant") == expected_variant,
+            f"expected {expected_variant}",
+        )
+        if expected_temperature is None:
+            require(
+                f"Qwen {role} has no explicit temperature",
+                "temperature" not in entry,
+                "the Qwen xhigh orchestrator must not set temperature",
+            )
+        else:
+            require(
+                f"Qwen {role} temperature",
+                entry.get("temperature") == expected_temperature,
+                f"expected {expected_temperature}",
+            )
+
+    require(
+        "exact Qwen council composition",
+        council_presets.get("qwen") == QWEN_COUNCIL_SPEC
+        if isinstance(council_presets, dict) else False,
+        "expected Qwen preview xhigh, GPT-5.5 Fast xhigh, and DeepSeek V4 Pro max",
+    )
+
+    qwen_selector_paths = {
+        path: value
+        for path, value in collect_string_paths(slim)
+        if value.startswith("alibaba-token-plan/")
+    }
+    expected_selector_paths = {
+        "presets.qwen.orchestrator.model[0]": QWEN_MODEL_REF,
+        "council.presets.qwen.reviewer-1.model": QWEN_MODEL_REF,
+    }
+    require(
+        "exact built-in Qwen preview selector paths",
+        qwen_selector_paths == expected_selector_paths,
+        "use alibaba-token-plan/qwen3.8-max-preview exactly; no stable alias exists; "
+        f"got {qwen_selector_paths}",
+    )
+
+    kimi = presets.get("kimi", {}) if isinstance(presets, dict) else {}
+    normalized_qwen = copy.deepcopy(qwen) if isinstance(qwen, dict) else {}
+    normalized_orchestrator = normalized_qwen.get("orchestrator", {})
+    normalized_models = normalized_orchestrator.get("model")
+    if isinstance(normalized_models, list) and normalized_models:
+        normalized_models[0] = KIMI_MODEL_REF
+    elif isinstance(normalized_models, str):
+        normalized_orchestrator["model"] = KIMI_MODEL_REF
+    normalized_orchestrator.pop("variant", None)
+    require(
+        "Qwen agent structure matches public Kimi except direct lead substitution",
+        normalized_qwen == kimi,
+        "Qwen must retain Kimi fallbacks, roles, temperatures, skills, and MCPs",
+    )
+
+    kimi_council = (
+        council_presets.get("kimi", {}) if isinstance(council_presets, dict) else {}
+    )
+    normalized_qwen_council = copy.deepcopy(
+        council_presets.get("qwen", {}) if isinstance(council_presets, dict) else {}
+    )
+    normalized_reviewer = normalized_qwen_council.get("reviewer-1", {})
+    normalized_reviewer["model"] = KIMI_MODEL_REF
+    normalized_reviewer.pop("variant", None)
+    require(
+        "Qwen council structure matches public Kimi except direct reviewer substitution",
+        normalized_qwen_council == kimi_council,
+        "only reviewer-1 may differ from the public Kimi council",
+    )
+
+    qwen_gpt_refs = [
+        (path, value)
+        for path, value in collect_string_paths({
+            "preset": qwen,
+            "council": council_presets.get("qwen", {})
+            if isinstance(council_presets, dict) else {},
+        })
+        if value.startswith("openai/gpt-") and "-fast" not in value
+    ]
+    require(
+        "all Qwen GPT routes use Fast/Priority models",
+        not qwen_gpt_refs,
+        f"non-fast GPT references: {qwen_gpt_refs}",
+    )
+
+    if expected_default is not None:
+        require(
+            "expected Qwen-support default preset",
             slim.get("preset") == expected_default
             and slim.get("council", {}).get("default_preset") == expected_default,
             f"expected top-level and council default {expected_default!r}",
@@ -839,12 +1055,12 @@ def check_openai_fast_parity(
         existing_presets = {
             name: value
             for name, value in presets.items()
-            if name not in {"openai-fast", "kimi"}
+            if name not in {"openai-fast", "kimi", "qwen"}
         }
         existing_council = {
             name: value
             for name, value in council_presets.items()
-            if name not in {"openai-fast", "kimi"}
+            if name not in {"openai-fast", "kimi", "qwen"}
         }
         require(
             "pre-existing preset baseline",
@@ -925,7 +1141,7 @@ def discover_self_test_configs() -> tuple[Path, Path, Path, str | None]:
 
 
 def run_self_test() -> int:
-    """Exercise model references, OpenAI Fast parity, and generator de-dupe."""
+    """Exercise model references, OpenAI Fast parity, and public mixed presets."""
     core = {"provider": {"test": {"models": {"one": {}, "two": {}}}}}
     valid = {
         "council": {"presets": {"test": {"reviewer": {"model": [
@@ -935,6 +1151,25 @@ def run_self_test() -> int:
     }
     valid_errors, _ = check_referential_integrity(core, valid)
     assert valid_errors == 0, "valid mixed council array was rejected"
+
+    builtin_qwen = {
+        "presets": {
+            "qwen": {"orchestrator": {"model": QWEN_MODEL_REF}},
+        },
+    }
+    builtin_qwen_errors, _ = check_referential_integrity(core, builtin_qwen)
+    assert builtin_qwen_errors == 0, "built-in Qwen selector was rejected"
+    for invalid_qwen_ref in (
+        "alibaba-token-plan/qwen3.8-max-prevew",
+        "alibaba-token-plan/qwen3.8-max",
+    ):
+        invalid_qwen = copy.deepcopy(builtin_qwen)
+        invalid_qwen["presets"]["qwen"]["orchestrator"]["model"] = invalid_qwen_ref
+        with contextlib.redirect_stdout(io.StringIO()):
+            invalid_qwen_errors, _ = check_referential_integrity(core, invalid_qwen)
+        assert invalid_qwen_errors > 0, (
+            f"invalid Qwen selector was accepted: {invalid_qwen_ref}"
+        )
 
     malformed = {
         "council": {"presets": {"test": {"reviewer": {"model": [
@@ -1174,6 +1409,7 @@ def run_self_test() -> int:
     approved_aliases = {base: fast for fast, base in approved_dedupe.items()}
     assert generator.FAST_MODEL_DEDUPE_EQUIVALENCE == approved_dedupe
     assert generator.KIMI_COUNCIL_MODEL_ALIASES == approved_aliases
+    assert generator.QWEN_COUNCIL_MODEL_ALIASES == approved_aliases
 
     with tempfile.TemporaryDirectory(prefix="model-profile-self-test-") as tmp:
         tmp_path = Path(tmp)
@@ -1251,15 +1487,21 @@ def run_self_test() -> int:
             "openai": copy.deepcopy(reviewers),
             "openai-fast": copy.deepcopy(reviewers),
             "kimi": copy.deepcopy(reviewers),
+            "qwen": copy.deepcopy(reviewers),
         },
     })["presets"]
     assert generated_council["openai"] == reviewers
     assert generated_council["openai-fast"] == fast_reviewers
     assert generated_council["kimi"] == fast_reviewers
+    assert generated_council["qwen"] == fast_reviewers
 
     default_kimi_council = generator.build_council(None)["presets"]["kimi"]
     assert default_kimi_council == KIMI_COUNCIL_SPEC, (
         "default Kimi council drifted from the exact Fast/Priority contract"
+    )
+    default_qwen_council = generator.build_council(None)["presets"]["qwen"]
+    assert default_qwen_council == QWEN_COUNCIL_SPEC, (
+        "default Qwen council drifted from the exact Fast/Priority contract"
     )
 
     def collect_openai_gpt_refs(value) -> list[str]:
@@ -1288,11 +1530,15 @@ def run_self_test() -> int:
     public_omo_errors, _ = check_omo_contract(
         public_core, public_slim, public_tui
     )
-    assert public_omo_errors == 0, "valid public omo-slim 2.2.7 contract was rejected"
+    assert public_omo_errors == 0, "valid public omo-slim 2.2.8 contract was rejected"
     public_errors, _ = check_kimi_profile(
         public_core, public_slim, expected_default=expected_default
     )
     assert public_errors == 0, "valid public Kimi profile was rejected"
+    public_qwen_errors, _ = check_qwen_profile(
+        public_core, public_slim, expected_default=expected_default
+    )
+    assert public_qwen_errors == 0, "valid public Qwen profile was rejected"
 
     def assert_omo_mutation_rejected(name: str, edit) -> None:
         mutated_core = copy.deepcopy(public_core)
@@ -1307,13 +1553,13 @@ def run_self_test() -> int:
 
     omo_mutations = {
         "stale core pin": lambda core, _slim, _tui: core.update(
-            plugin=["oh-my-opencode-slim@2.2.5"]
+            plugin=["oh-my-opencode-slim@2.2.7"]
         ),
         "stale TUI pin": lambda _core, _slim, tui: tui.update(
-            plugin=["oh-my-opencode-slim@2.2.5"]
+            plugin=["oh-my-opencode-slim@2.2.7"]
         ),
         "stale schema": lambda _core, slim, _tui: slim.update(
-            {"$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.5/oh-my-opencode-slim.schema.json"}
+            {"$schema": "https://unpkg.com/oh-my-opencode-slim@2.2.7/oh-my-opencode-slim.schema.json"}
         ),
         "removed top-level tmux": lambda _core, slim, _tui: slim.update(
             tmux={"enabled": True}
@@ -1376,13 +1622,40 @@ def run_self_test() -> int:
     for mutation_name, edit in kimi_mutations.items():
         assert_kimi_mutation_rejected(mutation_name, edit)
 
+    def assert_qwen_mutation_rejected(name: str, edit) -> None:
+        mutated_core = copy.deepcopy(public_core)
+        mutated_slim = copy.deepcopy(public_slim)
+        edit(mutated_core, mutated_slim)
+        with contextlib.redirect_stdout(io.StringIO()):
+            mutation_errors, _ = check_qwen_profile(
+                mutated_core, mutated_slim, expected_default=expected_default
+            )
+        assert mutation_errors > 0, f"Qwen mutation was accepted: {name}"
+
+    qwen_mutations = {
+        "preview typo": lambda _core, slim: slim["presets"]["qwen"]["orchestrator"]["model"].__setitem__(0, "alibaba-token-plan/qwen3.8-max-prevew"),
+        "nonexistent stable alias": lambda _core, slim: slim["presets"]["qwen"]["orchestrator"]["model"].__setitem__(0, "alibaba-token-plan/qwen3.8-max"),
+        "lead effort drift": lambda _core, slim: slim["presets"]["qwen"]["orchestrator"].update(variant="medium"),
+        "lead temperature added": lambda _core, slim: slim["presets"]["qwen"]["orchestrator"].update(temperature=0.2),
+        "inherited fallback drift": lambda _core, slim: slim["presets"]["qwen"]["fixer"]["model"].__setitem__(1, "openrouter/moonshotai/kimi-k3"),
+        "support role drift": lambda _core, slim: slim["presets"]["qwen"]["oracle"].update(temperature=0.3),
+        "reviewer stable alias": lambda _core, slim: slim["council"]["presets"]["qwen"]["reviewer-1"].update(model="alibaba-token-plan/qwen3.8-max"),
+        "reviewer effort drift": lambda _core, slim: slim["council"]["presets"]["qwen"]["reviewer-1"].update(variant="medium"),
+        "non-fast council GPT": lambda _core, slim: slim["council"]["presets"]["qwen"]["reviewer-2"].update(model="openai/gpt-5.5"),
+        "explicit Alibaba provider": lambda core, _slim: core["provider"].update({"alibaba-token-plan": {"npm": "@ai-sdk/openai-compatible", "models": {}}}),
+        "extra OpenRouter model": lambda core, _slim: core["provider"]["openrouter"]["models"].update({"extra-test-model": {}}),
+    }
+    for mutation_name, edit in qwen_mutations.items():
+        assert_qwen_mutation_rejected(mutation_name, edit)
+
     print(
         "Self-test passed: absent/partial gating, 19 Fast parity mutations, "
         "16 directional mutations, exact dedupe map, agent/council alias mapping, "
         "stable-first ordering, byte-identical generator output modes, null-variant "
-        f"semantics, {len(omo_mutations)} omo 2.2.7 contract mutations, exact "
-        "default Kimi council, exact eight-preset Kimi config, and "
-        f"{len(kimi_mutations)} Kimi negative mutations."
+        f"semantics, {len(omo_mutations)} omo 2.2.8 contract mutations, exact "
+        "default Kimi/Qwen councils, exact nine-preset public config, "
+        f"{len(kimi_mutations)} Kimi negative mutations, and "
+        f"{len(qwen_mutations)} Qwen negative mutations."
     )
     return 0
 
@@ -1452,7 +1725,7 @@ def check_output_cap() -> tuple[int, int]:
             "HIGH",
             "OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX is unset",
             False,
-            "defaults to 32K — 17/19 models capped below their limits",
+            "defaults to 32K — 19/21 models capped below their limits",
             errors, warnings,
         )
     cap = int(cap_str)
@@ -1461,7 +1734,7 @@ def check_output_cap() -> tuple[int, int]:
             "HIGH",
             f"OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX={cap} (≤32K)",
             False,
-            "17/19 models have output limits above 32K",
+            "19/21 models have output limits above 32K",
             errors, warnings,
         )
     return errors, warnings
@@ -1500,7 +1773,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--self-test", action="store_true",
-        help="Run focused model-reference, OpenAI Fast, and Kimi checks",
+        help="Run focused model-reference, OpenAI Fast, Kimi, and Qwen checks",
     )
     parser.add_argument(
         "--expected-default",
@@ -1552,7 +1825,7 @@ def main() -> int:
         print(f"  {DIM}tui:   {tui_path}{RESET}")
     print()
 
-    # ── omo-slim 2.2.7 contract ──
+    # ── omo-slim 2.2.8 contract ──
     e, w = check_omo_contract(core, slim, tui)
     total_errors += e
     total_warnings += w
@@ -1585,6 +1858,15 @@ def main() -> int:
 
     # ── Kimi K3 exact preset and alias contract ──
     e, w = check_kimi_profile(
+        core,
+        slim,
+        expected_default=args.expected_default,
+    )
+    total_errors += e
+    total_warnings += w
+
+    # ── Built-in Qwen exact preset and Kimi structural parity ──
+    e, w = check_qwen_profile(
         core,
         slim,
         expected_default=args.expected_default,

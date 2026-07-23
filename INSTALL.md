@@ -30,7 +30,7 @@ The installer is interactive by default and asks you exactly the right questions
 
 ### API keys
 
-You need **at least one** provider. The default `balanced` preset works with just an OpenRouter key.
+You need **at least one** provider. The default `balanced` preset works with just an OpenRouter key; OpenAI and Alibaba Qwen use OpenCode's `/connect` authentication instead of installer-managed secrets.
 
 | Provider | Get key | Use case |
 |----------|---------|----------|
@@ -40,12 +40,17 @@ You need **at least one** provider. The default `balanced` preset works with jus
 | Z.AI | https://z.ai | `custom` preset + Z.AI MCPs (subscription) |
 | Kimi for Coding | https://platform.moonshot.cn | `custom` or K3-first `kimi` preset (subscription) |
 | OpenAI | `/connect` inside OpenCode | Recommended `openai`, or opt-in `openai-fast` (ChatGPT Plus OAuth) |
+| Alibaba Qwen Token Plan | `/connect` inside OpenCode | Qwen-first `qwen` preset; built-in OpenCode provider |
 
 `openai-fast` uses the OAuth Fast/Priority route while keeping `openai`'s GPT-5.6 Sol/Terra roles, capabilities, reasoning, fallbacks, and council unchanged. The released Codex catalog describes about 1.5× generation speed with increased usage; the exact GPT-5.6 multiplier is unpublished. In the interactive installer, choosing OpenAI recommends normal `openai`; unattended installs default to `balanced` unless a preset is specified.
 
 The `kimi` preset uses intrinsic-max Kimi K3 1M for the orchestrator, GPT-5.6 Sol Fast high for the fixer and other OpenAI OAuth support roles, GPT-5.5 Fast xhigh for the oracle, and direct DeepSeek fallbacks/council. The local selector `kimi-for-coding/kimi-k3-1m` maps to the canonical direct API wire ID `k3`, not `k3[1m]`. The declared 1M/128K metadata is expected for entitled plans, but no successful request above 262K tokens has been locally proven. Every GPT route in the preset and council uses Fast/Priority transport. Select Kimi, OpenAI, and DeepSeek; the installer adds any missing provider when `kimi` is selected. The repository and unattended default remains `balanced`.
 
+The `qwen` preset is structurally derived from the public `kimi` preset, replacing only its direct Kimi orchestrator and reviewer with `alibaba-token-plan/qwen3.8-max-preview` at explicit `xhigh`. There is no stable `qwen3.8-max` alias, and the Qwen lead has no explicit temperature: the server default/clamp yields 0.6, while a role-level temperature would also propagate to fallback models. OpenCode 1.18.4/models.dev supplies the preferred built-in OpenAI-compatible adapter, base URL, 1,000,000-token context, 131,072-token output, text/image/video input, and low/medium/xhigh variants; 983,616 is a manual-client cap, not the built-in model limit. Do not add an Alibaba provider block to `opencode.json`, and do not copy the official manual `@ai-sdk/anthropic` + `/compatible-mode/v1` recipe over the built-in integration: it conflicts with Qwen's protocol-specific endpoint table and creates a separate provider. `/connect` writes provider-keyed credentials to `~/.local/share/opencode/auth.json`, outside the repository, so the installer never asks for a Qwen secret. One minimal live empty-directory `--pure` canary with the exact preview ID and `--variant xhigh` identified `qwen3.8-max-preview` and returned exactly `QWEN_CANARY_OK`, proving stored `/connect` auth, built-in routing, preview-ID acceptance, and a response. It did not test long context, vision/video, tools, or large reasoning consumption. GPT-5.5 Fast xhigh remains Oracle, Sol Fast high remains every support role/chair, and the council remains Qwen xhigh + GPT-5.5 Fast xhigh + DeepSeek V4 Pro max. Select Qwen, OpenAI, and DeepSeek; the installer adds missing routing providers. The repository and unattended default remains `balanced`.
+
 Fresh installs provision the bundled K3 model, profile, and generated config directly. Existing installations keep preserve-only user configs unchanged. If those configs predate Kimi support, merge or sync bundled `config/opencode.json`, `config/model-profile.jsonc`, and `config/oh-my-opencode-slim.json` before selecting `--preset kimi`; the installer preflight fails safely instead of overwriting them.
+
+Qwen uses the built-in OpenCode provider and therefore adds no core provider object. Existing preserve-only configs must still contain the Qwen profile/generated configuration and required OpenAI/DeepSeek routes. The installer availability preflight accepts both supported lead layouts: public Qwen xhigh orchestrator + GPT-5.5 Fast xhigh Oracle, or live Sol Fast high orchestrator + Qwen xhigh Oracle. Public CI doctor checks remain strict to the public/source layout. If existing configs predate Qwen support or are malformed, merge or sync the same three bundled config files before selecting `--preset qwen`; preflight fails safely without overwriting anything.
 
 ---
 
@@ -69,13 +74,13 @@ cd .. && git clone https://github.com/nkoturovic/occams-code.git && cd occams-co
 
 The installer asks:
 
-1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI — multi-select)
-2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi`) — interactively recommended from providers; Kimi + OpenAI + DeepSeek recommends `kimi`, while OpenAI alone recommends normal `openai` (unattended default: `balanced`)
+1. **Which API providers** will you use? (OpenRouter / DeepSeek / Anthropic / Z.AI / Kimi / OpenAI / Alibaba Qwen — multi-select)
+2. **Default preset** (`balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi` / `qwen`) — interactively recommended from providers; Alibaba Qwen recommends `qwen` and adds its required OpenAI + DeepSeek routes, Kimi + OpenAI + DeepSeek recommends `kimi`, and OpenAI alone recommends normal `openai` (unattended default: `balanced`)
 3. **Z.AI MCPs** — only asked if you selected Z.AI; adds `zai_vision` + `web-search-prime` MCP blocks with `{env:Z_AI_API_KEY}` placeholder (your key is stored in `~/.config/secrets/env`)
 4. **Optional CLIs** — `defuddle`, `agent-browser`, Obsidian
 5. **Weekly cron** for log cleanup
 6. **PATH setup** — appends `oc` to your shell rc
-7. **API keys** — writes selected provider keys to `~/.config/secrets/env`
+7. **API keys** — writes selected key-based provider credentials to `~/.config/secrets/env`; OpenAI and Alibaba Qwen use `/connect` and are not prompted here
 
 It confirms a summary before doing any work, then runs.
 
@@ -86,7 +91,7 @@ After install, set up your API keys. Occam's Code uses **two complementary secre
 | **OpenCode auth** | `~/.local/share/opencode/auth.json` | OpenCode itself (per-provider) | JSON |
 | **Shared env-secrets** | `~/.config/secrets/env` | Scripts (`analyze-video.py`, `transcribe`), MCPs (Exa websearch), HF model downloads | shell `export VAR=...` |
 
-The installer's **step 7** writes the shared env-secrets file — it prompts for each selected provider's API key (input hidden), writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. OpenCode's own `auth.json` can be created by running `opencode` once or by writing it manually:
+The installer's **step 7** writes the shared env-secrets file — it prompts for each selected key-based provider's API key (input hidden), writes them to `~/.config/secrets/env` (mode 600), then ensures `~/.profile` sources the file. It does not prompt for OpenAI or Alibaba Qwen. Run `/connect` inside OpenCode for OpenAI OAuth and Alibaba/Qwen provider-keyed API auth; OpenCode stores those credentials in user state outside the repository. OpenCode's own `auth.json` can otherwise be created by running `opencode` once or by writing it manually:
 
 **OpenCode auth.json** (per-provider keys for the agent itself):
 
@@ -169,8 +174,8 @@ OCCAM_SETUP_PATH=1 \
 
 | Variable | Values | Default |
 |----------|--------|---------|
-| `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi,openai` | `openrouter` |
-| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi` | `balanced` |
+| `OCCAM_PROVIDERS` | csv: `openrouter,deepseek,anthropic,zai,kimi,openai,qwen` | `openrouter` |
+| `OCCAM_PRESET` | `balanced` / `cheap` / `deepseek` / `premium` / `custom` / `openai` / `openai-fast` / `kimi` / `qwen` | `balanced` |
 | `OCCAM_ENABLE_ZAI_MCPS` | `0` / `1` | `0` |
 | `OCCAM_ZAI_API_KEY` | string | (hard-fail in unattended if `_ENABLE_ZAI_MCPS=1` and empty) |
 | `OCCAM_INSTALL_DEFUDDLE` | `0` / `1` | `1` |
@@ -201,7 +206,24 @@ Preview the Kimi preset and its configuration preflight without writing:
 ./scripts/install.sh --unattended --dry-run --providers kimi,openai,deepseek --preset kimi
 ```
 
-The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). It installs exact `oh-my-opencode-slim@2.2.7`; when Z.AI MCPs are enabled, their generated local command uses exact `@z_ai/mcp-server@0.1.4`. `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
+Preview the Qwen preset and its preserve-only configuration preflight without network access or secrets:
+
+```bash
+./scripts/install.sh --unattended --dry-run --providers qwen,openai,deepseek --preset qwen
+```
+
+There is no `OCCAM_QWEN_KEY`: authenticate Alibaba Qwen through `/connect` after installation.
+
+The installer is idempotent: re-running skips files that already exist (no destructive overwrites of your customizations). It installs exact `oh-my-opencode-slim@2.2.8`; when Z.AI MCPs are enabled, their generated local command uses exact `@z_ai/mcp-server@0.1.4`. `bin/oc`, `scripts/*`, and `commands/*` are always overwritten so upstream fixes propagate; user-editable files (`AGENTS.md`, `opencode.json`, `oh-my-opencode-slim.json`, `model-profile.jsonc`) are preserved if they exist.
+
+In omo-slim 2.2.8, terminal background jobs lifecycle-reconcile automatically
+after result injection, but the result must still be consumed and verified. Do
+not call the removed `reconcile_task` tool, and do not resume or amend an active
+task ID or alias. Queue amendments until terminal, then resume only sessions
+shown under **Reusable Sessions**. Running task result history is normalized for
+prompt-cache stability, terminal results remain intact, and ACP sends
+`clientInfo.version`. `/preset`, process-local `wait_for_user`, council,
+attribution, fallback/error handling, and task-fit rejection are unchanged.
 
 ---
 
@@ -242,7 +264,7 @@ cp -r skills/simplify        ~/.config/opencode/skills/
 cp -r skills/clonedeps       ~/.config/opencode/skills/
 
 # Plugin
-cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.7   # or 'bun install oh-my-opencode-slim@2.2.7'
+cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.8   # or 'bun install oh-my-opencode-slim@2.2.8'
 
 # Obsidian-skills bundle (optional)
 mkdir -p ~/.opencode/skills
@@ -379,7 +401,7 @@ crontab -l | grep -v cleanup-logs.sh | crontab -
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `bash: bin/oc: bash 4 required` | macOS bash 3.2 | `brew install bash`; see [macOS Bash 5](#macos-bash-5) |
-| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.7` |
+| `Config not found: oh-my-opencode-slim.json` | Plugin install failed | `cd ~/.config/opencode && npm install oh-my-opencode-slim@2.2.8` |
 | `jq: command not found` | jq missing | `apt install jq` / `brew install jq` |
 | Models not loading | Auth.json missing or invalid | `cat ~/.local/share/opencode/auth.json \| jq .` should succeed |
 | `oc --doctor` says wiki structure incomplete | Wiki dirs missing | Re-run occams-agentic `./bin/bootstrap.sh` |

@@ -3,7 +3,7 @@ name: oh-my-opencode-slim
 description: Configure and improve oh-my-opencode-slim for the current user. Use when users want to tune agents, models, prompts, custom agents, skills, MCPs, presets, or plugin behavior. Also use when recurring workflow friction suggests a safe config or prompt improvement.
 ---
 
-# oh-my-opencode-slim v2.2.7 Configuration Skill
+# oh-my-opencode-slim v2.2.8 Configuration Skill
 
 Help users configure, customize, and safely improve their
 oh-my-opencode-slim setup. Prefer the smallest durable change: tune models,
@@ -118,7 +118,7 @@ Cross-preset built-in override:
 }
 ```
 
-## v2.2.7 Runtime and Features
+## v2.2.8 Runtime and Features
 
 - **`/preset` writes configuration; it is not a hot swap**: use the TUI
   autocomplete selection, apply the preset, then reload OpenCode or start a new
@@ -140,7 +140,7 @@ Cross-preset built-in override:
   behavior. Do not opt into `checkpoint-compatible` without cache telemetry.
 - **Background retention and idle continuation stay off**: also omit
   `backgroundJobs.maxRetainedSnapshots` and `backgroundJobs.continueOnIdle`.
-  Omission means no retained checkpoint snapshots and the 2.2.7 default
+  Omission means no retained checkpoint snapshots and the 2.2.8 default
   `continueOnIdle: false`; do not restore the 2.2.6 default-on idle nudges.
 - **`fallback.maxRetries`** (default `3`): number of consecutive rate-limit
   responses before the chain aborts or swaps to the next model.
@@ -169,15 +169,26 @@ Cross-preset built-in override:
   roll-forward.
 - **v2.2.7 managed skill hashes are still unchanged**: do not overwrite
   plugin-managed bundled skill content for this roll-forward.
+- **v2.2.8 schema bytes are unchanged from v2.2.7**: keep the active schema URL
+  pinned to 2.2.8 without changing the validated config shape.
 - **`compactSidebar`** now defaults to `true`: the agent sidebar renders
   compactly out of the box; set it `false` to restore the old spacing.
 - **Background result handling is corrected**: child events are attributed to
   the actual child session, background `session.error` results are reported,
   and fallback races reconcile to the winning child result instead of a stale
   competing outcome.
-- **Terminal reconciliation is state-only**: `reconcile_task` updates scheduler
-  state for an already-terminal job and cannot dispatch or spawn another task.
-  This prevents task-spawn reconciliation loops.
+- **Terminal lifecycle reconciliation is automatic**: after a terminal result is
+  injected, the scheduler lifecycle-reconciles the job automatically. The
+  Orchestrator must still consume and verify that result before advancing.
+  `reconcile_task` was removed in v2.2.8; never attempt to call it.
+- **Active task IDs cannot be resumed or amended**: `task()` with an active task
+  ID or alias errors. Queue amendments until the job is terminal, then resume
+  only sessions listed under **Reusable Sessions**.
+- **Task history is prompt-cache stable**: while a task is running, task
+  tool-result history is normalized for cache stability. Terminal results remain
+  intact for consumption and verification.
+- **ACP identifies its client version**: ACP requests now send
+  `clientInfo.version`.
 - **Manual-operation waits are process-local**: `wait_for_user` is the explicit
   boundary for user action in the current process. It is not durable state and
   must not be described as surviving a restart.
@@ -188,6 +199,10 @@ Cross-preset built-in override:
 - **Council is still native and parallel**: it remains compatible with
   `subagent_depth: 1`. Councillor rows are hidden from the sidebar, while their
   tasks and multiplexer panes remain operational.
+- **Existing 2.2.7 behavior otherwise remains unchanged**: `/preset`,
+  process-local `wait_for_user`, council execution, child attribution,
+  fallback/error handling, and task-fit rejection retain their established
+  semantics.
 - **Foreground fallback and Kimi routing are unchanged from 2.2.4**: preserve
   current fallback chains and the canonical direct Kimi wire ID `k3`.
 
